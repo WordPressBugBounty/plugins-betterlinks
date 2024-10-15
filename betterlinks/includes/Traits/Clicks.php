@@ -51,13 +51,21 @@ trait Clicks {
 		}
 
 		global $wpdb;
-		$query        = "SELECT count(id) as click_count, DATE(created_at) as c_date FROM {$wpdb->prefix}betterlinks_clicks 
-            WHERE created_at  BETWEEN '{$from} 00:00:00' AND '{$to} 23:59:59' GROUP BY c_date ORDER BY c_date DESC";
+		$query        = $wpdb->prepare( 
+			"SELECT count(id) as click_count, DATE(created_at) as c_date FROM {$wpdb->prefix}betterlinks_clicks 
+            WHERE created_at  BETWEEN %s AND %s GROUP BY c_date ORDER BY c_date DESC",
+			$from . ' 00:00:00',
+			$to . ' 23:59:59',
+		 );
 		$total_counts = $wpdb->get_results( $query, ARRAY_A );
 
-		$query         = "SELECT count(ip) as uniq_count, T1.c_date from ( SELECT ip, DATE( created_at ) as c_date FROM {$wpdb->prefix}betterlinks_clicks 
-            WHERE created_at  BETWEEN '{$from} 00:00:00' AND '{$to} 23:59:59' GROUP BY `ip`, `c_date` ) as T1 GROUP BY T1.c_date ORDER BY T1.c_date DESC";
-		$unique_counts = $wpdb->get_results( $wpdb->prepare( $query ), ARRAY_A );
+		$query         = $wpdb->prepare( 
+			"SELECT count(ip) as uniq_count, T1.c_date from ( SELECT ip, DATE( created_at ) as c_date FROM {$wpdb->prefix}betterlinks_clicks 
+            WHERE created_at  BETWEEN %s AND %s GROUP BY `ip`, `c_date` ) as T1 GROUP BY T1.c_date ORDER BY T1.c_date DESC",
+			$from . ' 00:00:00',
+			$to . ' 23:59:59',
+		 );
+		$unique_counts = $wpdb->get_results(  $query, ARRAY_A );
 
 		$results = array(
 			'total_count'  => $total_counts,
@@ -121,8 +129,12 @@ trait Clicks {
 		global $wpdb;
 		$prefix = $wpdb->prefix;
 
-		$query = "SELECT id as link_id, link_title, short_url, target_url from {$prefix}betterlinks as links right join (select distinct link_id from {$prefix}betterlinks_clicks where created_at between '{$from} 00:00:00' and '{$to} 23:59:59') as clicks on clicks.link_id=links.id right join (select tr.link_id from {$prefix}betterlinks_terms t left join {$prefix}betterlinks_terms_relationships tr on t.id=tr.term_id where t.term_type='tags' and t.id='{$id}') tl on links.id=tl.link_id where id!=''";
-
+		$query = $wpdb->prepare(
+			"SELECT id as link_id, link_title, short_url, target_url from {$prefix}betterlinks as links right join (select distinct link_id from {$prefix}betterlinks_clicks where created_at between %s and %s) as clicks on clicks.link_id=links.id right join (select tr.link_id from {$prefix}betterlinks_terms t left join {$prefix}betterlinks_terms_relationships tr on t.id=tr.term_id where t.term_type='tags' and t.id=%s) tl on links.id=tl.link_id where id!=''",
+			$from . ' 00:00:00',
+			$to . ' 23:59:59',
+			$id
+		);
 		$results = $wpdb->get_results( $query, ARRAY_A );
 
 		set_transient( $transient_key, $results, self::$transient_timeout );
@@ -142,7 +154,11 @@ trait Clicks {
 		global $wpdb;
 		$prefix = $wpdb->prefix;
 
-		$query = "SELECT id as link_id, link_title, short_url, target_url from {$prefix}betterlinks as links right join (select distinct link_id from {$prefix}betterlinks_clicks where created_at between '{$from} 00:00:00' and '{$to} 23:59:59') as clicks on clicks.link_id=links.id order by links.id desc";
+		$query = $wpdb->prepare( 
+			"SELECT id as link_id, link_title, short_url, target_url from {$prefix}betterlinks as links right join (select distinct link_id from {$prefix}betterlinks_clicks where created_at between %s and %s) as clicks on clicks.link_id=links.id order by links.id desc",
+			$from . ' 00:00:00',
+			$to . ' 23:59:59',
+		 );
 
 		$results = $wpdb->get_results( $query, ARRAY_A );
 
@@ -167,7 +183,12 @@ trait Clicks {
 		global $wpdb;
 		$fields = 'ID, link_id, ip, browser, referer, os, device,query_params, created_at';
 
-		$query   = "SELECT {$fields} FROM {$wpdb->prefix}betterlinks_clicks WHERE link_id={$id} AND created_at BETWEEN '{$from} 00:00:00' AND '{$to} 23:59:59' ORDER BY created_at DESC";
+		$query   = $wpdb->prepare( 
+			"SELECT {$fields} FROM {$wpdb->prefix}betterlinks_clicks WHERE link_id=%s AND created_at BETWEEN %s AND %s ORDER BY created_at DESC",
+			$id,
+			$from . ' 00:00:00',
+			$to . ' 23:59:59'
+		 );
 		$results = $wpdb->get_results( $query, ARRAY_A );
 
 		set_transient( $transient_key, $results, self::$transient_timeout );
@@ -183,7 +204,18 @@ trait Clicks {
 	 */
 	public function get_individual_link_details( $id ) {
 		global $wpdb;
-		$query = "SELECT link_title, short_url, target_url FROM {$wpdb->prefix}betterlinks where id={$id}";
+		$query = $wpdb->prepare( 
+			"SELECT link_title, short_url, target_url FROM {$wpdb->prefix}betterlinks where id=%s",
+			$id
+		 );
 		return $wpdb->get_row( $query );
+	}
+
+	private function sanitize_date( $date ){
+		if( empty( $date ) ){
+			return false;
+		}
+		$date = sanitize_text_field( $date );
+		return strtotime( $date );
 	}
 }

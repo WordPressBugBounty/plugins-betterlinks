@@ -151,8 +151,8 @@ class Clicks extends Controller {
 	 */
 	public function get_graphs( $request ) {
 		$request = $request->get_params();
-		$from    = isset( $request['from'] ) ? $request['from'] : date( 'Y-m-d', strtotime( ' - 30 days' ) );
-		$to      = isset( $request['to'] ) ? $request['to'] : date( 'Y-m-d' );
+		$from    = $this->sanitize_date( $request['from'] ) ? $request['from'] : date( 'Y-m-d', strtotime( ' - 30 days' ) );
+		$to      = $this->sanitize_date( $request['to'] ) ? $request['to'] : date( 'Y-m-d' );
 
 		$graph_data = $this->get_analytics_graph_data( $from, $to );
 		return new \WP_REST_Response(
@@ -173,9 +173,19 @@ class Clicks extends Controller {
 	 */
 	public function get_tags_graph( $request ) {
 		$request = $request->get_params();
-		$from    = isset( $request['from'] ) ? $request['from'] : '';
-		$to      = isset( $request['to'] ) ? $request['to'] : '';
+		$from    = $this->sanitize_date( $request['from']) ? $request['from'] : '';
+		$to      = $this->sanitize_date( $request['to']) ? $request['to'] : '';
 		$id      = isset( $request['id'] ) ? $request['id'] : '';
+
+		if( empty( $from ) || empty( $to ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( "Invalid date range provided.", 'betterlinks' ),
+				),
+				400
+			);
+		}
 
 		$results = $this->get_analytics_graph_data_by_tag( $from, $to, $id );
 
@@ -196,10 +206,20 @@ class Clicks extends Controller {
 	 */
 	public function get_tags_analytics( $request ) {
 		$request = $request->get_params();
-
-		$from = isset( $request['from'] ) ? $request['from'] : '';
-		$to   = isset( $request['to'] ) ? $request['to'] : '';
+		
+		$from = $this->sanitize_date( $request['from'] ) ? $request['from'] : '';
+		$to   = $this->sanitize_date( $request['to'] ) ? $request['to'] : '';
 		$id   = isset( $request['id'] ) ? $request['id'] : '';
+
+		if( empty( $from ) || empty( $to ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( "Invalid date range provided.", 'betterlinks' ),
+				),
+				400
+			);
+		}
 
 		$results = $this->get_analytics_unique_list_by_tag( $from, $to, $id );
 
@@ -227,8 +247,19 @@ class Clicks extends Controller {
 	public function get_items( $request ) {
 		$request = $request->get_params();
 
-		$from = isset( $request['from'] ) ? $request['from'] : '';
-		$to   = isset( $request['to'] ) ? $request['to'] : '';
+		$from = isset($request['from']) && $this->sanitize_date( $request['from'] ) ? $request['from'] : '';
+		$to = isset($request['to']) && $this->sanitize_date( $request['to'] ) ? $request['to'] : '';
+
+		if( empty( $from ) || empty( $to ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'data' => [],
+					'message' => __( "Invalid date range provided.", 'betterlinks' ),
+				),
+				400
+			);
+		}
 
 		$unique_list = $this->get_analytics_unique_list( $from, $to );
 
@@ -258,8 +289,18 @@ class Clicks extends Controller {
 		$request = $request->get_params();
 
 		$id   = ! empty( $request['id'] ) ? sanitize_text_field( $request['id'] ) : null;
-		$from = ! empty( $request['from'] ) ? sanitize_text_field( $request['from'] ) : '';
-		$to   = ! empty( $request['to'] ) ? sanitize_text_field( $request['to'] ) : '';
+		$from = $this->sanitize_date( $request['from'] ) ? sanitize_text_field( $request['from'] ) : '';
+		$to   = $this->sanitize_date( $request['to'] ) ? sanitize_text_field( $request['to'] ) : '';
+		
+		if( empty( $from ) || empty( $to ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( "Invalid date range provided.", 'betterlinks' ),
+				),
+				400
+			);
+		}
 
 		$results      = $this->get_individual_analytics_clicks( $id, $from, $to );
 		$link_details = $this->get_individual_link_details( $id );

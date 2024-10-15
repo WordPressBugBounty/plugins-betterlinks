@@ -345,8 +345,18 @@ class Ajax {
 
 		$from = isset( $_POST['from'] ) ? sanitize_text_field( wp_unslash( $_POST['from'] ) ) : '';
 		$to   = isset( $_POST['to'] ) ? sanitize_text_field( wp_unslash( $_POST['to'] ) ) : '';
+
+		if( ! strtotime( $from ) || ! strtotime( $to ) ){
+			wp_send_json_error( [
+				'message' => __( "Invalid date range provided.", 'betterlinks' ),
+			], 400 );
+		}
+
 		global $wpdb;
-		$query   = "SELECT id,link_id,ip,created_at FROM {$wpdb->prefix}betterlinks_clicks WHERE created_at BETWEEN '{$from} 00:00:00' AND '{$to} 00:00:00'";
+		$query   = $wpdb->prepare(
+			"SELECT id,link_id,ip,created_at FROM {$wpdb->prefix}betterlinks_clicks WHERE created_at BETWEEN %s AND %s",
+			 $from .  ' 00:00:00', $to . ' 23:59:59');
+
 		$results = $wpdb->get_results( $query );
 		wp_send_json(
 			array(

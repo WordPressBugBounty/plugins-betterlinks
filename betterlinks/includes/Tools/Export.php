@@ -64,9 +64,9 @@ class Export {
 		$results = array();
 		if ( is_array( $links ) && count( $links ) > 0 ) {
 			foreach ( $links as $link ) {
-				$terms     = $this->get_terms_from_link_id( $link['ID'] );
+				$terms              = $this->get_terms_from_link_id( $link['ID'] );
 				$auto_link_keywords = array(
-					'auto_link_keywords' => serialize( $this->get_auto_link_keywords_from_link_id($link['ID']) )
+					'auto_link_keywords' => serialize( $this->get_auto_link_keywords_from_link_id( $link['ID'] ) ),
 				);
 				
 				$results[] = array_merge( $link, $terms, $auto_link_keywords );
@@ -130,7 +130,7 @@ class Export {
 			'',
 			'',
 			'uncategorized',
-			serialize([])
+			serialize( array() ),
 		);
 
 		if ( is_array( $links ) && count( $links ) > 0 ) {
@@ -140,9 +140,9 @@ class Export {
 		return array();
 	}
 
-	public function get_auto_link_keywords_from_link_id( $link_id = 0 ){
+	public function get_auto_link_keywords_from_link_id( $link_id = 0 ) {
 		global $wpdb;
-		$query = sprintf( 'SELECT meta_id, meta_key, meta_value FROM %2$sbetterlinkmeta where link_id=%1$s', $link_id, $wpdb->prefix );
+		$query              = sprintf( 'SELECT meta_id, meta_key, meta_value FROM %2$sbetterlinkmeta where link_id=%1$s', $link_id, $wpdb->prefix );
 		$auto_link_keywords = $wpdb->get_results( $query, ARRAY_A );
 		return $auto_link_keywords;
 	}
@@ -151,7 +151,11 @@ class Export {
 		global $wpdb;
 		$category = array();
 		$tags     = array();
-		$terms    = $wpdb->get_results( "SELECT *  FROM {$wpdb->prefix}betterlinks_terms  LEFT JOIN  {$wpdb->prefix}betterlinks_terms_relationships ON {$wpdb->prefix}betterlinks_terms.ID = {$wpdb->prefix}betterlinks_terms_relationships.term_id WHERE {$wpdb->prefix}betterlinks_terms_relationships.link_id = {$link_id}", ARRAY_A );
+		$query    = $wpdb->prepare(
+			"SELECT *  FROM {$wpdb->prefix}betterlinks_terms  LEFT JOIN  {$wpdb->prefix}betterlinks_terms_relationships ON {$wpdb->prefix}betterlinks_terms.ID = {$wpdb->prefix}betterlinks_terms_relationships.term_id WHERE {$wpdb->prefix}betterlinks_terms_relationships.link_id=%s",
+			$link_id
+		);
+		$terms    = $wpdb->get_results( $query, ARRAY_A );
 		if ( is_array( $terms ) && count( $terms ) > 0 ) {
 			foreach ( $terms as $term ) {
 				if ( 'category' === $term['term_type'] ) {
