@@ -146,6 +146,7 @@ class Assets
             'plugin_root_url' => BETTERLINKS_PLUGIN_ROOT_URI,
             'plugin_root_path' => BETTERLINKS_ROOT_DIR_PATH,
             'site_url' => apply_filters('betterlinks/site_url', site_url()),
+            'actual_site_url' => site_url(),
             'route_path' => parse_url(admin_url(), PHP_URL_PATH),
             'is_pro_enabled' => apply_filters('betterlinks/pro_enabled', false),
             'prefix' => $prefix,

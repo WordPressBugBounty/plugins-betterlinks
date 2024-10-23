@@ -4,6 +4,7 @@ namespace BetterLinks\Admin;
 
 use BetterLinks\Cron;
 use BetterLinks\Helper;
+use BetterLinks\Link\Utils;
 
 class Ajax {
 
@@ -84,6 +85,10 @@ class Ajax {
 		add_action( 'wp_ajax_betterlinks__check_fbs_link', array( $this, 'check_fbs_link' ) );
 		add_action( 'wp_ajax_betterlinks__create_fbs_link', array( $this, 'create_fbs_link' ) );
 		add_action( 'wp_ajax_betterlinks__update_fbs_link', array( $this, 'update_fbs_link' ) );
+
+		// js analytics tracking
+		add_action( 'wp_ajax_nopriv_betterlinks__js_analytics_tracking', array( $this, 'js_analytics_tracking' ) );
+		add_action( 'wp_ajax_betterlinks__js_analytics_tracking', array( $this, 'js_analytics_tracking' ) );
 	}
 
 	public function update_fbs_link() {
@@ -1147,5 +1152,26 @@ class Ajax {
 			wp_send_json_success( $data );
 		}
 		wp_die( "You don't have permission to do this." );
+	}
+
+	public function js_analytics_tracking() {
+		global $wpdb;
+
+		$searchKey = !empty( $_POST['target_url'] ) ? 'target_url' : 'ID';
+		$searchValue = (isset( $_POST['target_url'] ) ? sanitize_url($_POST['target_url']) : '');
+		$searchValue = (empty( $searchValue ) && isset( $_POST['linkId'] ) ? sanitize_text_field( $_POST['linkId'] ) : '');
+		$location = isset( $_POST['location'] ) ? esc_url_raw( $_POST['location'] ) : '';
+		$query = $wpdb->prepare( "select short_url from {$wpdb->prefix}betterlinks where {$searchKey}=%s", $searchValue );
+		$short_url = $wpdb->get_row( $query, ARRAY_A );
+		$short_url = current( $short_url );
+		$utils = new Utils();
+		$data = $utils->get_slug_raw($short_url);
+		$data['skip_password_protection'] = true;
+		$data['location'] = $location;
+		Helper::init_tracking($data, $utils);
+
+		wp_send_json([
+			'data' => true
+		]);
 	}
 }

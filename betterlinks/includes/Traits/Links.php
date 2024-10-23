@@ -36,7 +36,7 @@ trait Links
                                         $value = [];
                                         if (is_array($valueItem)) {
                                             foreach ($valueItem as $childValueKey => $childValueItem) {
-                                                $value[$childValueKey] = \BetterLinks\Helper::sanitize_text_or_array_field($childValueItem);
+                                                $value[$childValueKey] = \BetterLinks\Helper::sanitize_text_or_array_field($childValueItem, $childValueKey);
                                             }
                                         }
                                         $tempTwoSanitizeData[] = $value;

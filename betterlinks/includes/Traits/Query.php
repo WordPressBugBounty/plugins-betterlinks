@@ -593,6 +593,9 @@ trait Query {
 		} elseif ( isset( $item['link_id'] ) ) {
 			$betterlinks = self::get_link_by_ID( $item['link_id'] );
 		}
+		if( empty( $betterlinks ) ){
+			return;
+		}
 		$is_analytics_ip_enabled = isset( $item['ip'] ) && isset( $item['host'] );
 		$addedPlaceholderString  = $is_analytics_ip_enabled ? ' created_at_gmt, rotation_target_url, ip, host ' : ' created_at_gmt, rotation_target_url ';
 		$addedDbColumnsString    = $is_analytics_ip_enabled ? ' %s, %s, %s, %s ' : ' %s, %s ';
@@ -605,21 +608,21 @@ trait Query {
 		$query         = "INSERT INTO {$wpdb->prefix}betterlinks_clicks ( link_id, browser, os,device, referer, uri, click_count, visitor_id, click_order, created_at,  $addedPlaceholderString ) VALUES ( %d, %s, %s, %s, %s, %s, %d, %s, %d, %s,  $addedDbColumnsString )";
 		$db_data_array = array(
 			current( $betterlinks )['ID'],
-			$item['browser'],
-			$item['os'],
-			$item['device'],
-			$item['referer'],
-			$item['uri'],
+			isset( $item['browser'] ) ? $item['browser'] : '',
+			isset( $item['os'] ) ? $item['os'] : '',
+			isset( $item['device'] ) ? $item['device'] : '',
+			isset( $item['referer'] ) ? $item['referer'] : '',
+			isset( $item['uri'] ) ? $item['uri'] : '',
 			isset( $item['click_count'] ) ? $item['click_count'] : 0,
-			$item['visitor_id'],
-			$item['click_order'],
-			$item['created_at'],
-			$item['created_at_gmt'],
-			$item['rotation_target_url'],
+			isset( $item['visitor_id'] ) ? $item['visitor_id'] : '',
+			isset( $item['click_order'] ) ? $item['click_order'] : '',
+			isset( $item['created_at']) ? $item['created_at'] : '',
+			isset( $item['created_at_gmt']) ? $item['created_at_gmt'] : '',
+			isset( $item['rotation_target_url']) ? $item['rotation_target_url'] : '',
 		);
 		if ( $is_analytics_ip_enabled ) {
-			$db_data_array[] = $item['ip'];
-			$db_data_array[] = $item['host'];
+			$db_data_array[] = isset( $item['ip'] ) ? $item['ip'] : '';
+			$db_data_array[] = isset( $item['host'] ) ? $item['host'] : '';
 		}
 		// $db_data_array[] = isset($item['device']) ? $item['device'] : '';
 		if ( $is_extra_data_tracking_compatible ) {
@@ -874,7 +877,7 @@ trait Query {
 
 			return json_decode( current( $results )->meta_value );
 		}
-		return;
+		return false;
 	}
 
 	public static function add_link_meta( $link_id, $meta_key, $meta_value ) {

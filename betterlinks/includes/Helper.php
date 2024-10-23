@@ -3,6 +3,10 @@ namespace BetterLinks;
 
 use BetterLinks\Admin\Cache;
 use WP_Http;
+use DeviceDetector\DeviceDetector;
+use DeviceDetector\Parser\OperatingSystem;
+use DeviceDetector\Parser\Device\AbstractDeviceParser;
+use DeviceDetector\Parser\Client\Browser;
 
 class Helper {
 
@@ -411,11 +415,14 @@ class Helper {
 		return false;
 	}
 
-	public static function sanitize_text_or_array_field( $array_or_string ) {
+	public static function sanitize_text_or_array_field( $array_or_string, $key = '' ) {
 
 		$boolean = array( 'true', 'false', '1', '0' );
 		$skip    = array( 'affiliate_disclosure_text', 'allow_contact_text', 'form_title', 'customFields' );
 		if ( is_string( $array_or_string ) ) {
+			if( 'link' === $key ) {
+				return esc_url_raw($array_or_string);
+			}
 			$array_or_string = in_array( $array_or_string, $boolean ) || is_bool( $array_or_string ) ? rest_sanitize_boolean( $array_or_string ) : sanitize_text_field( $array_or_string );
 		} elseif ( is_array( $array_or_string ) ) {
 			foreach ( $array_or_string as $key => &$value ) {
@@ -685,5 +692,53 @@ class Helper {
 	public static function isJson( $string ) {
 		json_decode( $string );
 		return json_last_error() === JSON_ERROR_NONE;
+	}
+
+	public static function init_tracking( $data, $utils ) {
+		global $betterlinks;
+		$user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ''; // phpcs:ignore
+		$dd         = new DeviceDetector( $user_agent );
+		$dd->parse();
+
+		$data['is_bot'] = $dd->isBot();
+		if ( empty( $data['target_url'] ) || ! apply_filters( 'betterlinks/pre_before_redirect', $data ) ) {
+			// password protection logics
+			if( empty( $data['skip_password_protection'] ) ){
+				do_action( 'betterlinkspro/admin/check_password_protection', $data['short_url'], $data );
+			}
+
+			if ( empty( $data['target_url'] ) || ! apply_filters( 'betterlinks/pre_before_redirect', $data ) ) { // phpcs:ignore
+				return false;
+			}
+		}
+		$data = apply_filters( 'betterlinks/link/before_dispatch_redirect', $data ); // phpcs:ignore.
+		if ( empty( $data ) ) {
+			return false;
+		}
+		do_action( 'betterlinks/before_redirect', $data ); // phpcs:ignore.
+
+		$comparable_url  = rtrim( preg_replace( '/https?\:\/\//', '', site_url( '/' ) ), '/' ) . '/' . $data['short_url'];
+		$destination_url = rtrim( preg_replace( '/https?\:\/\//', '', $data['target_url'] ), '/' );
+		$comparable_url  = rtrim( preg_replace( '/^www\.?/', '', $comparable_url ), '/' );
+		$destination_url = rtrim( preg_replace( '/^www\.?/', '', $destination_url ), '/' );
+		if ( ! $data || $comparable_url === $destination_url ) {
+			return;
+		}
+
+		if ( filter_var( $data['track_me'], FILTER_VALIDATE_BOOLEAN ) ) {
+			$data      = apply_filters( 'betterlinks/extra_tracking_data', $data, $dd );
+	
+			$data['os']      = OperatingSystem::getOsFamily( $dd->getOs( 'name' ) );
+			$data['browser'] = Browser::getBrowserFamily( $dd->getClient( 'name' ) );
+			$data['device']  = $dd->getDeviceName();
+	
+			if ( isset( $betterlinks['disablebotclicks'] ) && $betterlinks['disablebotclicks'] ) {
+				if ( ! $dd->isBot() ) {
+					$utils->start_trakcing( $data );
+				}
+			} else {
+				$utils->start_trakcing( $data );
+			}
+		}
 	}
 }

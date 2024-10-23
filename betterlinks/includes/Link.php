@@ -51,15 +51,13 @@ class Link extends Utils {
 	}
 
 	public function quick_link_creation() {
+		global $betterlinks_settings;
 		if ( isset( $_GET['action'], $_GET['api_key'] ) && sanitize_text_field( $_GET['action'] ) === 'btl_cle' && sanitize_text_field( $_GET['api_key'] ) === md5( AUTH_KEY ) ) {
 			$target_url = isset( $_GET['target_url'] ) ? sanitize_url( $_GET['target_url'] ) : '';
 
 			do_action( 'betterlinks_prevent_unwanted_cle' );
-
-			$title = isset( $_GET['title'] ) ? sanitize_text_field( $_GET['title'] ) : ''; // geting title from document obj, instead of fetching
-
-			$settings = Cache::get_json_settings();
-			if ( empty( $settings['cle']['enable_cle'] ) ) {
+			$title = isset( $_GET['title'] ) ?  sanitize_text_field($_GET['title']) : ''; // geting title from document obj, instead of fetching
+			if ( empty( $betterlinks_settings['cle']['enable_cle'] ) ) {
 				return;
 			}
 
@@ -68,7 +66,7 @@ class Link extends Utils {
 			}
 			
 			if ( ! empty( $title ) ) {
-				$this->create_new_link( $title, $target_url, $settings );
+				$this->create_new_link( $title, $target_url, $betterlinks_settings );
 			}
 
 			return;
