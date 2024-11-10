@@ -3,7 +3,7 @@
  * Plugin Name:		BetterLinks
  * Plugin URI:		https://betterlinks.io/
  * Description:		Ultimate plugin to create, shorten, track and manage any URL. Gather analytics reports and run successfully marketing campaigns easily.
- * Version:			2.1.9
+ * Version:			2.1.10
  * Author:			WPDeveloper
  * Author URI:		https://wpdeveloper.com
  * License:			GPL-3.0+
@@ -40,6 +40,7 @@ if (!class_exists('BetterLinks')) {
             add_action('betterlinks_loaded', [$this, 'init_plugin']);
             add_action('admin_init', [$this, 'run_migrator']);
             add_action('admin_init', [$this, 'do_the_works_if_failed_during_activation'], 100);
+            add_action('admin_init', [$this, 'quick_setup']);
             $this->dispatch_hook();
             add_action( 'wp_enqueue_scripts', [$this, 'frontend_scripts'] );
         }
@@ -82,7 +83,7 @@ if (!class_exists('BetterLinks')) {
             /**
              * Defines CONSTANTS for Whole plugins.
              */
-            define('BETTERLINKS_VERSION', '2.1.9');
+            define('BETTERLINKS_VERSION', '2.1.10');
             define('BETTERLINKS_DB_VERSION', '1.6.7');
             define('BETTERLINKS_MENU_NOTICE', '7');
             define('BETTERLINKS_SETTINGS_NAME', 'betterlinks_settings');
@@ -170,6 +171,18 @@ if (!class_exists('BetterLinks')) {
                 "last_activation_timestamp" => time(),
                 "last_activation_background_processes_firing_timestamp" => false,
             ]);
+            add_option('betterlinks_quick_setup', true);
+        }
+
+        public function quick_setup() {
+            if( 'complete' === get_option('betterlinks_quick_setup_step') ) return;
+            if( get_option( 'betterlinks_quick_setup' ) && is_admin() ) {
+                delete_option( 'betterlinks_quick_setup' );
+
+                $redirect_url = admin_url('admin.php?page=betterlinks-quick-setup');
+                wp_safe_redirect($redirect_url);
+                exit;
+            }
         }
 
         public function deactivate()

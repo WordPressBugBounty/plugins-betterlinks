@@ -3,9 +3,9 @@ Contributors: wpdevteam, re_enter_rupok, asif2bd, sapanmozammel, priyomukul, hrr
 Donate link: https://wpdeveloper.com
 Tags: affiliate links, cloaking, link shortener, short links, redirects
 Requires at least: 5.0
-Tested up to: 6.6
+Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 2.1.9
+Stable tag: 2.1.10
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -157,6 +157,13 @@ BetterLinks is very useful for website owners, affiliate marketers, SEO experts 
 
 
 == Changelog ==
+
+= 2.1.10 - 10/11/2024 =
+
+- Added: Quick Setup Wizard
+- Fixed: Referer not showing in Analytics when using 'Open in New Tab' in gutenberg
+- Tested up to WordPress version 6.7
+- Few minor bug fixes & improvement
 
 = 2.1.9 - 23/10/2024 =
 

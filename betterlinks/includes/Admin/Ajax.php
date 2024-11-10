@@ -2,6 +2,7 @@
 
 namespace BetterLinks\Admin;
 
+use BetterLinks\Admin\WPDev\PluginUsageTracker;
 use BetterLinks\Cron;
 use BetterLinks\Helper;
 use BetterLinks\Link\Utils;
@@ -86,6 +87,9 @@ class Ajax {
 		add_action( 'wp_ajax_betterlinks__create_fbs_link', array( $this, 'create_fbs_link' ) );
 		add_action( 'wp_ajax_betterlinks__update_fbs_link', array( $this, 'update_fbs_link' ) );
 
+		// Quick Setu
+		add_action( 'wp_ajax_betterlinks__client_consent', array( $this, 'client_consent' ) );
+		add_action( 'wp_ajax_betterlinks__complete_setup', array( $this, 'complete_setup' ) );
 		// js analytics tracking
 		add_action( 'wp_ajax_nopriv_betterlinks__js_analytics_tracking', array( $this, 'js_analytics_tracking' ) );
 		add_action( 'wp_ajax_betterlinks__js_analytics_tracking', array( $this, 'js_analytics_tracking' ) );
@@ -424,7 +428,6 @@ class Ajax {
 		$total_links_clicks    = get_transient( 'betterlinks_migration_data_prettylinks' );
 		$should_migrate_links  = ! ( strpos( $type, 'links' ) === false );
 		$should_migrate_clicks = ! ( strpos( $type, 'clicks' ) === false );
-
 		$installer = new \BetterLinks\Installer();
 		if ( $should_migrate_links && ! empty( $total_links_clicks['links_count'] ) ) {
 			$links_count = absint( $total_links_clicks['links_count'] );
@@ -550,7 +553,7 @@ class Ajax {
 			wp_die( "You don't have permission to do this." );
 		}
 		try {
-			$simple_301_redirects = get_option( '301_redirects' );
+			$simple_301_redirects = get_option( '301_redirects', [] );
 			$migrator             = new \BetterLinks\Tools\Migration\S301ROneClick();
 			$resutls              = $migrator->run_importer( array_reverse( $simple_301_redirects ) );
 			do_action( 'betterlinks/admin/after_import_data' );
@@ -1154,6 +1157,37 @@ class Ajax {
 		wp_die( "You don't have permission to do this." );
 	}
 
+	public function client_consent() {
+		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( "You don't have permission to do this." );
+		}
+		$opt_in_value = isset( $_POST['opt_in_value'] ) ? sanitize_text_field( $_POST['opt_in_value'] ) : 'no';
+		$opt_in = PluginUsageTracker::get_instance( BETTERLINKS_PLUGIN_FILE, [
+			'opt_in'       => true,
+			'goodbye_form' => true,
+			'item_id'      => '720bbe6537bffcb73f37',
+		] );
+
+		$opt_in->opt_in($opt_in_value, 'betterlinks');
+		
+		update_option('betterlinks_quick_setup_step', 1);
+		wp_send_json_success([
+			'result' => $opt_in_value 
+		]);
+	}
+
+	public function complete_setup() {
+		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( "You don't have permission to do this." );
+		}
+		$is_update = update_option('betterlinks_quick_setup_step', 'complete');
+		wp_send_json_success([
+			'result' => (bool) $is_update ? 'complete' : 'error' 
+		]);
+	}
+	
 	public function js_analytics_tracking() {
 		global $wpdb;
 

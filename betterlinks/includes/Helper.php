@@ -100,6 +100,14 @@ class Helper {
 			),
 		);
 		
+
+		if( get_option( 'betterlinks_quick_setup_step' ) !== 'complete' ){
+			$menu_items[BETTERLINKS_PLUGIN_SLUG . '-quick-setup'] = array(
+				'title'      => __( 'Quick Setup', 'betterlinks' ),
+				'capability' => 'manage_options',
+			);
+		}
+
 		if( !empty( $enable_custom_domain_menu ) ){
 			$before = array_splice( $menu_items, 0, 2 );
 			$inserted = array(
@@ -694,6 +702,14 @@ class Helper {
 		return json_last_error() === JSON_ERROR_NONE;
 	}
 
+	public static function get_migratable_plugins() {
+		return [
+			'simple301redirects' => defined('SIMPLE301REDIRECTS_VERSION'),
+			'thirstyaffiliates' => class_exists('ThirstyAffiliates'),
+			'prettylinks' => defined('PRLI_VERSION'),
+		];
+	}
+	
 	public static function init_tracking( $data, $utils ) {
 		global $betterlinks;
 		$user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ''; // phpcs:ignore

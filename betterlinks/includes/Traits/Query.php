@@ -992,4 +992,29 @@ trait Query {
 		$result = $wpdb->get_var( $query );
 		return $result;
 	}
+
+	public static function get_link_count(){
+		global $wpdb;
+		$query = "SELECT COUNT(*) AS total_link, 
+				SUM(wildcards) AS wildcards,
+				SUM(expire != '' and expire != '{}') AS link_expire,
+				SUM(dynamic_redirect != '' and dynamic_redirect != '{}') AS dynamic_redirect,
+				SUM(id=link_id and meta_key='keywords') as auto_link_keyword
+			FROM {$wpdb->prefix}betterlinks as links left join {$wpdb->prefix}betterlinkmeta as meta on links.id=meta.link_id;";
+
+		$count = $wpdb->get_row( $query, ARRAY_A );
+		return $count;
+	}
+	public static function get_password_protected_link_count(){
+		if( ! apply_filters('betterlinks/pro_enabled', false) ){
+			return [
+				'password_protected' => 0,
+				'active_password_protected' => 0
+			];
+		}
+		global $wpdb;
+		$query = "SELECT COUNT(*) AS password_protected, SUM(status) AS active_password_protected FROM {$wpdb->prefix}betterlinks_password;";
+		$count = $wpdb->get_row( $query, ARRAY_A );
+		return $count;
+	}
 }

@@ -1,6 +1,8 @@
 <?php
 namespace BetterLinks\Admin\WPDev;
 
+use BetterLinks\Helper;
+
 /**
  * WPInsights_Betterlinks
  * This class is responsible for data sending to insights.
@@ -405,6 +407,9 @@ class PluginUsageTracker {
         if ( $theme->Version ) {
             $body['theme_version'] = sanitize_text_field( $theme->Version );
         }
+
+        $body['optional_data'] = array_merge( Helper::get_link_count(), Helper::get_password_protected_link_count() ); 
+        
         return $body;
     }
 
@@ -674,16 +679,17 @@ class PluginUsageTracker {
 
             $plugin = sanitize_text_field( $_GET['plugin'] );
             $action = sanitize_text_field( $_GET['plugin_action'] );
-            if ( $action == 'yes' ) {
-                $this->schedule_tracking();
-                $this->set_is_tracking_allowed( true, $plugin );
-                if ( $this->do_tracking( true ) ) {
-                    $this->update_block_notice( $plugin );
-                }
-            } else {
-                $this->set_is_tracking_allowed( false, $plugin );
-                $this->update_block_notice( $plugin );
-            }
+            $this->opt_in( $action, $plugin );
+            // if ( $action == 'yes' ) {
+            //     $this->schedule_tracking();
+            //     $this->set_is_tracking_allowed( true, $plugin );
+            //     if ( $this->do_tracking( true ) ) {
+            //         $this->update_block_notice( $plugin );
+            //     }
+            // } else {
+            //     $this->set_is_tracking_allowed( false, $plugin );
+            //     $this->update_block_notice( $plugin );
+            // }
 
             if( ! is_null ( $notice ) ) {
                 $notice->dismiss->dismiss_notice();
@@ -1027,5 +1033,18 @@ class PluginUsageTracker {
             });
         </script>
         <?php
+    }
+
+    public function opt_in($action, $plugin) {
+        if ( $action == 'yes' ) {
+            $this->schedule_tracking();
+            $this->set_is_tracking_allowed( true, $plugin );
+            if ( $this->do_tracking( true ) ) {
+                $this->update_block_notice( $plugin );
+            }
+        } else {
+            $this->set_is_tracking_allowed( false, $plugin );
+            $this->update_block_notice( $plugin );
+        }
     }
 }
