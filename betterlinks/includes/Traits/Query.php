@@ -604,7 +604,7 @@ trait Query {
 			$addedPlaceholderString .= ', brand_name, model, bot_name, browser_type, os_version, browser_version, language, query_params';
 			$addedDbColumnsString   .= ', %s, %s, %s, %s, %s, %s, %s, %s';
 		}
-
+		if( empty($betterlinks) || empty( current( $betterlinks )['ID'] ) ) return;
 		$query         = "INSERT INTO {$wpdb->prefix}betterlinks_clicks ( link_id, browser, os,device, referer, uri, click_count, visitor_id, click_order, created_at,  $addedPlaceholderString ) VALUES ( %d, %s, %s, %s, %s, %s, %d, %s, %d, %s,  $addedDbColumnsString )";
 		$db_data_array = array(
 			current( $betterlinks )['ID'],
@@ -655,13 +655,17 @@ trait Query {
 		return $results;
 	}
 
-	public static function get_clicks_count() {
+	public static function get_clicks_count($from = '', $to = '') {
 		global $wpdb;
+		$where = '';
+		if( '' !== $from && '' !== $to ){
+			$where = "WHERE created_at BETWEEN '$from 00:00:00' AND '$to 23:59:59'";
+		}
 
-		$query        = "SELECT link_id, count(id) as total_clicks from {$wpdb->prefix}betterlinks_clicks group by link_id";
+		$query        = "SELECT link_id, count(id) as total_clicks from {$wpdb->prefix}betterlinks_clicks {$where} group by link_id";
 		$total_clicks = $wpdb->get_results( $query, ARRAY_A );
 
-		$query         = "SELECT T1.link_id, count(ip) as unique_clicks from ( SELECT ip, link_id FROM {$wpdb->prefix}betterlinks_clicks GROUP BY `ip`, `link_id` ) as T1 GROUP BY T1.link_id ORDER BY T1.link_id";
+		$query         = "SELECT T1.link_id, count(ip) as unique_clicks from ( SELECT ip, link_id FROM {$wpdb->prefix}betterlinks_clicks {$where} GROUP BY `ip`, `link_id` ) as T1 GROUP BY T1.link_id ORDER BY T1.link_id";
 		$unique_clicks = $wpdb->get_results( $query, ARRAY_A );
 
 		return array(
@@ -687,7 +691,7 @@ trait Query {
 		global $wpdb;
 		$prefix                          = $wpdb->prefix;
 		$individual_analytics_cache_keys = 'btl_individual_analytics_clicks_|btl_individual_graph_data_';
-		$all_analytics_cache_keys        = 'betterlinks_analytics_data|btl_analytics_unique_list_|btl_analytics_graph_|btl_top_referer_|btl_click_stats_|btl_top_os_|btl_top_browser_|btl_all_referer_|btl_tags_analytics';
+		$all_analytics_cache_keys        = 'betterlinks_analytics_data|btl_analytics_unique_list_|btl_analytics_graph_|btl_top_referer_|btl_click_stats_|btl_top_os_|btl_top_browser_|btl_all_referer_|btl_tags_analytics|btl_analytics_data_|btl_unique_clicks_count_';
 		$query                           = "DELETE FROM {$prefix}options WHERE option_name regexp '{$individual_analytics_cache_keys}|{$all_analytics_cache_keys}'";
 
 		$result = $wpdb->query( $query );

@@ -66,6 +66,7 @@ class Notice {
 		}
 		
 		if( 0 === strpos($current_screen->id, "toplevel_page_betterlinks") || 0 === strpos($current_screen->id, "betterlinks_page_") ){
+			remove_all_actions('admin_notices');
 			if( BETTERLINKS_MENU_NOTICE !== $dashboard_notice ) {
 				add_action('admin_notices', array($this, 'new_feature_notice'), -1);
 			}
@@ -77,7 +78,7 @@ class Notice {
 				Notice\Simple301::init();
 				Notice\ThirstyAffiliates::init();
 				// Remove OLD notice from 1.0.0 (if other WPDeveloper plugin has notice)
-				// NoticeRemover::get_instance( '1.0.0' );
+				NoticeRemover::get_instance( '1.0.0' );
 			} );
 		}
 	}
@@ -87,7 +88,7 @@ class Notice {
 	"<div class='notice notice-success is-dismissible btl-dashboard-notice' id='btl-dashboard-notice'>
 				<p>
 				%s
-				<a target='_blank' href='https://betterlinks.io/docs/parameter-tracking-with-betterlinks/' style='display: inline-block'>
+				<a target='_blank' href='https://betterlinks.io/docs/full-site-link-scanner-in-betterlinks/' style='display: inline-block'>
 					%s
 				</a>
 				%s
@@ -97,8 +98,8 @@ class Notice {
 				%s
 				</p>
 		</div>", 
-		__('📣 NEW: BetterLinks Pro 2.1 is here, with new ', 'betterlinks'),
-		__('Parameter Tracking', 'betterlinks'),
+		__('📣 NEW: BetterLinks Pro 2.2 is here, with new ', 'betterlinks'),
+		__('Full Site Link Scanner', 'betterlinks'),
 		__('feature & more! Check out the ', 'betterlinks'),
 		__('Changelog', 'betterlinks'),
 		__(' for more details 🎉', 'betterlinks')

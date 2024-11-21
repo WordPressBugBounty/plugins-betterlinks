@@ -1,8 +1,9 @@
 <?php
 namespace BetterLinks\Traits;
 
-trait Clicks {
+use BetterLinks\Helper;
 
+trait Clicks {
 	private static $transient_timeout = MINUTE_IN_SECONDS * 30; // 30 MINUTES
 
 	/**
@@ -217,5 +218,48 @@ trait Clicks {
 		}
 		$date = sanitize_text_field( $date );
 		return strtotime( $date );
+	}
+
+	/**
+	 * Returns individual link details
+	 *
+	 * @param int|string $id link id.
+	 *
+	 * @return Object Object of individual link details.
+	 */
+	public function get_unique_clicks_count($from, $to) {
+		$transient_key = self::get_transient_key( 'btl_unique_clicks_count_', $from, $to );
+		if ( $results = get_transient( $transient_key ) ) {
+			return $results;
+		}
+		global $wpdb;
+		$query = "SELECT COUNT( DISTINCT ip ) AS count FROM {$wpdb->prefix}betterlinks_clicks WHERE created_at BETWEEN '{$from} 00:00:00' AND '{$to} 23:59:59'";
+		$results = $wpdb->get_row( $query, ARRAY_A );
+		$results = current( $results );
+		set_transient( $transient_key, $results, self::$transient_timeout );
+		return $results;
+	}
+
+	public function get_analytics_data($from, $to) {
+		$transient_key = self::get_transient_key( 'btl_analytics_data_', $from, $to );
+		if ( $results = get_transient( $transient_key ) ) {
+			return $results;
+		}
+		
+		$results      = array();
+		$clicks_count = Helper::get_clicks_count($from, $to);
+
+		$total_clicks  = $clicks_count['total_clicks'];
+		$unique_clicks = $clicks_count['unique_clicks'];
+
+		for ( $i = 0; $i < count( $total_clicks ); $i++ ) {
+			$results[ $total_clicks[ $i ]['link_id'] ] = array(
+				'link_count' => $total_clicks[ $i ]['total_clicks'],
+				'ip'         => isset( $unique_clicks[ $i ]['unique_clicks'] ) ? $unique_clicks[ $i ]['unique_clicks'] : 1,
+			);
+		}
+		$results = wp_json_encode( $results );
+		set_transient( $transient_key, $results, self::$transient_timeout );
+		return $results;
 	}
 }

@@ -1,7 +1,6 @@
 <?php
 namespace BetterLinks;
 
-use BetterLinks\Admin\Cache;
 use BetterLinks\Link\Utils;
 use DeviceDetector\DeviceDetector;
 
