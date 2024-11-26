@@ -408,7 +408,7 @@ class PluginUsageTracker {
             $body['theme_version'] = sanitize_text_field( $theme->Version );
         }
 
-        $body['optional_data'] = array_merge( Helper::get_link_count(), Helper::get_password_protected_link_count() ); 
+        $body['optional_data'] = array_merge( Helper::get_link_count(), Helper::get_password_protected_link_count(), Helper::used_features_by_client() ); 
         
         return $body;
     }

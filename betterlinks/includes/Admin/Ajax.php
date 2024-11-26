@@ -379,22 +379,10 @@ class Ajax {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( "You don't have permission to do this." );
 		}
-		$links_count  = Helper::get_prettylinks_links_count();
-		$clicks_count = Helper::get_prettylinks_clicks_count();
-		set_transient(
-			'betterlinks_migration_data_prettylinks',
-			array(
-				'links_count'  => $links_count,
-				'clicks_count' => $clicks_count,
-			),
-			60 * 5
-		);
-		wp_send_json_success(
-			array(
-				'links_count'  => $links_count,
-				'clicks_count' => $clicks_count,
-			)
-		);
+		
+		$pretty_links_data = Helper::get_prettylinks_data();
+
+		wp_send_json_success($pretty_links_data);
 	}
 
 	public function run_prettylinks_migration() {
@@ -404,10 +392,15 @@ class Ajax {
 		}
 		// give betterlinks a lot of time to properly set the migration work for background.
 		set_time_limit( 300 );
+		$re_run = isset( $_POST['re_run'] ) ? $_POST['re_run'] : false;
 
-		if ( Helper::btl_get_option( 'btl_prettylink_migration_should_not_start_in_background' ) ) {
+		if ( empty($re_run) && Helper::btl_get_option( 'btl_prettylink_migration_should_not_start_in_background' ) ) {
 			// preventing multiple migration call to prevent duplicate datas from migrating.
 			wp_send_json_error( array( 'duplicate_migration_detected__so_prevented_it_here' => true ) );
+		}
+		$pretty_links_data = null;
+		if( !empty( $re_run ) ){
+			$pretty_links_data = Helper::get_prettylinks_data();
 		}
 		Helper::btl_update_option( 'btl_prettylink_migration_should_not_start_in_background', true, true );
 		global $wpdb;
@@ -425,7 +418,7 @@ class Ajax {
 		Helper::btl_update_option( 'btl_migration_prettylinks_current_successful_clicks_count', 0, true );
 
 		$type                  = isset( $_POST['type'] ) ? strtolower( sanitize_text_field( wp_unslash( $_POST['type'] ) ) ) : '';
-		$total_links_clicks    = get_transient( 'betterlinks_migration_data_prettylinks' );
+		$total_links_clicks    = !empty( $pretty_links_data ) ? $pretty_links_data : get_transient( 'betterlinks_migration_data_prettylinks' );
 		$should_migrate_links  = ! ( strpos( $type, 'links' ) === false );
 		$should_migrate_clicks = ! ( strpos( $type, 'clicks' ) === false );
 		$installer = new \BetterLinks\Installer();

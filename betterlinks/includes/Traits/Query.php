@@ -1021,4 +1021,28 @@ trait Query {
 		$count = $wpdb->get_row( $query, ARRAY_A );
 		return is_array( $count ) ? $count : [];
 	}
+
+	public static function get_prettylinks_data() {
+		$links_count  = self::get_prettylinks_links_count();
+		$clicks_count = self::get_prettylinks_clicks_count();
+		set_transient(
+			'betterlinks_migration_data_prettylinks',
+			array(
+				'links_count'  => $links_count,
+				'clicks_count' => $clicks_count,
+			),
+			60 * 5
+		);
+		return array(
+			'links_count'  => $links_count,
+			'clicks_count' => $clicks_count,
+		);
+	}
+
+	public static function used_features_by_client() {
+		return [
+			'betterlinks_broken_link_scanner' => !empty( get_option( 'betterlinkspro_broken_links_logs', [] ) ),
+			'fullsite_link_scanner' => !empty( get_option('betterlinkspro_fullsite_broken_links_logs_cleared', 0) ) || !empty( get_option( 'betterlinkspro_fullsite_broken_links_logs', [] ) )
+		];
+	}
 }

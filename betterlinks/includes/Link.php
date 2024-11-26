@@ -7,9 +7,10 @@ use DeviceDetector\DeviceDetector;
 class Link extends Utils {
 	public function __construct() {
 		if ( ! is_admin() && isset( $_SERVER['REQUEST_METHOD'] ) && 'GET' === $_SERVER['REQUEST_METHOD'] ) {
-			add_action( 'init', array( $this, 'run_redirect' ), 0 );
 			add_action( 'betterlinks_quick_link_creation', array( $this, 'quick_link_creation' ) );
 			add_action( 'betterlinks_prevent_unwanted_cle', array( $this, 'prevent_unwanted_cle' ) );
+			// add_action( 'init', array( $this, 'run_redirect' ), 0 );
+			$this->run_redirect();
 		}
 	}
 
