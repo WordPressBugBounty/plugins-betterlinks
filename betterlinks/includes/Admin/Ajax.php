@@ -401,7 +401,9 @@ class Ajax {
 		$pretty_links_data = null;
 		if( !empty( $re_run ) ){
 			$pretty_links_data = Helper::get_prettylinks_data();
+			delete_option('btl_prettylink_migration_should_not_start_in_background');
 		}
+		
 		Helper::btl_update_option( 'btl_prettylink_migration_should_not_start_in_background', true, true );
 		global $wpdb;
 		$query = "DELETE FROM {$wpdb->prefix}options WHERE option_name IN(

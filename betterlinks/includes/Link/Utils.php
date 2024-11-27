@@ -279,8 +279,8 @@ class Utils {
 	public static function prevent_unwanted_cle() {
 		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( sanitize_url( $_SERVER['REQUEST_URI'] ) ) : '';
 
-		$params = explode( 'action=btl_cle&api_key', $request_uri );
-		if ( count( $params ) > 2 ) { // to prevent short link creation of the 'Here is your BetterLinks' page
+		$params = strpos($request_uri, 'action%3Dbtl_cle%26api_key');
+		if ( !empty( $params ) ) { // to prevent short link creation of the 'Here is your BetterLinks' page
 			$prevent_unwanted_click = true; // phpcs:ignore
 			require_once BETTERLINKS_ROOT_DIR_PATH . '/includes/Views/create-link-externally.php';
 			exit;

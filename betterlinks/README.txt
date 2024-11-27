@@ -5,7 +5,7 @@ Tags: affiliate links, cloaking, link shortener, short links, redirects
 Requires at least: 5.0
 Tested up to: 6.7
 Requires PHP: 7.0
-Stable tag: 2.2.0
+Stable tag: 2.2.1
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -159,56 +159,63 @@ BetterLinks is very useful for website owners, affiliate marketers, SEO experts 
 
 == Changelog ==
 
+= 2.2.1 - 27/11/2024 =
+
+- Fixed: Fatal Error on Plugin activation 
+- Fixed: Quick Setup default configuration value
+- Fixed: Prevent unwanted duplicate link creation with Quick Link Creation Feature
+- Few minor bug fixes & improvements
+
 = 2.2.0 - 26/11/2024 =
 
-- Improvement: Added 'Migrate from Database' option for 3rd party plugins in Tools
-- Improvement: Added Link Duplication in Manage Links
-- Improvement: Asset loading performance in Gutenberg
-- Few minor bug fixes & improvement
+- Improvements: Added 'Migrate from Database' option for 3rd party plugins in Tools
+- Improvements: Added Link Duplication in Manage Links
+- Improvements: Asset loading performance in Gutenberg
+- Few minor bug fixes & improvements
 
 = 2.1.12 - 21/11/2024 =
 
-- Improvement: Added Total Click & Unique Click count in Graph Analytics
+- Improvements: Added Total Click & Unique Click count in Graph Analytics
 - Fixed: Analytics filter query for total click & unique click count
-- Few minor bug fixes & improvement
+- Few minor bug fixes & improvements
 
 = 2.1.11 - 14/11/2024 =
 
-- Few minor bug fixes & improvement
+- Few minor bug fixes & improvements
 
 = 2.1.10 - 10/11/2024 =
 
 - Added: Quick Setup Wizard
 - Fixed: Referer not showing in Analytics when using 'Open in New Tab' in gutenberg
 - Tested up to WordPress version 6.7
-- Few minor bug fixes & improvement
+- Few minor bug fixes & improvements
 
 = 2.1.9 - 23/10/2024 =
 
 - Fixed: Double link creation issue when using Instant Redirect Feature
 - Fixed: Unicode character encoding issue with Quick Link Creation Feature
-- Few minor bug fixes & improvement
+- Few minor bug fixes & improvements
 
 = 2.1.8 - 15/10/2024 =
 
 - Improved: Security Enhancement
-- Few minor bug fixes & improvement
+- Few minor bug fixes & improvements
 
 = 2.1.7 - 06/09/2024 =
 
-- Few minor bug fixes & improvement
+- Few minor bug fixes & improvements
 
 = 2.1.6 - 05/09/2024 =
 
-- Improvement: Added 7G Firewall compatibility
+- Improvements: Added 7G Firewall compatibility
 - Fixed: Quick Link Creation extra forward slash ("/") issue
 - Fixed: Quick Link Creation Empty title issue
-- Few minor bug fixes & improvement
+- Few minor bug fixes & improvements
 
 = 2.1.5 - 11/08/2024 =
 
 - Fixed: Resolved issue with undefined short slugs in Fluent Boards Link Management.
-- Few minor bug fixes & improvement
+- Few minor bug fixes & improvements
 
 = 2.1.4 - 16/07/2024 =
 

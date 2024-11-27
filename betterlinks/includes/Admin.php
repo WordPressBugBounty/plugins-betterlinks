@@ -19,14 +19,19 @@ class Admin {
 
 	public function dispatch_action() {
 		new Admin\Ajax();
-		new Admin\Notice();
 		Admin\Metabox::init();
+		// new Admin\Notice();
+		add_action('admin_init', [$this, 'init_notices']);
 		add_filter( 'BetterLinks/Admin/skip_no_conflict', [ $this, 'skip_no_conflict' ] );
 		add_filter( 'plugin_action_links_' . BETTERLINKS_PLUGIN_BASENAME, array( $this, 'insert_plugin_links' ) );
 		add_action( 'admin_head-toplevel_page_betterlinks', array( $this, 'append_no_cache_meta' ) );
 		add_action( 'admin_head-toplevel_page_betterlinks-analytics', array( $this, 'append_no_cache_meta' ) );
 		add_action( 'admin_head-toplevel_page_betterlinks-settings', array( $this, 'append_no_cache_meta' ) );
 		add_action( 'betterlinks/admin/after_import_data', array( $this, 'after_import_data' ) );
+	}
+
+	public function init_notices() {
+		new Admin\Notice();
 	}
 
 	public function skip_no_conflict() {

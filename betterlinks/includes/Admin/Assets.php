@@ -126,7 +126,9 @@ class Assets
         if( 'customize.php' === $pagenow ) return;
         global $betterlinks_settings;
 
-        ['is_allow_gutenberg' => $is_allow_gutenberg, 'affiliate_link_disclosure' => $affiliate_link_disclosure, 'enable_auto_link' => $enable_auto_link ] = $betterlinks_settings;
+        $is_allow_gutenberg = isset( $betterlinks_settings['is_allow_gutenberg'] ) ? $betterlinks_settings['is_allow_gutenberg'] : false;
+        $affiliate_link_disclosure = isset( $betterlinks_settings['affiliate_link_disclosure'] ) ? $betterlinks_settings['affiliate_link_disclosure'] : false;
+        $enable_auto_link = isset( $betterlinks_settings['enable_auto_link'] ) ? $betterlinks_settings['enable_auto_link'] : false;
 
         if( !($is_allow_gutenberg || $affiliate_link_disclosure || $enable_auto_link) ) return;
 
