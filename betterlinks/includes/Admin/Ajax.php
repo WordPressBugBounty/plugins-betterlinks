@@ -957,7 +957,28 @@ class Ajax {
 		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
 		$args = array(
 			'cat_id' => ( isset( $_REQUEST['cat_id'] ) ? absint( sanitize_text_field( $_REQUEST['cat_id'] ) ) : 0 ),
+			'tag_id' => ( isset( $_REQUEST['tag_id'] ) ? absint( sanitize_text_field( $_REQUEST['tag_id'] ) ) : 0 ),
 		);
+
+		// Check if trying to delete the default 'Uncategorized' category (ID: 1)
+		// This can come as either cat_id or tag_id parameter
+		$term_id_to_delete = null;
+		if ( isset( $args['cat_id'] ) && $args['cat_id'] > 0 ) {
+			$term_id_to_delete = $args['cat_id'];
+		} elseif ( isset( $args['tag_id'] ) && $args['tag_id'] > 0 ) {
+			$term_id_to_delete = $args['tag_id'];
+		}
+
+		if ( $term_id_to_delete && ( $term_id_to_delete == 1 || $term_id_to_delete === '1' ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Cannot delete the default "Uncategorized" category.', 'betterlinks' ),
+					'term_id' => $term_id_to_delete,
+				),
+				403
+			);
+		}
+
 		$this->delete_term( $args );
 		wp_send_json_success(
 			$args,

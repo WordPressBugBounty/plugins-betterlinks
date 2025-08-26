@@ -52,6 +52,19 @@ class Terms extends Controller
 
 		register_rest_route(
 			$this->namespace,
+			$endpoint . 'categories',
+			array(
+				array(
+					'methods'             => \WP_REST_Server::READABLE,
+					'callback'            => array($this, 'get_categories'),
+					'permission_callback' => array($this, 'get_items_permissions_check'),
+					'args'                => $this->get_terms_schema(),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
 			$endpoint,
 			array(
 				array(
@@ -95,6 +108,24 @@ class Terms extends Controller
 		$results = $this->get_all_tags();
 
 		$analytic = $this->tags_analytic();
+
+		return new \WP_REST_Response(
+			array(
+				'success' => true,
+				'data'    => array(
+					'results' => $results,
+					'analytic' => $analytic
+				),
+			),
+			200
+		);
+	}
+
+	public function get_categories()
+	{
+		$results = $this->get_all_categories();
+
+		$analytic = $this->categories_analytic();
 
 		return new \WP_REST_Response(
 			array(
@@ -158,12 +189,23 @@ class Terms extends Controller
 			'term_slug' => (isset($request['params']['term_slug']) ? sanitize_text_field($request['params']['term_slug']) : ''),
 			'term_type' => (isset($request['params']['term_type']) ? sanitize_text_field($request['params']['term_type']) : ''),
 		);
-		$is_update = \BetterLinks\Helper::is_term_exists($args['ID'], 'tags');
+		$is_update = \BetterLinks\Helper::is_term_exists($args['ID'], $args['term_type']);
 
 		if (empty($args['term_slug'])) return;
 
 		if ($is_update) {
-			$results = $this->update_tag($args);
+			if ($args['term_type'] === 'category') {
+				// For categories, convert to the format expected by update_term
+				$category_args = array(
+					'cat_id' => $args['ID'],
+					'cat_name' => $args['term_name'],
+					'cat_slug' => $args['term_slug'],
+				);
+				$results = $this->update_term($category_args);
+			} else {
+				// For tags, use the existing update_tag method
+				$results = $this->update_tag($args);
+			}
 			return new \WP_REST_Response(
 				array(
 					'success' => true,
@@ -218,6 +260,28 @@ class Terms extends Controller
 	{
 		delete_transient(BETTERLINKS_CACHE_LINKS_NAME);
 		$request = $request->get_params();
+
+		// Check if trying to delete the default 'Uncategorized' category (ID: 1)
+		// This can come as either cat_id or tag_id parameter
+		$term_id_to_delete = null;
+		if (isset($request['cat_id'])) {
+			$term_id_to_delete = $request['cat_id'];
+		} elseif (isset($request['tag_id'])) {
+			$term_id_to_delete = $request['tag_id'];
+		}
+
+		if ($term_id_to_delete && ($term_id_to_delete == 1 || $term_id_to_delete === '1')) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'data'    => array(
+						'message' => __('Cannot delete the default "Uncategorized" category.', 'betterlinks'),
+						'term_id' => $term_id_to_delete,
+					),
+				),
+				403 // Forbidden status code
+			);
+		}
 
 		$this->delete_term($request);
 		return new \WP_REST_Response(

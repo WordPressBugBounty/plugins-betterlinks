@@ -89,21 +89,25 @@ class Notice {
 			"<div class='notice notice-success is-dismissible btl-dashboard-notice' id='btl-dashboard-notice'>
 				<p>
 				%s
-				<a target='_blank' href='https://betterlinks.io/docs/full-site-link-scanner-in-betterlinks/' style='display: inline-block'>
+				<a target='_blank' href='https://betterlinks.io/docs/manage-categories/' style='display: inline-block'>
+					%s
+				</a>
+				%s
+				<a target='_blank' href='https://betterlinks.io/docs/auto-link-creation-for-custom-post-type/' style='display: inline-block'>
 					%s
 				</a>
 				%s
 				<a target='_blank' href='https://betterlinks.io/changelog/'>
 					%s
 				</a>
-				%s
 				</p>
 		</div>",
-			__( '📣 NEW: BetterLinks Pro 2.2 is here, with new ', 'betterlinks' ),
-			__( 'Full Site Link Scanner', 'betterlinks' ),
-			__( 'feature & more! Check out the ', 'betterlinks' ),
-			__( 'Changelog', 'betterlinks' ),
-			__( ' for more details 🎉', 'betterlinks' )
+			__( 'NEW: BetterLinks 2.3 is here with ', 'betterlinks' ),
+			__( 'Category Management', 'betterlinks' ),
+			__( '&', 'betterlinks' ),
+			__( 'Auto Link Creation for Custom Post Types!', 'betterlinks' ),
+			__( ' See the', 'betterlinks' ),
+			__( 'full Changelog.', 'betterlinks' ),
 		);
 	}
 

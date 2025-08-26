@@ -86,8 +86,8 @@ class Helper {
 				'title'      => __( 'Manage Links', 'betterlinks' ),
 				'capability' => 'manage_options',
 			),
-			BETTERLINKS_PLUGIN_SLUG . '-manage-tags' => array(
-				'title'      => __( 'Manage Tags', 'betterlinks' ),
+			BETTERLINKS_PLUGIN_SLUG . '-manage-tags-and-categories' => array(
+				'title'      => __( 'Tags & Categories', 'betterlinks' ),
 				'capability' => 'manage_options',
 			),
 			BETTERLINKS_PLUGIN_SLUG . '-analytics'   => array(
