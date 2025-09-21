@@ -5,7 +5,7 @@ Tags: affiliate links, cloaking, link shortener, short links, redirects
 Requires at least: 5.0
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 2.3.0
+Stable tag: 2.3.1
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -159,6 +159,11 @@ BetterLinks is very useful for website owners, affiliate marketers, SEO experts 
 
 
 == Changelog ==
+
+= 2.3.1 - 21/09/2025 =
+- Improvement: Added Default Category selection option.
+- Improvement: Database repair now runs automatically during installation.
+- Few minor bug fixes & improvement
 
 = 2.3.0 - 26/08/2025 =
 

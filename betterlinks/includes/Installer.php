@@ -290,13 +290,20 @@ class Installer extends \WP_Background_Process
         global $wpdb;
         $wpdb->query("DELETE FROM {$wpdb->prefix}options WHERE option_name IN( 'betterlinks_autolink_options' )");
         \BetterLinks\Helper::btl_update_autoload_option('betterlinks_analytics_data');
-        if( $is_favorite_column_exist && $is_fixed_missing_terms_relation_for_links && $is_uncloaked_column_exist && $added_index_to_created_at_column_in_clicks){
-            return false;
-        }
+        
+        // Get actual table structure to verify columns exist
         $is_db_alter_option_exist_array = is_array($btl_db_alter_options);
         $betterlinks_table          = $wpdb->prefix . 'betterlinks';
         $betterlinks_clicks_table   = $wpdb->prefix . 'betterlinks_clicks';
         $betterlinks_columns        = $wpdb->get_col("DESC $betterlinks_table", 0);
+        
+        // Check actual table structure, not just cached options
+        $uncloaked_column_exists_in_table = in_array("uncloaked", $betterlinks_columns);
+        $favorite_column_exists_in_table = in_array("favorite", $betterlinks_columns);
+        
+        if( $favorite_column_exists_in_table && $is_fixed_missing_terms_relation_for_links && $uncloaked_column_exists_in_table && $added_index_to_created_at_column_in_clicks){
+            return false;
+        }
         $created_at_column          = 'created_at';
         if (!$added_index_to_created_at_column_in_clicks) {
             $sql = "SHOW INDEX FROM $betterlinks_clicks_table WHERE Column_name = '$created_at_column'";
@@ -312,39 +319,41 @@ class Installer extends \WP_Background_Process
             );
             Helper::btl_update_option(BETTERLINKS_DB_ALTER_OPTIONS, $new_data, !$is_db_alter_option_exist_array, $is_db_alter_option_exist_array);
         }
-        if (!$is_uncloaked_column_exist) {
+        
+        // Handle favorite column first - should be positioned after dynamic_redirect
+        if (!$favorite_column_exists_in_table) {
             delete_transient(BETTERLINKS_CACHE_LINKS_NAME);
-            if (in_array("uncloaked", $betterlinks_columns)) {
-                $new_data = array_merge(
-                    ($is_db_alter_option_exist_array ? Helper::btl_get_option(BETTERLINKS_DB_ALTER_OPTIONS) : []),
-                    [ "added_uncloaked_column" => true ]
-                );
-                Helper::btl_update_option(BETTERLINKS_DB_ALTER_OPTIONS, $new_data, !$is_db_alter_option_exist_array, $is_db_alter_option_exist_array);
-            } else {
-                $query_result = $wpdb->query("ALTER TABLE $betterlinks_table ADD uncloaked varchar(10) default ''");
-                $new_data = array_merge(
-                    ($is_db_alter_option_exist_array ? Helper::btl_get_option(BETTERLINKS_DB_ALTER_OPTIONS) : []),
-                    [ "added_uncloaked_column" => $query_result ]
-                );
-                Helper::btl_update_option(BETTERLINKS_DB_ALTER_OPTIONS, $new_data, !$is_db_alter_option_exist_array, $is_db_alter_option_exist_array);
-            }
+            $query_result = $wpdb->query("ALTER TABLE $betterlinks_table ADD favorite varchar(255) NOT NULL AFTER dynamic_redirect");
+            $new_data = array_merge(
+                ($is_db_alter_option_exist_array ? Helper::btl_get_option(BETTERLINKS_DB_ALTER_OPTIONS) : []),
+                [ "added_favorite_column" => $query_result ]
+            );
+            Helper::btl_update_option(BETTERLINKS_DB_ALTER_OPTIONS, $new_data, !$is_db_alter_option_exist_array, $is_db_alter_option_exist_array);
+        } elseif (!$is_favorite_column_exist) {
+            // Column exists in table but not marked in options, update the options
+            $new_data = array_merge(
+                ($is_db_alter_option_exist_array ? Helper::btl_get_option(BETTERLINKS_DB_ALTER_OPTIONS) : []),
+                [ "added_favorite_column" => true ]
+            );
+            Helper::btl_update_option(BETTERLINKS_DB_ALTER_OPTIONS, $new_data, !$is_db_alter_option_exist_array, $is_db_alter_option_exist_array);
         }
-        if (!$is_favorite_column_exist) {
+        
+        // Handle uncloaked column - should be positioned after favorite
+        if (!$uncloaked_column_exists_in_table) {
             delete_transient(BETTERLINKS_CACHE_LINKS_NAME);
-            if (in_array("favorite", $betterlinks_columns)) {
-                $new_data = array_merge(
-                    ($is_db_alter_option_exist_array ? Helper::btl_get_option(BETTERLINKS_DB_ALTER_OPTIONS) : []),
-                    [ "added_favorite_column" => true ]
-                );
-                Helper::btl_update_option(BETTERLINKS_DB_ALTER_OPTIONS, $new_data, !$is_db_alter_option_exist_array, $is_db_alter_option_exist_array);
-            } else {
-                $query_result = $wpdb->query("ALTER TABLE $betterlinks_table ADD favorite varchar(255) NOT NULL");
-                $new_data = array_merge(
-                    ($is_db_alter_option_exist_array ? Helper::btl_get_option(BETTERLINKS_DB_ALTER_OPTIONS) : []),
-                    [ "added_favorite_column" => $query_result ]
-                );
-                Helper::btl_update_option(BETTERLINKS_DB_ALTER_OPTIONS, $new_data, !$is_db_alter_option_exist_array, $is_db_alter_option_exist_array);
-            }
+            $query_result = $wpdb->query("ALTER TABLE $betterlinks_table ADD uncloaked varchar(10) default '' AFTER favorite");
+            $new_data = array_merge(
+                ($is_db_alter_option_exist_array ? Helper::btl_get_option(BETTERLINKS_DB_ALTER_OPTIONS) : []),
+                [ "added_uncloaked_column" => $query_result ]
+            );
+            Helper::btl_update_option(BETTERLINKS_DB_ALTER_OPTIONS, $new_data, !$is_db_alter_option_exist_array, $is_db_alter_option_exist_array);
+        } elseif (!$is_uncloaked_column_exist) {
+            // Column exists in table but not marked in options, update the options
+            $new_data = array_merge(
+                ($is_db_alter_option_exist_array ? Helper::btl_get_option(BETTERLINKS_DB_ALTER_OPTIONS) : []),
+                [ "added_uncloaked_column" => true ]
+            );
+            Helper::btl_update_option(BETTERLINKS_DB_ALTER_OPTIONS, $new_data, !$is_db_alter_option_exist_array, $is_db_alter_option_exist_array);
         }
         if(!$is_fixed_missing_terms_relation_for_links){
             delete_transient(BETTERLINKS_CACHE_LINKS_NAME);

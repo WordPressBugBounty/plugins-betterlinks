@@ -450,6 +450,18 @@ trait Query {
 		global $wpdb;
 		$term_data   = array();
 		$newTermList = array();
+		
+		// If no category is provided, check for default category setting
+		if ( empty( $request['cat_id'] ) ) {
+			$settings = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
+			if ( ! empty( $settings['default_category'] ) ) {
+				$request['cat_id'] = $settings['default_category'];
+			} else {
+				// Fallback to Uncategorized category (ID 1)
+				$request['cat_id'] = 1;
+			}
+		}
+		
 		// store tags relation data
 		if ( ! empty( $request['cat_id'] ) ) {
 			$is_new_cat = true;

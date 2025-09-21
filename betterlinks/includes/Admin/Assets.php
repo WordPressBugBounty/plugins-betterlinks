@@ -81,7 +81,9 @@ class Assets
                 'betterlinks_date_format' => get_option( 'date_format' ),
                 'is_fbs_enabled' => defined('FLUENT_BOARDS'),
                 'betterlinks_quick_setup_step' => get_option( 'betterlinks_quick_setup_step', false ),
-                'migratable_plugins' => Helper::get_migratable_plugins()
+                'migratable_plugins' => Helper::get_migratable_plugins(),
+                // Add user permission information for free version
+                'user_can_manage_options' => current_user_can('manage_options'),
             ]);
 
             $menu_notice = get_option('betterlinks_menu_notice', 0);
@@ -163,7 +165,9 @@ class Assets
             'route_path' => parse_url(admin_url(), PHP_URL_PATH),
             'is_pro_enabled' => apply_filters('betterlinks/pro_enabled', false),
             'prefix' => $prefix,
-            'betterlinks_settings' => $betterlinks_settings
+            'betterlinks_settings' => $betterlinks_settings,
+            // Add user permission information for free version
+            'user_can_manage_options' => current_user_can('manage_options'),
         ]);
         wp_set_script_translations('betterlinks-gutenberg', 'betterlinks', BETTERLINKS_ROOT_DIR_PATH . 'languages/');
     }
