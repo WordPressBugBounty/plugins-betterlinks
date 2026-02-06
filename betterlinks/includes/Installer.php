@@ -107,7 +107,8 @@ class Installer extends \WP_Background_Process
         $this->createBetterLinksTable();
         $this->createBetterTermsTable();
         $this->createBetterTermsRelationshipsTable();
-        $this->createBetterClicksTable();
+        $this->createBetterLinksCountriesTable(); // Create countries table first
+        $this->createBetterClicksTable(); // Create clicks table after countries table
         $this->createBetterLinkMetaTable();
         $this->createBetterLinkPasswordTable();
         // set plugin version in 'option table' if not already setted 
@@ -161,11 +162,13 @@ class Installer extends \WP_Background_Process
                 'force_https'   	    => false,
                 'prefix'                => 'go',
                 'is_allow_qr'           => false,
-                'is_random_string'      => false,
+                'is_random_string'      => false, // Legacy setting - keep for backward compatibility
+                'url_slug_generation_type' => 'random_mixed', // New setting
                 'is_autolink_icon'      => false,
                 'is_autolink_headings'  => true,
                 'is_case_sensitive'     => false,
                 'enable_custom_domain_menu' => true,
+                'enable_auto_title_suggestion' => true,
                 'fbs'        => [
                     'enable_fbs' => true,
                     'cat_id'    => $fbs_cat,
@@ -271,6 +274,16 @@ class Installer extends \WP_Background_Process
             if( version_compare( BETTERLINKS_DB_VERSION, '1.6.6', '>' ) ){
                 $this->modifyBetterLinksClicksTable2();
             }
+
+            // Ensure countries table exists for all versions >= 1.6.7
+            if( version_compare( BETTERLINKS_DB_VERSION, '1.6.7', '>=' ) ){
+                $this->createBetterLinksCountriesTable();
+                $this->modifyBetterLinksClicksTable4();
+            }
+            
+            // Migrate default settings for backward compatibility (runs for all versions)
+            // This ensures older users get new default settings that were added over time
+            $this->migrate_default_settings();
         }
         Helper::btl_update_option('betterlinks_db_version', BETTERLINKS_DB_VERSION);
     }

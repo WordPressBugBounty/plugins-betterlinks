@@ -10,10 +10,17 @@ class Cache {
 		if ( is_string( $betterlinks_links ) ) {
 			$betterlinks_links = json_decode( $betterlinks_links, true );
 		}
+
+		// Security: Remove sensitive API keys from JSON cache
+		// API keys are stored separately in BETTERLINKS_AI_API_KEYS_OPTION_NAME
+		unset( $betterlinks_links['openai_api_key'] );
+		unset( $betterlinks_links['gemini_api_key'] );
+
 		if( !is_dir( BETTERLINKS_UPLOAD_DIR_PATH ) ){
 			wp_mkdir_p(BETTERLINKS_UPLOAD_DIR_PATH);
 		}
-		return file_put_contents( BETTERLINKS_UPLOAD_DIR_PATH . '/settings.json', json_encode( $betterlinks_links ) );
+		file_put_contents( BETTERLINKS_UPLOAD_DIR_PATH . '/settings.json', json_encode( $betterlinks_links ) );
+		return $betterlinks_links;
 	}
 
 	public static function get_json_settings() {

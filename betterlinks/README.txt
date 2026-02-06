@@ -1,11 +1,11 @@
-=== BetterLinks – An Advanced Plugin for Affiliate Links, Link Shortening, Link Tracking, Link Branding & Marketing ===
-Contributors: wpdevteam, re_enter_rupok, asif2bd, sapanmozammel, priyomukul
+=== BetterLinks – URL Shortener, Link Tracking, Analytics & Affiliate Link Manager ===
+Contributors: wpdevteam, re_enter_rupok, asif2bd, sapanmozammel, priyomukul, hasandev
 Donate link: https://wpdeveloper.com
 Tags: affiliate links, cloaking, link shortener, short links, redirects
 Requires at least: 5.0
-Tested up to: 6.7
+Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.3.1
+Stable tag: 2.4.4
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -38,7 +38,7 @@ https://www.youtube.com/watch?v=ZJqBrFhQC1A
 ## SIMPLE & FAST LINK MANAGEMENT PLUGIN 🎉
 
 
-**✨ Aesthetic Drag & Drop UI:** Create & manage any links with just a couple of clicks. From creating, editing to configuring have everything in one place
+**✨ Aesthetic Drag & Drop UI:** Create & manage any links with just a couple of clicks. From creating, editing to configuring - everything in one place
 
 **🧲 Quick Link Shortening:** Make your long URL links into short ones and create pretty links within minutes
 
@@ -46,7 +46,7 @@ https://www.youtube.com/watch?v=ZJqBrFhQC1A
 
 **⚙️ Easy Configuration:** Easily setup your Link Redirects (301, 302, 307 and Cloaked) and all your Link options
 
-**💪 Fast Response:** Less Database queries resulting in faster response time
+**💪 Fast Response:** Less Database queries result in faster response time
 
 **🔃 Simple Migration:** Migrate from Third-party Plugins such as PrettyLinks, ThirstyAffiliates with one-click
 
@@ -82,6 +82,9 @@ https://www.youtube.com/watch?v=ZJqBrFhQC1A
 - Custom Scripts [PRO]
 - Custom Domain [PRO]
 - Full Site Link Scanner [PRO]
+- Global UTM Builder [PRO]
+- Auto Post Link Generator [PRO]
+- AI Bulk Link Generator [PRO]
 
 [ALL FEATURES](https://betterlinks.io/features/) | [DOCUMENTATION](https://betterlinks.io/docs/) | [PRICING](https://betterlinks.io/#pricing)
 
@@ -89,15 +92,15 @@ https://www.youtube.com/watch?v=ZJqBrFhQC1A
 ## 🔥 WHAT’S NEXT
 If you like BetterLinks, then consider checking out our other WordPress Plugins for FREE:
 
-🔝 [Essential Addons For Elementor](https://wordpress.org/plugins/essential-addons-for-elementor-lite/) – Most popular Elementor extensions with 2 million+ active users in the WordPress repository.
+🔝 [Essential Addons For Elementor](https://wordpress.org/plugins/essential-addons-for-elementor-lite/) – Popular Elementor extensions with 2 million+ active users in the WordPress repository.
 
-👉 [Essential Blocks For Gutenberg](https://wordpress.org/plugins/essential-blocks/) - The ultimate blocks library to enhance your Gutenberg web-building experience.
+👉 [Essential Blocks For Gutenberg](https://wordpress.org/plugins/essential-blocks/) - Advanced blocks library to enhance your Gutenberg web-building experience.
 
-🔔 [NotificationX](https://wordpress.org/plugins/notificationx/) – Best Social Proof & FOMO Marketing Solution to increase conversion rates.
+🔔 [NotificationX](https://wordpress.org/plugins/notificationx/) – Social Proof & FOMO Marketing Solution to increase conversion rates.
 
-📄 [EmbedPress](https://wordpress.org/plugins/embedpress/): Easiest WordPress embedding plugin to add content from 100+ sources with one click. Works in Gutenberg, Elementor, and more.
+📄 [EmbedPress](https://wordpress.org/plugins/embedpress/): Easiest WordPress embedding plugin to add content from 250+ sources with one click. Works in Gutenberg, Elementor, and more.
 
-📝 [BetterDocs](https://wordpress.org/plugins/betterdocs)– Best Documentation & Knowledge Base Plugin for WordPress, which also reduces your manual support request.
+📝 [BetterDocs](https://wordpress.org/plugins/betterdocs)– Documentation & Knowledge Base Solution for WordPress, which also reduces your manual support requests.
 
 ⏰ [SchedulePress](https://wordpress.org/plugins/wp-scheduled-posts/) – Complete solution for scheduling WordPress posts through an editorial calendar & social share.
 
@@ -105,7 +108,7 @@ If you like BetterLinks, then consider checking out our other WordPress Plugins 
 
 🔎 [Easy.Jobs](https://wordpress.org/plugins/easyjobs/) – Smart and easy recruitment and talent sourcing solution for hiring remotely with AI-powered screening system, question sets, remote interviews, and designing branded career pages with Elementor.
 
-🎨 [Flexia](https://wordpress.org/themes/flexia/): Most lightweight, customizable & multi purpose theme for WordPress.
+🎨 [Flexia](https://wordpress.org/themes/flexia/): Lightweight, customizable & multi purpose theme for WordPress.
 
 Visit [WPDeveloper](https://wpdeveloper.com/) to learn more about how to do better in WordPress with [Help Tutorial, Tips & Tricks](https://wpdeveloper.com/blog).
 
@@ -159,6 +162,49 @@ BetterLinks is very useful for website owners, affiliate marketers, SEO experts 
 
 
 == Changelog ==
+
+= 2.4.4 - 02/02/2026 =
+
+- Fixed: Missing Prefix issue in default general settings
+- Fixed: Duplicate short link data related issue
+- Few minor bug fixes & improvements 
+
+= 2.4.3 - 14/01/2026 =
+
+- Fixed: Migration error caused by a scalar value being treated as an array.
+- Few minor bug fixes & improvements 
+
+= 2.4.2 - 05/01/2026 =
+
+- Fixed: Share Task issue with Fluent Boards Link Management
+- Few minor bug fixes & improvements
+
+= 2.4.1 - 28/12/2025 =
+
+- Fixed: Missing geolocation script reference causing console errors
+- Fixed: Database migration issue during plugin updates
+- Few minor bug fixes & improvements
+
+= 2.4.0 - 18/12/2025 =
+
+- Improvement: Introduced Bulk Deletion option in Specific Clicks Analytics and Item-wise Analytics.
+- Improvement: Introduced Multiple URL Slug Generation mechanism
+- Few minor bug fixes & improvements
+
+= 2.3.4 - 27/11/2025 =
+
+- Few minor bug fixes & improvements
+
+
+= 2.3.3 - 18/11/2025 =
+
+- Few minor bug fixes & improvements
+
+= 2.3.2 - 26/10/2025 =
+
+- Improvement: Added “Refresh Stats” option on the Analytics page for Instant data updates.
+- Improvement: Enhanced the “Reset” mechanism — it now supports date-wise resets with individual link data clearing.
+- Few minor bug fixes & improvements
 
 = 2.3.1 - 21/09/2025 =
 - Improvement: Added Default Category selection option.

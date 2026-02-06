@@ -47,7 +47,7 @@ class Export {
 		header( 'Content-Disposition: attachment; filename="' . $filename . '";' );
 		$f = fopen( 'php://output', 'w' );
 		foreach ( $arr as $line ) {
-			fputcsv( $f, $line );
+			fputcsv( $f, $line, ',', '"' );
 		}
 	}
 

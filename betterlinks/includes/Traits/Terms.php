@@ -3,18 +3,18 @@ namespace BetterLinks\Traits;
 
 trait Terms {
 
-	public function tags_analytic() {
+	public function tags_analytic( $force_refresh = false ) {
 
 		$analytic = get_option( 'btl_tags_analytics', array() );
-		if ( count( $analytic ) > 0 ) {
+		if ( !$force_refresh && count( $analytic ) > 0 ) {
 			return $analytic;
 		}
 		global $wpdb;
 		$prefix = $wpdb->prefix;
 
-		$query        = "SELECT t.id AS tag_id, tr.link_id,COUNT(tr.link_id) AS total_click FROM {$prefix}betterlinks_clicks c 
-        LEFT JOIN {$prefix}betterlinks_terms_relationships tr ON c.link_id=tr.link_id 
-        LEFT JOIN {$prefix}betterlinks_terms t ON t.id=tr.term_id WHERE t.term_type='tags' GROUP BY tag_id,tr.link_id;";
+		$query        = "SELECT t.ID AS tag_id, tr.link_id,COUNT(tr.link_id) AS total_click FROM {$prefix}betterlinks_clicks c
+        LEFT JOIN {$prefix}betterlinks_terms_relationships tr ON c.link_id=tr.link_id
+        LEFT JOIN {$prefix}betterlinks_terms t ON t.ID=tr.term_id WHERE t.term_type='tags' GROUP BY tag_id,tr.link_id;";
 		$total_clicks = $wpdb->get_results( $query, ARRAY_A );
 
 		$prepare_total_clicks = array();
@@ -26,17 +26,13 @@ trait Terms {
 			$prepare_total_clicks[ $value['tag_id'] ] = $value['total_click'];
 		}
 
-		$query         = "SELECT t.id AS tag_id, COUNT(c.ip) AS unique_clicks FROM {$prefix}betterlinks_terms t LEFT JOIN {$prefix}betterlinks_terms_relationships tr ON t.id=tr.term_id LEFT JOIN {$prefix}betterlinks_clicks c ON tr.link_id=c.link_id WHERE term_type='tags' GROUP BY tag_id, c.ip;";
+		$query         = "SELECT t.ID AS tag_id, COUNT(DISTINCT c.ip) AS unique_clicks FROM {$prefix}betterlinks_terms t LEFT JOIN {$prefix}betterlinks_terms_relationships tr ON t.ID=tr.term_id LEFT JOIN {$prefix}betterlinks_clicks c ON tr.link_id=c.link_id WHERE term_type='tags' GROUP BY t.ID;";
 		$unique_clicks = $wpdb->get_results( $query, ARRAY_A );
 
 		$prepare_unique_clicks = array();
 
 		foreach ( $unique_clicks as $value ) {
-			if ( isset( $prepare_unique_clicks[ $value['tag_id'] ] ) ) {
-				$prepare_unique_clicks[ $value['tag_id'] ] += 1;
-				continue;
-			}
-			$prepare_unique_clicks[ $value['tag_id'] ] = isset( $prepare_total_clicks[ $value['tag_id'] ] ) ? 1 : 0;
+			$prepare_unique_clicks[ $value['tag_id'] ] = intval( $value['unique_clicks'] );
 		}
 
 		$analytic = array(
@@ -49,21 +45,21 @@ trait Terms {
 
 	public function get_all_tags() {
 		global $wpdb;
-		$query = "SELECT id, term_name, term_slug, link_count FROM {$wpdb->prefix}betterlinks_terms AS t LEFT JOIN (SELECT term_id, COUNT(term_id) AS link_count FROM {$wpdb->prefix}betterlinks_terms_relationships GROUP BY term_id) AS tr ON t.id=tr.term_id WHERE t.term_type='tags'";
+		$query = "SELECT t.ID, t.term_name, t.term_slug, COALESCE(tr.link_count, 0) as link_count FROM {$wpdb->prefix}betterlinks_terms AS t LEFT JOIN (SELECT term_id, COUNT(term_id) AS link_count FROM {$wpdb->prefix}betterlinks_terms_relationships GROUP BY term_id) AS tr ON t.ID=tr.term_id WHERE t.term_type='tags'";
 		return $wpdb->get_results( $query, ARRAY_A );
 	}
 
-	public function categories_analytic() {
+	public function categories_analytic( $force_refresh = false ) {
 		$analytic = get_option( 'btl_categories_analytics', array() );
-		if ( count( $analytic ) > 0 ) {
+		if ( !$force_refresh && count( $analytic ) > 0 ) {
 			return $analytic;
 		}
 		global $wpdb;
 		$prefix = $wpdb->prefix;
 
-		$query        = "SELECT t.id AS category_id, tr.link_id,COUNT(tr.link_id) AS total_click FROM {$prefix}betterlinks_clicks c 
-        LEFT JOIN {$prefix}betterlinks_terms_relationships tr ON c.link_id=tr.link_id 
-        LEFT JOIN {$prefix}betterlinks_terms t ON t.id=tr.term_id WHERE t.term_type='category' GROUP BY category_id,tr.link_id;";
+		$query        = "SELECT t.ID AS category_id, tr.link_id,COUNT(tr.link_id) AS total_click FROM {$prefix}betterlinks_clicks c
+        LEFT JOIN {$prefix}betterlinks_terms_relationships tr ON c.link_id=tr.link_id
+        LEFT JOIN {$prefix}betterlinks_terms t ON t.ID=tr.term_id WHERE t.term_type='category' GROUP BY category_id,tr.link_id;";
 		$total_clicks = $wpdb->get_results( $query, ARRAY_A );
 
 		$prepare_total_clicks = array();
@@ -75,17 +71,13 @@ trait Terms {
 			$prepare_total_clicks[ $value['category_id'] ] = $value['total_click'];
 		}
 
-		$query         = "SELECT t.id AS category_id, COUNT(c.ip) AS unique_clicks FROM {$prefix}betterlinks_terms t LEFT JOIN {$prefix}betterlinks_terms_relationships tr ON t.id=tr.term_id LEFT JOIN {$prefix}betterlinks_clicks c ON tr.link_id=c.link_id WHERE term_type='category' GROUP BY category_id, c.ip;";
+		$query         = "SELECT t.ID AS category_id, COUNT(DISTINCT c.ip) AS unique_clicks FROM {$prefix}betterlinks_terms t LEFT JOIN {$prefix}betterlinks_terms_relationships tr ON t.ID=tr.term_id LEFT JOIN {$prefix}betterlinks_clicks c ON tr.link_id=c.link_id WHERE term_type='category' GROUP BY t.ID;";
 		$unique_clicks = $wpdb->get_results( $query, ARRAY_A );
 
 		$prepare_unique_clicks = array();
 
 		foreach ( $unique_clicks as $value ) {
-			if ( isset( $prepare_unique_clicks[ $value['category_id'] ] ) ) {
-				$prepare_unique_clicks[ $value['category_id'] ] += 1;
-				continue;
-			}
-			$prepare_unique_clicks[ $value['category_id'] ] = isset( $prepare_total_clicks[ $value['category_id'] ] ) ? 1 : 0;
+			$prepare_unique_clicks[ $value['category_id'] ] = intval( $value['unique_clicks'] );
 		}
 
 		$analytic = array(
@@ -98,7 +90,7 @@ trait Terms {
 
 	public function get_all_categories() {
 		global $wpdb;
-		$query = "SELECT id, term_name, term_slug, link_count FROM {$wpdb->prefix}betterlinks_terms AS t LEFT JOIN (SELECT term_id, COUNT(term_id) AS link_count FROM {$wpdb->prefix}betterlinks_terms_relationships GROUP BY term_id) AS tr ON t.id=tr.term_id WHERE t.term_type='category'";
+		$query = "SELECT t.ID, t.term_name, t.term_slug, COALESCE(tr.link_count, 0) as link_count FROM {$wpdb->prefix}betterlinks_terms AS t LEFT JOIN (SELECT term_id, COUNT(term_id) AS link_count FROM {$wpdb->prefix}betterlinks_terms_relationships GROUP BY term_id) AS tr ON t.ID=tr.term_id WHERE t.term_type='category'";
 		return $wpdb->get_results( $query, ARRAY_A );
 	}
 
@@ -133,7 +125,7 @@ trait Terms {
 		// Return the updated term data in the format expected by the frontend
 		global $wpdb;
 		$query = $wpdb->prepare(
-			"SELECT id as ID, term_name, term_slug, link_count FROM {$wpdb->prefix}betterlinks_terms AS t LEFT JOIN (SELECT term_id, COUNT(term_id) AS link_count FROM {$wpdb->prefix}betterlinks_terms_relationships GROUP BY term_id) AS tr ON t.id=tr.term_id WHERE t.id=%d AND t.term_type='category'",
+			"SELECT t.ID, t.term_name, t.term_slug, COALESCE(tr.link_count, 0) as link_count FROM {$wpdb->prefix}betterlinks_terms AS t LEFT JOIN (SELECT term_id, COUNT(term_id) AS link_count FROM {$wpdb->prefix}betterlinks_terms_relationships GROUP BY term_id) AS tr ON t.ID=tr.term_id WHERE t.ID=%d AND t.term_type='category'",
 			$args['cat_id']
 		);
 		$updated_term = $wpdb->get_row( $query, ARRAY_A );
@@ -154,7 +146,7 @@ trait Terms {
 		// Return the updated tag data in the format expected by the frontend
 		global $wpdb;
 		$query = $wpdb->prepare(
-			"SELECT id as ID, term_name, term_slug, link_count FROM {$wpdb->prefix}betterlinks_terms AS t LEFT JOIN (SELECT term_id, COUNT(term_id) AS link_count FROM {$wpdb->prefix}betterlinks_terms_relationships GROUP BY term_id) AS tr ON t.id=tr.term_id WHERE t.id=%d AND t.term_type='tags'",
+			"SELECT t.ID, t.term_name, t.term_slug, COALESCE(tr.link_count, 0) as link_count FROM {$wpdb->prefix}betterlinks_terms AS t LEFT JOIN (SELECT term_id, COUNT(term_id) AS link_count FROM {$wpdb->prefix}betterlinks_terms_relationships GROUP BY term_id) AS tr ON t.ID=tr.term_id WHERE t.ID=%d AND t.term_type='tags'",
 			$args['ID']
 		);
 		$updated_tag = $wpdb->get_row( $query, ARRAY_A );

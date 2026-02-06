@@ -13,27 +13,27 @@ trait Query {
 			$defaults              = self::get_link_by_ID( $item['ID'] );
 			$item                  = wp_parse_args( $item, current( $defaults ) );
 			$link_data_array       = array(
-				'link_author'       => $item['link_author'],
-				'link_date'         => $item['link_date'],
-				'link_date_gmt'     => $item['link_date_gmt'],
-				'link_title'        => $item['link_title'],
-				'link_slug'         => $item['link_slug'],
-				'link_note'         => $item['link_note'],
-				'link_status'       => $item['link_status'],
-				'nofollow'          => $item['nofollow'],
-				'sponsored'         => $item['sponsored'],
-				'track_me'          => $item['track_me'],
-				'param_forwarding'  => $item['param_forwarding'],
-				'param_struct'      => $item['param_struct'],
-				'redirect_type'     => $item['redirect_type'],
-				'target_url'        => $item['target_url'],
-				'short_url'         => $item['short_url'],
-				'link_order'        => $item['link_order'],
-				'link_modified'     => $item['link_modified'],
-				'link_modified_gmt' => $item['link_modified_gmt'],
-				'wildcards'         => $item['wildcards'],
-				'expire'            => $item['expire'],
-				'dynamic_redirect'  => $item['dynamic_redirect'],
+				'link_author'       => $item['link_author'] ?? '',
+				'link_date'         => $item['link_date'] ?? '',
+				'link_date_gmt'     => $item['link_date_gmt'] ?? '',
+				'link_title'        => $item['link_title'] ?? '',
+				'link_slug'         => $item['link_slug'] ?? '',
+				'link_note'         => $item['link_note'] ?? '',
+				'link_status'       => $item['link_status'] ?? '',
+				'nofollow'          => $item['nofollow'] ?? '',
+				'sponsored'         => $item['sponsored'] ?? '',
+				'track_me'          => $item['track_me'] ?? '',
+				'param_forwarding'  => $item['param_forwarding'] ?? '',
+				'param_struct'      => $item['param_struct'] ?? '',
+				'redirect_type'     => $item['redirect_type'] ?? '',
+				'target_url'        => $item['target_url'] ?? '',
+				'short_url'         => $item['short_url'] ?? '',
+				'link_order'        => $item['link_order'] ?? '',
+				'link_modified'     => $item['link_modified'] ?? '',
+				'link_modified_gmt' => $item['link_modified_gmt'] ?? '',
+				'wildcards'         => $item['wildcards'] ?? '',
+				'expire'            => $item['expire'] ?? '',
+				'dynamic_redirect'  => $item['dynamic_redirect'] ?? '',
 			);
 			$link_data_place_array = array(
 				'%d',
@@ -564,6 +564,16 @@ trait Query {
 		return $result;
 	}
 
+	// Get term by ID for AI
+	public static function get_term_by_id( $term_id, $type = 'category' ) {
+		global $wpdb;
+		$result = $wpdb->get_results(
+			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}betterlinks_terms WHERE ID=%d AND term_type=%s", $term_id, $type ),
+			ARRAY_A
+		);
+		return $result;
+	}
+
 	public static function get_terms_by_link_ID_and_term_type( $link_ID, $term_type = 'categroy' ) {
 		global $wpdb;
 		$prefix = $wpdb->prefix;
@@ -589,10 +599,8 @@ trait Query {
 
 	public static function get_terms_all_data() {
 		global $wpdb;
-		$link = $wpdb->get_results(
-			"SELECT * FROM {$wpdb->prefix}betterlinks_terms",
-			ARRAY_A
-		);
+		$query = "SELECT t.ID, t.term_name, t.term_slug, t.term_type, t.term_order, COALESCE(tr.link_count, 0) as link_count FROM {$wpdb->prefix}betterlinks_terms AS t LEFT JOIN (SELECT term_id, COUNT(term_id) AS link_count FROM {$wpdb->prefix}betterlinks_terms_relationships GROUP BY term_id) AS tr ON t.ID=tr.term_id ORDER BY t.term_order ASC, t.term_name ASC";
+		$link = $wpdb->get_results( $query, ARRAY_A );
 		return $link;
 	}
 
@@ -609,8 +617,25 @@ trait Query {
 			return;
 		}
 		$is_analytics_ip_enabled = isset( $item['ip'] ) && isset( $item['host'] );
+		$is_country_enabled = isset( $item['country_code'] ) && isset( $item['country_name'] );
+
 		$addedPlaceholderString  = $is_analytics_ip_enabled ? ' created_at_gmt, rotation_target_url, ip, host ' : ' created_at_gmt, rotation_target_url ';
 		$addedDbColumnsString    = $is_analytics_ip_enabled ? ' %s, %s, %s, %s ' : ' %s, %s ';
+
+		// Use country_id for normalized schema
+		$country_id = null;
+		if ( $is_country_enabled ) {
+			// Get or create country record
+			$country_id = \BetterLinks\Services\CountryDetectionService::get_or_create_country_id(
+				$item['country_code'],
+				$item['country_name']
+			);
+
+			if ( $country_id ) {
+				$addedPlaceholderString .= ', country_id';
+				$addedDbColumnsString   .= ', %d';
+			}
+		}
 
 		if ( $is_extra_data_tracking_compatible ) {
 			$addedPlaceholderString .= ', brand_name, model, bot_name, browser_type, os_version, browser_version, language, query_params';
@@ -635,6 +660,10 @@ trait Query {
 		if ( $is_analytics_ip_enabled ) {
 			$db_data_array[] = isset( $item['ip'] ) ? $item['ip'] : '';
 			$db_data_array[] = isset( $item['host'] ) ? $item['host'] : '';
+		}
+
+		if ( $is_country_enabled && $country_id ) {
+			$db_data_array[] = $country_id;
 		}
 		// $db_data_array[] = isset($item['device']) ? $item['device'] : '';
 		if ( $is_extra_data_tracking_compatible ) {
@@ -703,7 +732,7 @@ trait Query {
 		global $wpdb;
 		$prefix                          = $wpdb->prefix;
 		$individual_analytics_cache_keys = 'btl_individual_analytics_clicks_|btl_individual_graph_data_';
-		$all_analytics_cache_keys        = 'betterlinks_analytics_data|btl_analytics_unique_list_|btl_analytics_graph_|btl_top_referer_|btl_click_stats_|btl_top_os_|btl_top_browser_|btl_all_referer_|btl_tags_analytics|btl_categories_analytics|btl_analytics_data_|btl_unique_clicks_count_';
+		$all_analytics_cache_keys        = 'betterlinks_analytics_data|btl_analytics_unique_list_|btl_analytics_unique_list_by_tag_|btl_analytics_graph_|btl_analytics_graph_by_tag_|btl_top_referer_|btl_click_stats_|btl_top_os_|btl_top_browser_|btl_all_referer_|btl_tags_analytics|btl_categories_analytics|btl_analytics_data_|btl_unique_clicks_count_';
 		$query                           = "DELETE FROM {$prefix}options WHERE option_name regexp '{$individual_analytics_cache_keys}|{$all_analytics_cache_keys}'";
 
 		$result = $wpdb->query( $query );
@@ -1054,7 +1083,9 @@ trait Query {
 	public static function used_features_by_client() {
 		return [
 			'betterlinks_broken_link_scanner' => !empty( get_option( 'betterlinkspro_broken_links_logs', [] ) ),
-			'fullsite_link_scanner' => !empty( get_option('betterlinkspro_fullsite_broken_links_logs_cleared', 0) ) || !empty( get_option( 'betterlinkspro_fullsite_broken_links_logs', [] ) )
+			'fullsite_link_scanner' => !empty( get_option('betterlinkspro_fullsite_broken_links_logs_cleared', 0) ) || !empty( get_option( 'betterlinkspro_fullsite_broken_links_logs', [] ) ),
+			'ai_link_generator' => !empty( get_option( 'betterlinks_ai_generator_used', false ) ),
+			'utm_builder' => !empty( get_option( 'betterlinks_utm_builder_used', false ) ),
 		];
 	}
 }

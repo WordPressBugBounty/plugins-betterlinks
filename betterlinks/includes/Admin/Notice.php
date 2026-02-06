@@ -19,6 +19,11 @@ class Notice {
 	 */
 	private $opt_in_tracker;
 
+	/**
+	 * @var bool Flag to prevent duplicate notice display
+	 */
+	private static $black_friday_notice_displayed = false;
+
 	const ASSET_URL = BETTERLINKS_ASSETS_URI;
 
 	public function __construct() {
@@ -33,6 +38,8 @@ class Notice {
 
 		add_action( 'in_admin_header', [ $this, 'remove_admin_notice' ] );
 		add_action( 'btl_compatibity_notices', [ $this, 'btlpro_compatibility_notices' ] );
+		// Use multiple hooks for better compatibility across different WordPress setups
+		add_action( 'admin_footer', [ $this, 'black_friday_pointer_notice' ], 999 );
 	}
 
 	public function btlpro_compatibility_notices() {
@@ -54,6 +61,125 @@ class Notice {
 
 			echo wp_kses_post( $notice );
 		}
+	}
+
+	/**
+	 * Display Black Friday pointer notice
+	 * Shows only once per user with date range validation
+	 * Only displays for free users (without BetterLinks Pro)
+	 * Only shows on BetterLinks pages and WordPress dashboard
+	 *
+	 * @return void
+	 */
+	public function black_friday_pointer_notice() {
+		// Prevent duplicate display when hooked to multiple actions
+		if ( self::$black_friday_notice_displayed ) {
+			return;
+		}
+
+		// Check if notice is dismissed
+		if ( get_transient( 'betterlinks_black_friday_pointer_dismissed' ) ) {
+			return;
+		}
+
+		// Check date range: November 16, 2025 to December 4, 2025
+		$start_date = strtotime( '11:59:59pm 16th November, 2025' );
+		$end_date   = strtotime( '11:59:59pm 4th December, 2025' );
+		$current_time = current_time( 'timestamp' );
+
+		// Only show if within date range
+		if ( $current_time < $start_date || $current_time > $end_date ) {
+			return;
+		}
+
+		// Don't show if Pro is already active or installed
+		if ( defined( 'BETTERLINKS_PRO_VERSION' ) || is_plugin_active( 'betterlinks-pro/betterlinks-pro.php' ) ) {
+			return;
+		}
+
+		// Check plugin pointer priority system
+		// BetterLinks priority is 7
+		$betterlinks_priority = 7;
+		$current_priority = get_option( '_wpdeveloper_plugin_pointer_priority' );
+		// If priority option doesn't exist, create it with BetterLinks priority
+		if ( false === $current_priority || null === $current_priority || '' === $current_priority ) {
+			update_option( '_wpdeveloper_plugin_pointer_priority', $betterlinks_priority );
+		} elseif ( $current_priority > $betterlinks_priority ) {
+			// If current priority is higher than BetterLinks priority, update it
+			update_option( '_wpdeveloper_plugin_pointer_priority', $betterlinks_priority );
+			$current_priority = $betterlinks_priority;
+		}
+
+		if ( $current_priority < $betterlinks_priority  ) {
+			return;
+		}
+
+		// Only show on BetterLinks pages, WordPress dashboard, and plugins directory
+		$current_screen = get_current_screen();
+		$is_betterlinks_page = ( 0 === strpos( $current_screen->id, 'toplevel_page_betterlinks' ) || 0 === strpos( $current_screen->id, 'betterlinks_page_' ) );
+		$is_dashboard = ( 'dashboard' === $current_screen->id );
+		$is_plugins_page = ( 'plugins' === $current_screen->id );
+
+		if ( ! $is_betterlinks_page && ! $is_dashboard && ! $is_plugins_page ) {
+			return;
+		}
+
+		// Enqueue pointer styles and scripts
+		wp_enqueue_style( 'wp-pointer' );
+		wp_enqueue_script( 'wp-pointer' );
+		wp_enqueue_script( 'jquery' );
+
+		// Create nonce for AJAX
+		$nonce = wp_create_nonce( 'betterlinks_dismiss_black_friday_notice' );
+
+		// Mark notice as displayed to prevent duplicates
+		self::$black_friday_notice_displayed = true;
+
+		// Output the notice markup
+		?>
+
+		<script type="text/javascript">
+			(function($) {
+				$(document).ready(function() {
+
+					const target = jQuery("#toplevel_page_betterlinks" || 'body');
+
+					if (target.length === 0) {
+						return;
+					}
+
+					// Prepare content with optional button
+					let content = '<h3><?php esc_html_e( 'BetterLinks Black Friday Sale', 'betterlinks' ); ?></h3><p><?php esc_html_e( 'Shorten and redirect links & analyze website performance efficiently.', 'betterlinks' ); ?> </p>' || '';
+					content += '<p style="margin-top: 15px;"><a href="https://betterlinks.io/bfcm-wp-admin-pointer" class="button button-primary" target="_blank" rel="noopener"><?php esc_html_e( 'Save 40%', 'betterlinks' ); ?></a></p>';
+			
+					// Default pointer options
+					const options = {
+						content: content,
+						position: {
+							edge: "left",
+							align: 'center'
+						},
+						close: function() {
+							// dismissPointer(pointerId);
+							var nonce = '<?php echo $nonce; ?>';
+								// Send AJAX request to set transient
+								$.ajax({
+									url: '<?php echo esc_url(admin_url( 'admin-ajax.php' )); ?>',
+									type: 'POST',
+									data: {
+										action: 'betterlinks_dismiss_black_friday_notice',
+										nonce: nonce
+									},
+								});
+						}
+					};
+       
+				// Show the pointer
+				target.pointer(options).pointer('open');
+				});
+			})(jQuery);
+		</script>
+		<?php
 	}
 
 	public function remove_admin_notice() {
@@ -89,25 +215,19 @@ class Notice {
 			"<div class='notice notice-success is-dismissible btl-dashboard-notice' id='btl-dashboard-notice'>
 				<p>
 				%s
-				<a target='_blank' href='https://betterlinks.io/docs/manage-categories/' style='display: inline-block'>
+				<a target='_blank' href='https://betterlinks.io/docs/ai-bulk-link-generator-in-betterlinks/' style='display: inline-block'>
 					%s
 				</a>
 				%s
-				<a target='_blank' href='https://betterlinks.io/docs/auto-link-creation-for-custom-post-type/' style='display: inline-block'>
-					%s
-				</a>
+				<a target='_blank' href='https://betterlinks.io/changelog/'>%s</a>
 				%s
-				<a target='_blank' href='https://betterlinks.io/changelog/'>
-					%s
-				</a>
 				</p>
 		</div>",
-			__( 'NEW: BetterLinks 2.3 is here with ', 'betterlinks' ),
-			__( 'Category Management', 'betterlinks' ),
-			__( '&', 'betterlinks' ),
-			__( 'Auto Link Creation for Custom Post Types!', 'betterlinks' ),
-			__( ' See the', 'betterlinks' ),
-			__( 'full Changelog.', 'betterlinks' ),
+			__( 'NEW: BetterLinks Pro 2.6 now includes a powerful new ', 'betterlinks' ),
+			__( 'AI Bulk Link Generator.', 'betterlinks' ),
+			__( ' Check the full ', 'betterlinks' ),
+			__( 'Changelog', 'betterlinks' ),
+			__( ' for details.', 'betterlinks' ),
 		);
 	}
 
@@ -134,7 +254,7 @@ class Notice {
 			'lifetime'       => 3,
 			'stylesheet_url' => self::ASSET_URL . 'css/betterlinks-admin-notice.css',
 			'styles'         => self::ASSET_URL . 'css/betterlinks-admin-notice.css',
-			'priority'       => 5
+			'priority'       => 7
 		] );
 
 		global $betterlinks;
@@ -211,7 +331,7 @@ class Notice {
 				'refresh'     => BETTERLINKS_VERSION,
 				'dismissible' => true,
 				'do_action'   => 'wpdeveloper_notice_clicked_for_betterlinks',
-				'display_if'  => ! is_array( $notices->is_installed( 'betterlinks-pro/betterlinks-pro.php' ) )
+				'display_if'  => ! is_plugin_active( 'betterlinks-pro/betterlinks-pro.php' )
 			]
 		);
 
@@ -232,10 +352,31 @@ class Notice {
 				'dismissible' => true,
 				'refresh'     => BETTERLINKS_VERSION,
 				"expire"      => strtotime( '11:59:59pm 10th January, 2025' ),
-				'display_if'  => ! is_array( $notices->is_installed( 'betterlinks-pro/betterlinks-pro.php' ) )
+				'display_if'  => ! is_plugin_active( 'betterlinks-pro/betterlinks-pro.php' )
 			]
 		);
 
+		// Black Friday Mega Sale Notice
+        $black_friday_icon = self::ASSET_URL . 'images/full-logo.svg';
+		$black_friday_message = "<style>#wpnotice-betterlinks-betterlinks_black_friday_2025 { border-left: 3px solid #E1ADEE !important; } .notice-betterlinks-betterlinks_black_friday_2025 { border-left: 4px solid #FF6B6B !important; }</style><div> <p style='margin-top: 0; margin-bottom: 10px; font-size: 14px;'> <strong>Black Friday Mega Sale:</strong> Manage, Shorten & Track Every Click - Smarter, Faster And Easier - Now <strong> Up To $160 OFF! </strong>🎁 </p><a style='display: inline-flex;align-items:center;column-gap:5px; background: #3B4045; color: #FFFFFF; font-size: 14px;' class='button button-primary' href='https://betterlinks.io/bfcm2025-admin-notice' target='_blank'>Upgrade To PRO</a><a style='display: inline-flex;align-items:center;column-gap:5px;margin-left:10px; background: unset; box-shadow: unset; border-style: unset; color: #424242; font-size: 14px; text-decoration: underline;' class='button dismiss-btn' href='#' data-dismiss='true'>I'll Grab It Later</a> </div>";
+
+        $_black_friday_notices = [
+            'thumbnail' => $black_friday_icon,
+            'html'      => $black_friday_message,
+        ];
+        $notices->add(
+            'betterlinks_black_friday_2025',
+            $_black_friday_notices,
+            [
+                'start'       => strtotime( '11:59:59pm 16th November, 2025' ),
+                'recurrence'  => false,
+                'dismissible' => true,
+                'refresh'     => BETTERLINKS_VERSION,
+                "expire"      => strtotime('11:59:59pm 4th December, 2025'),
+    			'display_if'  => ! is_plugin_active( 'betterlinks-pro/betterlinks-pro.php' ),
+				'priority'    => 7
+            ]
+        );
 		self::$cache_bank->create_account( $notices );
 		self::$cache_bank->calculate_deposits( $notices );
 

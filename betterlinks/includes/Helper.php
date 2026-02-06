@@ -283,13 +283,14 @@ class Helper {
 					}
 				}
 
-				if ( isset( $broken_links[ $item->ID ] ) && in_array( $broken_links[ $item->ID ]['status']['status_code'], $broken_link_status_codes ) && empty( $broken_links[ $item->ID ]['is_log_removed'] ) ) {
+				if ( isset( $broken_links[ $item->ID ] ) && is_array( $broken_links[ $item->ID ] ) && isset( $broken_links[ $item->ID ]['status']['status_code'] ) && in_array( $broken_links[ $item->ID ]['status']['status_code'], $broken_link_status_codes ) && empty( $broken_links[ $item->ID ]['is_log_removed'] ) ) {
 					$item->link_status = 'broken';
-				} elseif ( 'broken' === $item->link_status && isset( $broken_links[ $item->ID ]['old_link_status'] ) && 'broken' !== $broken_links[ $item->ID ]['old_link_status'] ) {
+				} elseif ( 'broken' === $item->link_status && isset( $broken_links[ $item->ID ] ) && is_array( $broken_links[ $item->ID ] ) && isset( $broken_links[ $item->ID ]['old_link_status'] ) && 'broken' !== $broken_links[ $item->ID ]['old_link_status'] ) {
 					// if the link is fixed, but if db is not updated it to fixed link immediately then it will be marked as old status code.
 					$item->link_status = $broken_links[ $item->ID ]['old_link_status'];
 				}
 				$item->tags_data = array();
+				$item->tags_id = array(); // Initialize tags_id array for form submission
 
 				foreach ( $tags_list as $tag ) {
 					if ( $tag->ID === $item->ID ) {
@@ -301,6 +302,8 @@ class Helper {
 								'term_slug' => $tag->term_slug,
 							)
 						);
+						// Also add to tags_id array for form submission
+						array_push( $item->tags_id, $tag->cat_id );
 					}
 				}
 
@@ -351,11 +354,29 @@ class Helper {
 		$case_sensitive_is_enabled = isset( $existingData['is_case_sensitive'] ) ? $existingData['is_case_sensitive'] : false;
 		$short_url                 = $case_sensitive_is_enabled ? $data['short_url'] : strtolower( $data['short_url'] );
 		if ( isset( $data['wildcards'] ) && $data['wildcards'] ) {
-			$tempArray                 = $existingData['wildcards'];
+			$tempArray = $existingData['wildcards'];
+			// Remove any existing entry with the same ID to prevent duplicates
+			if ( isset( $data['ID'] ) ) {
+				foreach ( $tempArray as $key => $entry ) {
+					if ( isset( $entry['ID'] ) && $entry['ID'] == $data['ID'] ) {
+						unset( $tempArray[ $key ] );
+						break;
+					}
+				}
+			}
 			$tempArray[ $short_url ]   = self::json_link_formatter( $data );
 			$existingData['wildcards'] = $tempArray;
 		} else {
-			$tempArray               = ( isset( $existingData['links'] ) ? $existingData['links'] : array() );
+			$tempArray = ( isset( $existingData['links'] ) ? $existingData['links'] : array() );
+			// Remove any existing entry with the same ID to prevent duplicates
+			if ( isset( $data['ID'] ) ) {
+				foreach ( $tempArray as $key => $entry ) {
+					if ( isset( $entry['ID'] ) && $entry['ID'] == $data['ID'] ) {
+						unset( $tempArray[ $key ] );
+						break;
+					}
+				}
+			}
 			$tempArray[ $short_url ] = self::json_link_formatter( $data );
 			$existingData['links']   = $tempArray;
 		}
@@ -369,13 +390,33 @@ class Helper {
 		$existingData              = json_decode( $existingData, true );
 		$case_sensitive_is_enabled = isset( $existingData['is_case_sensitive'] ) ? $existingData['is_case_sensitive'] : false;
 		$short_url                 = $case_sensitive_is_enabled ? $data['short_url'] : strtolower( $data['short_url'] );
+
 		if ( isset( $data['wildcards'] ) && ! empty( $data['wildcards'] ) ) {
 			$tempArray = $existingData['wildcards'];
 			if ( is_array( $tempArray ) ) {
+				$found_old_entry = false;
+
+				// First, try to find and remove by old_short_url if provided
 				if ( ! empty( $old_short_url ) ) {
-					unset( $tempArray[ $old_short_url ] );
-					unset( $tempArray[ strToLower( $old_short_url ) ] );
+					$old_short_url_lower = strtolower( $old_short_url );
+					if ( isset( $tempArray[ $old_short_url ] ) ) {
+						unset( $tempArray[ $old_short_url ] );
+						$found_old_entry = true;
+					} elseif ( isset( $tempArray[ $old_short_url_lower ] ) ) {
+						unset( $tempArray[ $old_short_url_lower ] );
+						$found_old_entry = true;
+					}
 				}
+
+				// If old entry not found by short_url, search by ID to remove all duplicates
+				if ( ! $found_old_entry && isset( $data['ID'] ) ) {
+					foreach ( $tempArray as $key => $entry ) {
+						if ( isset( $entry['ID'] ) && $entry['ID'] == $data['ID'] ) {
+							unset( $tempArray[ $key ] );
+						}
+					}
+				}
+
 				$tempArray[ $short_url ]   = self::json_link_formatter( $data );
 				$existingData['wildcards'] = $tempArray;
 				return file_put_contents( $file, wp_json_encode( $existingData ) );
@@ -384,11 +425,32 @@ class Helper {
 			$tempArray     = $existingData['links'];
 			$previous_data = array();
 			if ( is_array( $tempArray ) ) {
+				$found_old_entry = false;
+
+				// First, try to find and remove by old_short_url if provided
 				if ( ! empty( $old_short_url ) ) {
-					$previous_data = $tempArray[ $old_short_url ];
-					unset( $tempArray[ $old_short_url ] );
-					unset( $tempArray[ strToLower( $old_short_url ) ] );
+					$old_short_url_lower = strtolower( $old_short_url );
+					if ( isset( $tempArray[ $old_short_url ] ) ) {
+						$previous_data = $tempArray[ $old_short_url ];
+						unset( $tempArray[ $old_short_url ] );
+						$found_old_entry = true;
+					} elseif ( isset( $tempArray[ $old_short_url_lower ] ) ) {
+						$previous_data = $tempArray[ $old_short_url_lower ];
+						unset( $tempArray[ $old_short_url_lower ] );
+						$found_old_entry = true;
+					}
 				}
+
+				// If old entry not found by short_url, search by ID to remove all duplicates
+				if ( ! $found_old_entry && isset( $data['ID'] ) ) {
+					foreach ( $tempArray as $key => $entry ) {
+						if ( isset( $entry['ID'] ) && $entry['ID'] == $data['ID'] ) {
+							$previous_data = $entry;
+							unset( $tempArray[ $key ] );
+						}
+					}
+				}
+
 				$data                    = wp_parse_args( $data, $previous_data );
 				$tempArray[ $short_url ] = self::json_link_formatter( $data );
 				$existingData['links']   = $tempArray;
@@ -430,7 +492,7 @@ class Helper {
 	public static function sanitize_text_or_array_field( $array_or_string, $key = '' ) {
 
 		$boolean = array( 'true', 'false', '1', '0' );
-		$skip    = array( 'affiliate_disclosure_text', 'allow_contact_text', 'form_title', 'customFields' );
+		$skip    = array( 'affiliate_disclosure_text', 'allow_contact_text', 'form_title', 'customFields', 'autolink_custom_icon' );
 		if ( is_string( $array_or_string ) ) {
 			if( 'link' === $key ) {
 				return esc_url_raw($array_or_string);
@@ -684,20 +746,26 @@ class Helper {
 			return $slug;
 		}
 
-		$is_cat_exists = self::term_exists( $slug );
-		if ( ! $is_cat_exists ) {
-			$insert_id = self::insert_term(
-				array(
-					'term_name' => $slug,
-					'term_slug' => self::make_slug( $slug ),
-					'term_type' => 'category',
-				)
-			);
-			if ( $insert_id ) {
-				self::clear_query_cache();
-				$slug = $insert_id;
-			}
+		// Check if category exists and get its ID for AI
+		$existing_term = self::get_term_by_slug( self::make_slug( $slug ), 'category' );
+		if ( ! empty( $existing_term ) && is_array( $existing_term ) && count( $existing_term ) > 0 ) {
+			// Category exists, return its ID
+			return $existing_term[0]['ID'];
 		}
+
+		// Category doesn't exist, create it
+		$insert_id = self::insert_term(
+			array(
+				'term_name' => $slug,
+				'term_slug' => self::make_slug( $slug ),
+				'term_type' => 'category',
+			)
+		);
+		if ( $insert_id ) {
+			self::clear_query_cache();
+			return $insert_id;
+		}
+
 		return $slug;
 	}
 

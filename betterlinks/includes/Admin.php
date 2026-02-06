@@ -19,6 +19,7 @@ class Admin {
 
 	public function dispatch_action() {
 		new Admin\Ajax();
+		Admin\ShortLinkGenerator::getInstance();
 		Admin\Metabox::init();
 		// new Admin\Notice();
 		add_action('admin_init', [$this, 'init_notices']);
@@ -45,7 +46,7 @@ class Admin {
 
 	public function insert_plugin_links( $links ) {
 		if ( ! apply_filters( 'betterlinks/pro_enabled', false ) ) {
-			$links[] = '<a href="https://wpdeveloper.com/in/upgrade-betterlinks" target="_blank" style="color: #39b54a; font-weight: bold;">' . __( 'Go Pro', 'betterlinks' ) . '</a>';
+			$links[] = '<a href="https://wpdeveloper.com/in/upgrade-betterlinks" target="_blank" style="color: #000000; font-weight: bold;">' . __( 'Upgrade to Pro', 'betterlinks' ) . '</a>';
 		}
 
 		return $links;

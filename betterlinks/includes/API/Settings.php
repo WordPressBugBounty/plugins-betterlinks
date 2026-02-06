@@ -98,6 +98,24 @@ class Settings extends Controller {
 		// Pro Logics
 		$response = apply_filters( 'betterlinkspro/admin/update_settings', $response );
 
+		// Handle custom SVG icon sanitization
+		if ( ! empty( $response['autolink_custom_icon'] ) ) {
+			// Use the sanitize_custom_svg method if it exists, otherwise use custom wp_kses for SVG
+			if ( class_exists( '\BetterLinksPro\Frontend\AutoLinks' ) && method_exists( '\BetterLinksPro\Frontend\AutoLinks', 'sanitize_custom_svg' ) ) {
+				$response['autolink_custom_icon'] = \BetterLinksPro\Frontend\AutoLinks::sanitize_custom_svg( $response['autolink_custom_icon'] );
+			} else {
+				// Custom wp_kses with SVG allowed elements as fallback
+				$allowed_svg = array(
+					'svg' => array( 'class' => array(), 'width' => array(), 'height' => array(), 'viewbox' => array(), 'viewBox' => array(), 'fill' => array(), 'xmlns' => array() ),
+					'path' => array( 'd' => array(), 'stroke' => array(), 'stroke-width' => array(), 'stroke-linecap' => array(), 'stroke-linejoin' => array(), 'fill' => array() ),
+					'g' => array( 'fill' => array(), 'stroke' => array() ),
+					'circle' => array( 'cx' => array(), 'cy' => array(), 'r' => array(), 'fill' => array(), 'stroke' => array() ),
+					'rect' => array( 'x' => array(), 'y' => array(), 'width' => array(), 'height' => array(), 'fill' => array(), 'stroke' => array() ),
+				);
+				$response['autolink_custom_icon'] = wp_kses( $response['autolink_custom_icon'], $allowed_svg );
+			}
+		}
+
 		if ( ! empty( $response['fbs']['enable_fbs'] ) ) {
 			$category                  = ! empty( $response['fbs']['cat_id'] ) ? sanitize_text_field( $response['fbs']['cat_id'] ) : 1;
 			$category                  = $helper::insert_new_category( $category );

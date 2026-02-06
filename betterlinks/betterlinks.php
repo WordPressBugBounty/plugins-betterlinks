@@ -3,7 +3,7 @@
  * Plugin Name:		BetterLinks
  * Plugin URI:		https://betterlinks.io/
  * Description:		Ultimate plugin to create, shorten, track and manage any URL. Gather analytics reports and run successfully marketing campaigns easily.
- * Version:			2.3.1
+ * Version:			2.4.4
  * Author:			WPDeveloper
  * Author URI:		https://wpdeveloper.com
  * License:			GPL-3.0+
@@ -83,8 +83,8 @@ if (!class_exists('BetterLinks')) {
             /**
              * Defines CONSTANTS for Whole plugins.
              */
-            define('BETTERLINKS_VERSION', '2.3.1');
-            define('BETTERLINKS_DB_VERSION', '1.6.7');
+            define('BETTERLINKS_VERSION', '2.4.4');
+            define('BETTERLINKS_DB_VERSION', '1.6.10');
             define('BETTERLINKS_MENU_NOTICE', '9');
             define('BETTERLINKS_SETTINGS_NAME', 'betterlinks_settings');
             define('BETTERLINKS_PLUGIN_FILE', __FILE__);
@@ -102,6 +102,7 @@ if (!class_exists('BetterLinks')) {
             define('BETTERLINKS_CACHE_LINKS_NAME', 'betterlinks_cache_links_data');
             define('BETTERLINKS_DB_ALTER_OPTIONS', 'betterlinks_db_alter_options');
             define('BETTERLINKS_CUSTOM_DOMAIN_MENU', 'betterlinks_custom_domain_menu');
+            define('BETTERLINKS_AI_API_KEYS_OPTION_NAME', 'betterlinks_ai_api_keys');
         }
 
         public function upload_dir_path()
@@ -198,13 +199,18 @@ if (!class_exists('BetterLinks')) {
         }
 
         public function frontend_scripts() {
-            $dependencies = include_once BETTERLINKS_ASSETS_DIR_PATH . 'js/betterlinks.app.core.min.asset.php';
-            wp_enqueue_script( 'betterlinks-app', BETTERLINKS_ASSETS_URI . 'js/betterlinks.app.core.min.js', [ 'jquery' ], $dependencies['version'], true );
+			$dependencies = include_once BETTERLINKS_ASSETS_DIR_PATH . 'js/betterlinks.app.core.min.asset.php';
+
+			// Enqueue main app script (geolocation logic is bundled inside)
+			wp_enqueue_script( 'betterlinks-app', BETTERLINKS_ASSETS_URI . 'js/betterlinks.app.core.min.js', [ 'jquery' ], $dependencies['version'], true );
 
             wp_localize_script('betterlinks-app', 'betterLinksApp', [
                 'betterlinks_nonce' => wp_create_nonce('betterlinks_admin_nonce'),
                 'ajaxurl' => admin_url('admin-ajax.php'),
                 'site_url' => apply_filters('betterlinks/site_url', site_url()),
+                'rest_url' => rest_url(),
+                'nonce' => wp_create_nonce('wp_rest'),
+                'betterlinkspro_version' => defined('BETTERLINKS_PRO_VERSION') ? BETTERLINKS_PRO_VERSION : null,
             ]);
         }
     }

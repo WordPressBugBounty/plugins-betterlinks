@@ -107,7 +107,8 @@ class Terms extends Controller
 	{
 		$results = $this->get_all_tags();
 
-		$analytic = $this->tags_analytic();
+		// Force refresh analytics data
+		$analytic = $this->tags_analytic(true);
 
 		return new \WP_REST_Response(
 			array(
@@ -125,7 +126,8 @@ class Terms extends Controller
 	{
 		$results = $this->get_all_categories();
 
-		$analytic = $this->categories_analytic();
+		// Force refresh analytics data
+		$analytic = $this->categories_analytic(true);
 
 		return new \WP_REST_Response(
 			array(

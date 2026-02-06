@@ -6,6 +6,7 @@ use BetterLinks\Admin\WPDev\PluginUsageTracker;
 use BetterLinks\Cron;
 use BetterLinks\Helper;
 use BetterLinks\Link\Utils;
+use BetterLinks\Admin\Cache;
 
 class Ajax {
 
@@ -22,6 +23,9 @@ class Ajax {
 		add_action( 'wp_ajax_betterlinks/admin/get_links_by_short_url', array( $this, 'get_links_by_short_url' ) );
 		add_action( 'wp_ajax_betterlinks/admin/get_links_by_permalink', array( $this, 'get_links_by_permalink' ) );
 		add_action( 'wp_ajax_betterlinks/admin/get_cat_by_link_id', array( $this, 'get_category_by_link_id' ) );
+		add_action( 'wp_ajax_betterlinks/admin/get_betterlink_categories', array( $this, 'get_betterlink_categories' ) );
+		add_action( 'wp_ajax_betterlinks/admin/get_betterlink_tags', array( $this, 'get_betterlink_tags' ) );
+		add_action( 'wp_ajax_betterlinks/admin/create_betterlink_category', array( $this, 'create_betterlink_category' ) );
 		add_action( 'wp_ajax_betterlinks/admin/get_autolink_create_settings', array( $this, 'get_auto_link_create_settings' ) );
 		add_action( 'wp_ajax_betterlinks/admin/write_json_links', array( $this, 'write_json_links' ) );
 		add_action( 'wp_ajax_betterlinks/admin/write_json_clicks', array( $this, 'write_json_clicks' ) );
@@ -29,6 +33,9 @@ class Ajax {
 		add_action( 'wp_ajax_betterlinks/admin/short_url_unique_checker', array( $this, 'short_url_unique_checker' ) );
 		add_action( 'wp_ajax_betterlinks/admin/cat_slug_unique_checker', array( $this, 'cat_slug_unique_checker' ) );
 		add_action( 'wp_ajax_betterlinks/admin/reset_analytics', array( $this, 'reset_analytics' ) );
+		add_action( 'wp_ajax_betterlinks/admin/get_clicks_count', array( $this, 'get_clicks_count' ) );
+		add_action( 'wp_ajax_betterlinks/admin/backfill_country_data', array( $this, 'backfill_country_data' ) );
+		add_action( 'wp_ajax_betterlinks/admin/clear_analytics_cache', array( $this, 'clear_analytics_cache' ) );
 		// prettylinks.
 		add_action( 'wp_ajax_betterlinks/admin/get_prettylinks_data', array( $this, 'get_prettylinks_data' ) );
 		add_action( 'wp_ajax_betterlinks/admin/run_prettylinks_migration', array( $this, 'run_prettylinks_migration' ) );
@@ -79,6 +86,7 @@ class Ajax {
 		// Notices
 		add_action( 'wp_ajax_betterlinks__admin_menu_notice', array( $this, 'admin_menu_notice' ) );
 		add_action( 'wp_ajax_betterlinks__admin_dashboard_notice', array( $this, 'admin_dashboard_notice' ) );
+		add_action( 'wp_ajax_betterlinks_dismiss_black_friday_notice', array( $this, 'dismiss_black_friday_notice' ) );
 
 		add_action( 'wp_ajax_betterlinks__fetch_target_url', array( $this, 'fetch_target_url' ) );
 
@@ -93,6 +101,15 @@ class Ajax {
 		// js analytics tracking
 		add_action( 'wp_ajax_nopriv_betterlinks__js_analytics_tracking', array( $this, 'js_analytics_tracking' ) );
 		add_action( 'wp_ajax_betterlinks__js_analytics_tracking', array( $this, 'js_analytics_tracking' ) );
+
+		// Update click country data (for backward compatibility)
+		add_action( 'wp_ajax_betterlinks/admin/update_click_country', array( $this, 'update_click_country' ) );
+		add_action( 'wp_ajax_betterlinks/admin/update_clicks_country_by_ip', array( $this, 'update_clicks_country_by_ip' ) );
+
+		// UTM Template Application
+		add_action( 'wp_ajax_betterlinks/admin/apply_utm_template_to_links', array( $this, 'apply_utm_template_to_links' ) );
+		add_action( 'wp_ajax_betterlinks/admin/get_links_by_categories', array( $this, 'get_links_by_categories' ) );
+		add_action( 'wp_ajax_betterlinks/admin/get_utm_status_counts', array( $this, 'get_utm_status_counts' ) );
 	}
 
 	public function update_fbs_link() {
@@ -132,7 +149,19 @@ class Ajax {
 		}
 		$helper::clear_query_cache();
 		if ( BETTERLINKS_EXISTS_LINKS_JSON ) {
-			$helper::update_json_into_file( trailingslashit( BETTERLINKS_UPLOAD_DIR_PATH ) . 'links.json', array( 'short_url' => $short_url ), $old_short_url );
+			// Fetch the complete link data from database to update JSON file
+			$link_data = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT * FROM {$wpdb->prefix}betterlinks WHERE ID = %d",
+					$id
+				),
+				ARRAY_A
+			);
+			if ( $link_data ) {
+				// Update short_url with the new value
+				$link_data['short_url'] = $short_url;
+				$helper::update_json_into_file( trailingslashit( BETTERLINKS_UPLOAD_DIR_PATH ) . 'links.json', $link_data, $old_short_url );
+			}
 		}
 
 		wp_send_json_error(
@@ -294,8 +323,22 @@ class Ajax {
 
 	public function fetch_target_url() {
 		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( "You don't have permission to do this." );
+		
+		// Check if user has permission - either manage_options or role-based permissions
+		$can_fetch_target_url = current_user_can( 'manage_options' );
+		
+		// Allow role-based permissions from BetterLinks Pro
+		if ( ! $can_fetch_target_url ) {
+			$can_fetch_target_url = apply_filters( 'betterlinks_can_fetch_target_url', false );
+		}
+		
+		if ( ! $can_fetch_target_url ) {
+			wp_send_json_error(
+				array(
+					'result'  => false,
+					'message' => __( 'You don\'t have permission to fetch target URL.', 'betterlinks' ),
+				)
+			);
 		}
 
 		$target_url = isset( $_POST['target_url'] ) ? sanitize_url( $_POST['target_url'] ) : '';
@@ -708,6 +751,85 @@ class Ajax {
 		return wp_send_json( $results );
 	}
 
+	public function get_betterlink_categories() {
+		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( "You don't have permission to do this." );
+		}
+
+		$categories = $this->get_all_categories();
+		$formatted_categories = array();
+
+		foreach ($categories as $category) {
+			$formatted_categories[] = array(
+				'value' => $category['ID'],
+				'label' => $category['term_name'],
+				'slug' => $category['term_slug'],
+				'link_count' => isset($category['link_count']) ? $category['link_count'] : 0
+			);
+		}
+
+		wp_send_json_success($formatted_categories);
+	}
+
+	public function create_betterlink_category() {
+		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( "You don't have permission to do this." );
+		}
+
+		$category_name = isset($_POST['category_name']) ? sanitize_text_field($_POST['category_name']) : '';
+		
+		if (empty($category_name)) {
+			wp_send_json_error(array('message' => __('Category name is required', 'betterlinks')));
+			return;
+		}
+
+		// Create the category using the existing Helper method
+		$term_data = array(
+			'term_name' => $category_name,
+			'term_slug' => sanitize_title($category_name),
+			'term_type' => 'category'
+		);
+
+		$term_id = Helper::insert_term($term_data);
+		
+		if ($term_id) {
+			// Return the created category data
+			$created_category = array(
+				'id' => $term_id,
+				'term_name' => $category_name,
+				'term_slug' => sanitize_title($category_name),
+				'link_count' => 0
+			);
+			
+			wp_send_json_success($created_category);
+		} else {
+			wp_send_json_error(array('message' => __('Failed to create category', 'betterlinks')));
+		}
+	}
+
+	public function get_betterlink_tags() {
+		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( "You don't have permission to do this." );
+		}
+
+		$tags = $this->get_all_tags();
+		$formatted_tags = array();
+
+		foreach ($tags as $tag) {
+			$formatted_tags[] = array(
+				'value' => $tag['ID'],
+				'label' => $tag['term_name'],
+				'slug' => $tag['term_slug'],
+				'link_count' => isset($tag['link_count']) ? $tag['link_count'] : 0
+			);
+		}
+
+		wp_send_json_success($formatted_tags);
+	}
+
 	public function get_auto_link_create_settings() {
 		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -867,6 +989,24 @@ class Ajax {
 		// Pro Logics
 		$response = apply_filters( 'betterlinkspro/admin/update_settings', $response );
 
+		// Handle custom SVG icon sanitization
+		if ( ! empty( $response['autolink_custom_icon'] ) ) {
+			// Use the sanitize_custom_svg method if it exists, otherwise use custom wp_kses for SVG
+			if ( class_exists( '\BetterLinksPro\Frontend\AutoLinks' ) && method_exists( '\BetterLinksPro\Frontend\AutoLinks', 'sanitize_custom_svg' ) ) {
+				$response['autolink_custom_icon'] = \BetterLinksPro\Frontend\AutoLinks::sanitize_custom_svg( $response['autolink_custom_icon'] );
+			} else {
+				// Custom wp_kses with SVG allowed elements as fallback
+				$allowed_svg = array(
+					'svg' => array( 'class' => array(), 'width' => array(), 'height' => array(), 'viewbox' => array(), 'viewBox' => array(), 'fill' => array(), 'xmlns' => array() ),
+					'path' => array( 'd' => array(), 'stroke' => array(), 'stroke-width' => array(), 'stroke-linecap' => array(), 'stroke-linejoin' => array(), 'fill' => array() ),
+					'g' => array( 'fill' => array(), 'stroke' => array() ),
+					'circle' => array( 'cx' => array(), 'cy' => array(), 'r' => array(), 'fill' => array(), 'stroke' => array() ),
+					'rect' => array( 'x' => array(), 'y' => array(), 'width' => array(), 'height' => array(), 'fill' => array(), 'stroke' => array() ),
+				);
+				$response['autolink_custom_icon'] = wp_kses( $response['autolink_custom_icon'], $allowed_svg );
+			}
+		}
+
 		if ( ! empty( $response['fbs']['enable_fbs'] ) ) {
 			$category                  = ! empty( $response['fbs']['cat_id'] ) ? sanitize_text_field( $response['fbs']['cat_id'] ) : 1;
 			$category                  = $helper::insert_new_category( $category );
@@ -1017,16 +1157,39 @@ class Ajax {
 		global $wpdb;
 		$prefix          = $wpdb->prefix;
 		$days_older_than = isset( $_REQUEST['days_older_than'] ) ? sanitize_text_field( $_REQUEST['days_older_than'] ) : false;
-		$from            = isset( $request['from'] ) ? sanitize_text_field( $request['from'] ) : date( 'Y-m-d', strtotime( ' - 30 days' ) );
-		$to              = isset( $request['to'] ) ? sanitize_text_field( $request['to'] ) : date( 'Y-m-d' );
+		$from            = isset( $_REQUEST['from'] ) ? sanitize_text_field( $_REQUEST['from'] ) : date( 'Y-m-d', strtotime( ' - 30 days' ) );
+		$to              = isset( $_REQUEST['to'] ) ? sanitize_text_field( $_REQUEST['to'] ) : date( 'Y-m-d' );
+		$link_id         = isset( $_REQUEST['link_id'] ) ? intval( $_REQUEST['link_id'] ) : null;
 		$query           = '';
-		if ( $days_older_than ) {
-			$range_days_in_seconds           = $days_older_than * 24 * 60 * 60;
+		
+		if ( $days_older_than !== false ) {
+			// Legacy support for days_older_than parameter
+			$range_days_in_seconds           = intval( $days_older_than ) * 24 * 60 * 60;
 			$gmt_timestamp_of_the_range_time = time() - $range_days_in_seconds;
-			$query                           = "DELETE FROM {$prefix}betterlinks_clicks WHERE UNIX_TIMESTAMP(created_at_gmt) < %d";
-			$query                           = $wpdb->prepare( $query, $gmt_timestamp_of_the_range_time );
+			if ( $link_id !== null ) {
+				$query = "DELETE FROM {$prefix}betterlinks_clicks WHERE UNIX_TIMESTAMP(created_at_gmt) < %d AND link_id = %d";
+				$query = $wpdb->prepare( $query, $gmt_timestamp_of_the_range_time, $link_id );
+			} else {
+				$query = "DELETE FROM {$prefix}betterlinks_clicks WHERE UNIX_TIMESTAMP(created_at_gmt) < %d";
+				$query = $wpdb->prepare( $query, $gmt_timestamp_of_the_range_time );
+			}
+		} elseif ( !empty( $from ) && !empty( $to ) ) {
+			// Use date range for deletion
+			if ( $link_id !== null ) {
+				$query = "DELETE FROM {$prefix}betterlinks_clicks WHERE DATE(created_at_gmt) >= %s AND DATE(created_at_gmt) <= %s AND link_id = %d";
+				$query = $wpdb->prepare( $query, $from, $to, $link_id );
+			} else {
+				$query = "DELETE FROM {$prefix}betterlinks_clicks WHERE DATE(created_at_gmt) >= %s AND DATE(created_at_gmt) <= %s";
+				$query = $wpdb->prepare( $query, $from, $to );
+			}
 		} else {
-			$query = "DELETE FROM {$prefix}betterlinks_clicks";
+			// Delete all records as fallback
+			if ( $link_id !== null ) {
+				$query = "DELETE FROM {$prefix}betterlinks_clicks WHERE link_id = %d";
+				$query = $wpdb->prepare( $query, $link_id );
+			} else {
+				$query = "DELETE FROM {$prefix}betterlinks_clicks";
+			}
 		}
 		$count = $wpdb->query( $query );
 		if ( $count === false ) {
@@ -1047,6 +1210,50 @@ class Ajax {
 			200
 		);
 	}
+
+	public function get_clicks_count() {
+		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+		if ( ! apply_filters( 'betterlinks/api/analytics_items_permissions_check', current_user_can( 'manage_options' ) ) ) {
+			wp_die( "You don't have permission to do this." );
+		}
+		global $wpdb;
+		$prefix  = $wpdb->prefix;
+		$from    = isset( $_REQUEST['from'] ) ? sanitize_text_field( $_REQUEST['from'] ) : date( 'Y-m-d', strtotime( ' - 30 days' ) );
+		$to      = isset( $_REQUEST['to'] ) ? sanitize_text_field( $_REQUEST['to'] ) : date( 'Y-m-d' );
+		$link_id = isset( $_REQUEST['link_id'] ) ? intval( $_REQUEST['link_id'] ) : null;
+
+		// Build count query similar to delete query
+		if ( !empty( $from ) && !empty( $to ) ) {
+			if ( $link_id !== null ) {
+				$query = "SELECT COUNT(*) FROM {$prefix}betterlinks_clicks WHERE DATE(created_at_gmt) >= %s AND DATE(created_at_gmt) <= %s AND link_id = %d";
+				$query = $wpdb->prepare( $query, $from, $to, $link_id );
+			} else {
+				$query = "SELECT COUNT(*) FROM {$prefix}betterlinks_clicks WHERE DATE(created_at_gmt) >= %s AND DATE(created_at_gmt) <= %s";
+				$query = $wpdb->prepare( $query, $from, $to );
+			}
+		} else {
+			// Count all records as fallback
+			if ( $link_id !== null ) {
+				$query = "SELECT COUNT(*) FROM {$prefix}betterlinks_clicks WHERE link_id = %d";
+				$query = $wpdb->prepare( $query, $link_id );
+			} else {
+				$query = "SELECT COUNT(*) FROM {$prefix}betterlinks_clicks";
+			}
+		}
+
+		$count = $wpdb->get_var( $query );
+		if ( $count === false ) {
+			wp_send_json_error( array( 'message' => 'Failed to get click count' ) );
+		}
+
+		wp_send_json_success(
+			array(
+				'count' => intval( $count ),
+			),
+			200
+		);
+	}
+
 	public function get_post_types() {
 		$post_types = get_post_types(['public' => true]);
 		wp_send_json_success(
@@ -1218,10 +1425,576 @@ class Ajax {
 		$data = $utils->get_slug_raw($short_url);
 		$data['skip_password_protection'] = true;
 		$data['location'] = $location;
+
+		// Accept country data from frontend geolocation
+		if ( isset( $_POST['country_code'] ) ) {
+			$data['country_code'] = sanitize_text_field( $_POST['country_code'] );
+		}
+		if ( isset( $_POST['country_name'] ) ) {
+			$data['country_name'] = sanitize_text_field( $_POST['country_name'] );
+		}
+
 		Helper::init_tracking($data, $utils);
 
 		wp_send_json([
 			'data' => true
 		]);
 	}
+
+	/**
+	 * Update click record with country data
+	 *
+	 * Used for backward compatibility to update existing clicks with country information
+	 */
+	public function update_click_country() {
+		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+
+		// Check if BetterLinks Pro v2.5.0 or newer is installed
+		if ( ! defined( 'BETTERLINKS_PRO_VERSION' ) || version_compare( BETTERLINKS_PRO_VERSION, '2.5.0', '<' ) ) {
+			wp_send_json_error( array(
+				'message' => __( 'Country detection requires BetterLinks Pro v2.5.0 or newer', 'betterlinks' )
+			) );
+		}
+
+		global $wpdb;
+
+		$click_id = isset( $_POST['click_id'] ) ? intval( $_POST['click_id'] ) : 0;
+		$country_code = isset( $_POST['country_code'] ) ? sanitize_text_field( $_POST['country_code'] ) : '';
+		$country_name = isset( $_POST['country_name'] ) ? sanitize_text_field( $_POST['country_name'] ) : '';
+
+		if ( ! $click_id || ! $country_code || ! $country_name ) {
+			wp_send_json_error( array(
+				'message' => __( 'Invalid parameters', 'betterlinks' )
+			) );
+		}
+
+		$table_name = $wpdb->prefix . 'betterlinks_clicks';
+
+		// Get or create country record and get its ID
+		$country_id = \BetterLinks\Services\CountryDetectionService::get_or_create_country_id(
+			$country_code,
+			$country_name
+		);
+
+		if ( ! $country_id ) {
+			wp_send_json_error( array(
+				'message' => __( 'Failed to create country record', 'betterlinks' )
+			) );
+		}
+
+		$updated = $wpdb->update(
+			$table_name,
+			array( 'country_id' => $country_id ),
+			array( 'ID' => $click_id ),
+			array( '%d' ),
+			array( '%d' )
+		);
+
+		if ( $updated !== false ) {
+			wp_send_json_success( array(
+				'message' => __( 'Country data updated successfully', 'betterlinks' ),
+				'country_code' => $country_code,
+				'country_name' => $country_name,
+				'country_id' => $country_id,
+			) );
+		} else {
+			wp_send_json_error( array(
+				'message' => __( 'Failed to update country data', 'betterlinks' )
+			) );
+		}
+	}
+
+	/**
+	 * Update all clicks with the same IP within a specific link with country data
+	 *
+	 * This bulk update ensures that when country is fetched for one IP,
+	 * all clicks from the same IP within the same short URL are updated automatically
+	 */
+	public function update_clicks_country_by_ip() {
+		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+
+		// Check if BetterLinks Pro v2.5.0 or newer is installed and has country tracking feature
+		if ( ! defined( 'BETTERLINKS_PRO_VERSION' ) || version_compare( BETTERLINKS_PRO_VERSION, '2.5.0', '<' ) ) {
+			wp_send_json_error( array(
+				'message' => __( 'Country detection requires BetterLinks Pro v2.5.0 or newer', 'betterlinks' ),
+				'code' => 'pro_version_required'
+			) );
+		}
+
+		// Additional check: Verify Pro plugin has the country tracking function (prevents bypass with old Pro files)
+		if ( ! class_exists( 'BetterLinksPro\\Helper' ) || 
+			 ! method_exists( 'BetterLinksPro\\Helper', 'is_country_tracking_enabled' ) ||
+			 ! \BetterLinksPro\Helper::is_country_tracking_enabled() ) {
+			wp_send_json_error( array(
+				'message' => __( 'Please update BetterLinks Pro to v2.5.0 or newer to use this feature', 'betterlinks' ),
+				'code' => 'pro_update_required'
+			) );
+		}
+
+		global $wpdb;
+
+		$link_id = isset( $_POST['link_id'] ) ? intval( $_POST['link_id'] ) : 0;
+		$ip = isset( $_POST['ip'] ) ? sanitize_text_field( $_POST['ip'] ) : '';
+		$country_code = isset( $_POST['country_code'] ) ? sanitize_text_field( $_POST['country_code'] ) : '';
+		$country_name = isset( $_POST['country_name'] ) ? sanitize_text_field( $_POST['country_name'] ) : '';
+
+		if ( ! $link_id || ! $ip || ! $country_code || ! $country_name ) {
+			wp_send_json_error( array(
+				'message' => __( 'Invalid parameters', 'betterlinks' )
+			) );
+		}
+
+		$table_name = $wpdb->prefix . 'betterlinks_clicks';
+
+		// Get or create country record and get its ID
+		$country_id = \BetterLinks\Services\CountryDetectionService::get_or_create_country_id(
+			$country_code,
+			$country_name
+		);
+
+		if ( ! $country_id ) {
+			wp_send_json_error( array(
+				'message' => __( 'Failed to create country record', 'betterlinks' )
+			) );
+		}
+
+		// Update all clicks with the same IP within this link_id
+		// This will update ALL clicks with this IP, regardless of whether they already have country data
+		$updated = $wpdb->update(
+			$table_name,
+			array( 'country_id' => $country_id ),
+			array(
+				'link_id' => $link_id,
+				'ip' => $ip,
+			),
+			array( '%d' ),
+			array( '%d', '%s' )
+		);
+
+		if ( $updated !== false ) {
+			// Clear the transient cache for this link's analytics data
+			// This ensures the API returns fresh data with the updated country information
+			$this->clear_individual_clicks_transient( $link_id );
+
+			wp_send_json_success( array(
+				'message' => sprintf( __( 'Country data updated for %d clicks', 'betterlinks' ), $updated ),
+				'country_code' => $country_code,
+				'country_name' => $country_name,
+				'country_id' => $country_id,
+				'updated_count' => $updated,
+			) );
+		} else {
+			wp_send_json_error( array(
+				'message' => __( 'Failed to update country data', 'betterlinks' )
+			) );
+		}
+	}
+
+	/**
+	 * Clear transient cache for individual clicks analytics
+	 * This ensures fresh data is fetched from the database
+	 *
+	 * @param int $link_id The link ID
+	 */
+	private function clear_individual_clicks_transient( $link_id ) {
+		global $wpdb;
+
+		// Get all transient keys for this link and delete them
+		// The transient key format is: btl_individual_analytics_clicks_{from}_{to}_{link_id}
+		$transient_prefix = 'btl_individual_analytics_clicks_';
+
+		// Query the options table to find all matching transients
+		$transients = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+				'%' . $wpdb->esc_like( $transient_prefix ) . '%' . $wpdb->esc_like( (string) $link_id ) . '%'
+			)
+		);
+
+		// Delete each transient
+		if ( $transients ) {
+			foreach ( $transients as $transient ) {
+				// Remove the '_transient_' prefix to get the transient name
+				$transient_name = str_replace( '_transient_', '', $transient->option_name );
+				delete_transient( $transient_name );
+			}
+		}
+	}
+
+	/**
+	 * Get links by categories
+	 */
+	public function get_links_by_categories() {
+		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'You do not have permission to perform this action.', 'betterlinks' ) );
+		}
+
+		$category_ids = isset( $_POST['category_ids'] ) ? array_map( 'intval', $_POST['category_ids'] ) : array();
+
+		if ( empty( $category_ids ) ) {
+			wp_send_json_error( __( 'No categories provided.', 'betterlinks' ) );
+		}
+
+		global $wpdb;
+
+		// Get links for the specified categories
+		$placeholders = implode( ',', array_fill( 0, count( $category_ids ), '%d' ) );
+		$query = $wpdb->prepare(
+			"SELECT DISTINCT l.ID, l.short_url, l.target_url, l.link_title 
+			FROM {$wpdb->prefix}betterlinks l
+			INNER JOIN {$wpdb->prefix}betterlinks_terms_relationships tr ON l.ID = tr.link_id
+			WHERE tr.term_id IN ($placeholders)",
+			...$category_ids
+		);
+
+		$links = $wpdb->get_results( $query, ARRAY_A );
+
+		wp_send_json_success( array(
+			'links' => $links,
+			'total' => count( $links )
+		) );
+	}
+
+	/**
+	 * Apply UTM template to links
+	 */
+	public function apply_utm_template_to_links() {
+		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'You do not have permission to perform this action.', 'betterlinks' ) );
+		}
+
+		// Clear cache to ensure fresh data after updates
+		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
+
+		// Parse JSON data that comes from makeRequest
+		$template_data = isset( $_POST['template_data'] ) ? json_decode( stripslashes( $_POST['template_data'] ), true ) : array();
+		$category_ids = isset( $_POST['category_ids'] ) ? json_decode( stripslashes( $_POST['category_ids'] ), true ) : array();
+		$rewrite_existing = isset( $_POST['rewrite_existing'] ) ? filter_var( $_POST['rewrite_existing'], FILTER_VALIDATE_BOOLEAN ) : false;
+		$reset_existing = isset( $_POST['reset_existing'] ) ? filter_var( $_POST['reset_existing'], FILTER_VALIDATE_BOOLEAN ) : false;
+
+		// Convert to integers if needed
+		if ( is_array( $category_ids ) ) {
+			$category_ids = array_map( 'intval', $category_ids );
+		}
+
+		if ( empty( $template_data ) || empty( $category_ids ) ) {
+			wp_send_json_error( __( 'Invalid template data or categories.', 'betterlinks' ) );
+		}
+
+		// Sanitize template data
+		$utm_source = sanitize_text_field( $template_data['utm_source'] ?? '' );
+		$utm_medium = sanitize_text_field( $template_data['utm_medium'] ?? '' );
+		$utm_campaign = sanitize_text_field( $template_data['utm_campaign'] ?? '' );
+		$utm_term = sanitize_text_field( $template_data['utm_term'] ?? '' );
+		$utm_content = sanitize_text_field( $template_data['utm_content'] ?? '' );
+
+		global $wpdb;
+
+		// Get links for the specified categories
+		$placeholders = implode( ',', array_fill( 0, count( $category_ids ), '%d' ) );
+		$query = $wpdb->prepare(
+			"SELECT DISTINCT l.ID, l.target_url 
+			FROM {$wpdb->prefix}betterlinks l
+			INNER JOIN {$wpdb->prefix}betterlinks_terms_relationships tr ON l.ID = tr.link_id
+			WHERE tr.term_id IN ($placeholders)",
+			...$category_ids
+		);
+
+		$links = $wpdb->get_results( $query, ARRAY_A );
+		$updated_count = 0;
+		$skipped_count = 0;
+
+		foreach ( $links as $link ) {
+			$target_url = $link['target_url'];
+			$parsed_url = parse_url( $target_url );
+			
+			// Check if URL already has UTM parameters
+			$existing_query = isset( $parsed_url['query'] ) ? $parsed_url['query'] : '';
+			parse_str( $existing_query, $existing_params );
+			
+			$has_utm = false;
+			$utm_params = array( 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content' );
+			foreach ( $utm_params as $param ) {
+				if ( isset( $existing_params[$param] ) && !empty( $existing_params[$param] ) ) {
+					$has_utm = true;
+					break;
+				}
+			}
+
+			// Handle reset existing UTM functionality
+			if ( $reset_existing ) {
+				// Only process links that have UTM parameters to reset
+				if ( ! $has_utm ) {
+					$skipped_count++;
+					continue;
+				}
+				// Remove all UTM parameters when resetting
+				foreach ( $utm_params as $param ) {
+					unset( $existing_params[$param] );
+				}
+			} else {
+				// Skip if has UTM and rewrite is disabled
+				if ( $has_utm && ! $rewrite_existing ) {
+					$skipped_count++;
+					continue;
+				}
+
+				// Remove existing UTM parameters if rewriting
+				if ( $rewrite_existing ) {
+					foreach ( $utm_params as $param ) {
+						unset( $existing_params[$param] );
+					}
+				}
+
+				// Add new UTM parameters
+				if ( ! empty( $utm_source ) ) {
+					$existing_params['utm_source'] = $utm_source;
+				}
+				if ( ! empty( $utm_medium ) ) {
+					$existing_params['utm_medium'] = $utm_medium;
+				}
+				if ( ! empty( $utm_campaign ) ) {
+					$existing_params['utm_campaign'] = $utm_campaign;
+				}
+				if ( ! empty( $utm_term ) ) {
+					$existing_params['utm_term'] = $utm_term;
+				}
+				if ( ! empty( $utm_content ) ) {
+					$existing_params['utm_content'] = $utm_content;
+				}
+			}
+
+			// Rebuild the URL
+			$new_query = http_build_query( $existing_params );
+			$new_url = $parsed_url['scheme'] . '://' . $parsed_url['host'];
+			
+			if ( isset( $parsed_url['port'] ) ) {
+				$new_url .= ':' . $parsed_url['port'];
+			}
+			
+			if ( isset( $parsed_url['path'] ) ) {
+				$new_url .= $parsed_url['path'];
+			}
+			
+			if ( ! empty( $new_query ) ) {
+				$new_url .= '?' . $new_query;
+			}
+			
+			if ( isset( $parsed_url['fragment'] ) ) {
+				$new_url .= '#' . $parsed_url['fragment'];
+			}
+
+			// Update the link in database
+			$result = $wpdb->update(
+				$wpdb->prefix . 'betterlinks',
+				array( 'target_url' => $new_url ),
+				array( 'ID' => $link['ID'] ),
+				array( '%s' ),
+				array( '%d' )
+			);
+
+			if ( $result !== false ) {
+				$updated_count++;
+			}
+		}
+
+		$message = $reset_existing
+			? sprintf(
+				__( 'UTM parameters reset successfully. Updated: %d, Skipped: %d, Total: %d', 'betterlinks' ),
+				$updated_count,
+				$skipped_count,
+				count( $links )
+			)
+			: sprintf(
+				__( 'UTM template applied successfully. Updated: %d, Skipped: %d, Total: %d', 'betterlinks' ),
+				$updated_count,
+				$skipped_count,
+				count( $links )
+			);
+
+		// Clear cache again after all updates to ensure fresh data
+		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
+
+		// Track UTM Builder usage
+		if ( $updated_count > 0 ) {
+			update_option( 'betterlinks_utm_builder_used', true );
+		}
+
+		// Regenerate JSON file cache if it exists
+		if ( defined( 'BETTERLINKS_EXISTS_LINKS_JSON' ) && BETTERLINKS_EXISTS_LINKS_JSON ) {
+			$cron = new \BetterLinks\Cron();
+			$cron->write_json_links();
+		}
+
+		wp_send_json_success( array(
+			'updated_count' => $updated_count,
+			'skipped_count' => $skipped_count,
+			'total_links' => count( $links ),
+			'message' => $message
+		) );
+	}
+
+	/**
+	 * Get UTM status counts for specified categories
+	 */
+	public function get_utm_status_counts() {
+		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( __( 'You do not have permission to perform this action.', 'betterlinks' ) );
+		}
+
+		$category_ids = isset( $_POST['category_ids'] ) ? json_decode( stripslashes( $_POST['category_ids'] ), true ) : array();
+
+		// Convert to integers if needed
+		if ( is_array( $category_ids ) ) {
+			$category_ids = array_map( 'intval', $category_ids );
+		}
+
+		if ( empty( $category_ids ) ) {
+			wp_send_json_error( __( 'No categories specified.', 'betterlinks' ) );
+		}
+
+		global $wpdb;
+
+		// Get links for the specified categories
+		$placeholders = implode( ',', array_fill( 0, count( $category_ids ), '%d' ) );
+		$query = $wpdb->prepare(
+			"SELECT DISTINCT l.ID, l.target_url 
+			FROM {$wpdb->prefix}betterlinks l
+			INNER JOIN {$wpdb->prefix}betterlinks_terms_relationships tr ON l.ID = tr.link_id
+			WHERE tr.term_id IN ($placeholders)",
+			...$category_ids
+		);
+
+		$links = $wpdb->get_results( $query, ARRAY_A );
+		
+		$total_links = count( $links );
+		$links_with_utm = 0;
+		$links_without_utm = 0;
+
+		foreach ( $links as $link ) {
+			$target_url = $link['target_url'];
+			$parsed_url = parse_url( $target_url );
+			
+			// Check if URL already has UTM parameters
+			$existing_query = isset( $parsed_url['query'] ) ? $parsed_url['query'] : '';
+			parse_str( $existing_query, $existing_params );
+			
+			$has_utm = false;
+			$utm_params = array( 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content' );
+			foreach ( $utm_params as $param ) {
+				if ( isset( $existing_params[$param] ) && !empty( $existing_params[$param] ) ) {
+					$has_utm = true;
+					break;
+				}
+			}
+
+			if ( $has_utm ) {
+				$links_with_utm++;
+			} else {
+				$links_without_utm++;
+			}
+		}
+
+		wp_send_json_success( array(
+			'total_links' => $total_links,
+			'links_with_utm' => $links_with_utm,
+			'links_without_utm' => $links_without_utm
+		) );
+	}
+
+	/**
+	 * Dismiss Black Friday notice via AJAX
+	 * Sets a transient so the notice doesn't show again for 30 days
+	 *
+	 * @return void
+	 */
+	public function dismiss_black_friday_notice() {
+		// Verify nonce for security
+		check_ajax_referer( 'betterlinks_dismiss_black_friday_notice', 'nonce' );
+
+		// Check user permissions
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error(
+				array( 'message' => __( "You don't have permission to do this.", 'betterlinks' ) ),
+				403
+			);
+		}
+
+		// Set transient for 30 days (2592000 seconds)
+		$transient_set = set_transient( 'betterlinks_black_friday_pointer_dismissed', true, 2592000 );
+
+		if ( ! $transient_set ) {
+			wp_send_json_error(
+				array( 'message' => __( 'Failed to dismiss notice. Please try again.', 'betterlinks' ) ),
+				500
+			);
+		}
+
+		// Update plugin pointer priority to null when notice is dismissed
+		update_option( '_wpdeveloper_plugin_pointer_priority', null );
+
+		// Dismiss the notice in the Notices library system as well
+		// This ensures the notice doesn't show again even after page refresh
+		// The key format is: {app}_{notice_id}_notice_dismissed
+		update_site_option( 'betterlinks_betterlinks_black_friday_2025_notice_dismissed', true );
+
+		wp_send_json_success( array( 'message' => __( 'Notice dismissed successfully.', 'betterlinks' ) ) );
+	}
+	
+	/**
+	 * Backfill country data for existing clicks
+	 */
+	public function backfill_country_data() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'Insufficient permissions' ) );
+		}
+
+		if ( ! wp_verify_nonce( $_POST['security'], 'betterlinks_nonce' ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
+		}
+
+		$limit = isset( $_POST['limit'] ) ? intval( $_POST['limit'] ) : 100;
+		$limit = max( 1, min( 500, $limit ) ); // Limit between 1 and 500
+
+		if ( ! class_exists( '\BetterLinks\Services\CountryDetectionService' ) ) {
+			wp_send_json_error( array( 'message' => 'Country detection service not available' ) );
+		}
+
+		$results = \BetterLinks\Services\CountryDetectionService::backfill_country_data( $limit );
+
+		wp_send_json_success( $results );
+	}
+
+	/**
+	 * Clear analytics cache
+	 */
+	public function clear_analytics_cache() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'Insufficient permissions' ) );
+		}
+
+		if ( ! wp_verify_nonce( $_POST['security'], 'betterlinks_nonce' ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
+		}
+
+		global $wpdb;
+
+		// Clear all BetterLinks transients
+		$deleted = $wpdb->query(
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_btl_%' OR option_name LIKE '_transient_timeout_btl_%'"
+		);
+
+		wp_send_json_success( array(
+			'message' => 'Analytics cache cleared successfully',
+			'deleted_transients' => $deleted
+		) );
+	}
+
+
 }

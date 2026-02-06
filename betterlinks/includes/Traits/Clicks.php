@@ -131,7 +131,7 @@ trait Clicks {
 		$prefix = $wpdb->prefix;
 
 		$query = $wpdb->prepare(
-			"SELECT id as link_id, link_title, short_url, target_url from {$prefix}betterlinks as links right join (select distinct link_id from {$prefix}betterlinks_clicks where created_at between %s and %s) as clicks on clicks.link_id=links.id right join (select tr.link_id from {$prefix}betterlinks_terms t left join {$prefix}betterlinks_terms_relationships tr on t.id=tr.term_id where t.term_type='tags' and t.id=%s) tl on links.id=tl.link_id where id!=''",
+			"SELECT id as link_id, link_title, short_url, target_url from {$prefix}betterlinks as links right join (select distinct link_id from {$prefix}betterlinks_clicks where created_at between %s and %s) as clicks on clicks.link_id=links.id right join (select tr.link_id from {$prefix}betterlinks_terms t left join {$prefix}betterlinks_terms_relationships tr on t.ID=tr.term_id where t.term_type='tags' and t.ID=%s) tl on links.id=tl.link_id where id!=''",
 			$from . ' 00:00:00',
 			$to . ' 23:59:59',
 			$id
@@ -182,15 +182,45 @@ trait Clicks {
 			return $results;
 		}
 		global $wpdb;
-		$fields = 'ID, link_id, ip, browser, referer, os, device,query_params, created_at';
 
-		$query   = $wpdb->prepare( 
-			"SELECT {$fields} FROM {$wpdb->prefix}betterlinks_clicks WHERE link_id=%s AND created_at BETWEEN %s AND %s ORDER BY created_at DESC",
-			$id,
-			$from . ' 00:00:00',
-			$to . ' 23:59:59'
-		 );
+		$clicks_table = $wpdb->prefix . 'betterlinks_clicks';
+		$countries_table = $wpdb->prefix . 'betterlinks_countries';
+		
+		// Check if extra data tracking (including country data) is enabled
+		$is_extra_data_tracking_compatible = apply_filters( 'betterlinks/is_extra_data_tracking_compatible', false );
+		
+		if ( $is_extra_data_tracking_compatible ) {
+			// Use normalized schema with JOIN to countries table (Pro version)
+			$query = $wpdb->prepare(
+				"SELECT c.ID, c.link_id, c.ip, c.browser, c.referer, c.os, c.device, c.query_params, c.created_at,
+				 co.country_code, co.country_name
+				 FROM {$clicks_table} c
+				 LEFT JOIN {$countries_table} co ON c.country_id = co.id
+				 WHERE c.link_id=%d AND c.created_at BETWEEN %s AND %s
+				 ORDER BY c.created_at DESC",
+				$id,
+				$from . ' 00:00:00',
+				$to . ' 23:59:59'
+			);
+		} else {
+			// Basic query without country data (Free version)
+			$query = $wpdb->prepare(
+				"SELECT c.ID, c.link_id, c.ip, c.browser, c.referer, c.created_at
+				 FROM {$clicks_table} c
+				 WHERE c.link_id=%d AND c.created_at BETWEEN %s AND %s
+				 ORDER BY c.created_at DESC",
+				$id,
+				$from . ' 00:00:00',
+				$to . ' 23:59:59'
+			);
+		}
+
 		$results = $wpdb->get_results( $query, ARRAY_A );
+
+		// Ensure we always return an array, even if empty
+		if ( ! is_array( $results ) ) {
+			$results = array();
+		}
 
 		set_transient( $transient_key, $results, self::$transient_timeout );
 		return $results;

@@ -140,6 +140,19 @@ class Clicks extends Controller {
 			)
 		);
 
+		register_rest_route(
+			$this->namespace,
+			$endpoint . 'delete_by_links/',
+			array(
+				array(
+					'methods'             => \WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'delete_links_analytics' ),
+					'permission_callback' => array( $this, 'permissions_check' ),
+					'args'                => $this->get_clicks_schema(),
+				),
+			)
+		);
+
 		do_action( 'betterlinks_register_clicks_routes', $this );
 	}
 
@@ -359,16 +372,83 @@ class Clicks extends Controller {
 	}
 
 	/**
-	 * Delete betterlinks
+	 * Delete betterlinks clicks
 	 *
 	 * @param WP_REST_Request $request Full data about the request.
 	 * @return WP_Error|WP_REST_Request
 	 */
 	public function delete_item( $request ) {
+		$params = $request->get_params();
+
+		$click_ids_raw = isset( $params['click_ids'] ) ? $params['click_ids'] : '';
+		$link_id = isset( $params['link_id'] ) ? intval( $params['link_id'] ) : 0;
+
+		// Sanitize and parse click IDs
+		$click_ids = array_filter( array_map( 'intval', explode( ',', sanitize_text_field( $click_ids_raw ) ) ) );
+
+		if ( empty( $click_ids ) || empty( $link_id ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'Invalid click IDs or link ID provided.', 'betterlinks' ),
+				),
+				400
+			);
+		}
+
+		// Get date range from params
+		$from = isset( $params['from'] ) ? sanitize_text_field( $params['from'] ) : date( 'Y-m-d', strtotime( ' - 30 days' ) );
+		$to = isset( $params['to'] ) ? sanitize_text_field( $params['to'] ) : date( 'Y-m-d' );
+
+		// Delete the clicks from the database - only within the date range
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'betterlinks_clicks';
+
+		foreach ( $click_ids as $click_id ) {
+			$wpdb->delete(
+				$table_name,
+				array(
+					'ID'      => intval( $click_id ),
+					'link_id' => $link_id,
+				),
+				array( '%d', '%d' )
+			);
+		}
+
+		// Clear all related transient caches for this link's analytics
+		$transient_key = 'btl_individual_analytics_clicks_' . md5( $from . $to . $link_id );
+		delete_transient( $transient_key );
+
+		// Also clear graph data cache
+		$graph_transient_key = 'btl_individual_graph_data_' . md5( $from . $to . $link_id );
+		delete_transient( $graph_transient_key );
+
+		// Clear all analytics caches to be safe
+		\BetterLinks\Helper::clear_analytics_cache();
+
+		// Update the betterlinks_analytics_data option with fresh data from database
+		\BetterLinks\Helper::update_links_analytics();
+
+		// Clear links cache so that page refresh shows updated analytics
+		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
+
+		$results = $this->get_individual_analytics_clicks( $link_id, $from, $to );
+		$link_details = $this->get_individual_link_details( $link_id );
+		$graph_data = array(
+			'total_count'  => array(),
+			'unique_count' => array(),
+		);
+		$graph_data = apply_filters( 'betterlinkspro/get_individual_graph_data', $graph_data, $link_id, $from, $to );
+
 		return new \WP_REST_Response(
 			array(
-				'success' => false,
-				'data'    => array(),
+				'success' => true,
+				'data'    => array(
+					'analytics'    => $results,
+					'graph_data'   => $graph_data,
+					'link_details' => $link_details,
+				),
+				'id'      => $link_id,
 			),
 			200
 		);
@@ -383,6 +463,87 @@ class Clicks extends Controller {
 	public function get_items_permissions_check( $request ) {
 		return apply_filters( 'betterlinks/api/analytics_items_permissions_check', current_user_can( 'manage_options' ) );
 	}
+	/**
+	 * Delete analytics for multiple links
+	 *
+	 * @param WP_REST_Request $request Full data about the request.
+	 * @return WP_Error|WP_REST_Response
+	 */
+	public function delete_links_analytics( $request ) {
+		$params = $request->get_params();
+
+		$link_ids_raw = isset( $params['link_ids'] ) ? $params['link_ids'] : '';
+
+		// Sanitize and parse link IDs
+		$link_ids = array_filter( array_map( 'intval', explode( ',', sanitize_text_field( $link_ids_raw ) ) ) );
+
+		if ( empty( $link_ids ) ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => __( 'Invalid link IDs provided.', 'betterlinks' ),
+				),
+				400
+			);
+		}
+
+		// Get date range from params
+		$from = isset( $params['from'] ) ? sanitize_text_field( $params['from'] ) : date( 'Y-m-d', strtotime( ' - 30 days' ) );
+		$to = isset( $params['to'] ) ? sanitize_text_field( $params['to'] ) : date( 'Y-m-d' );
+
+		// Delete clicks for the specified links ONLY within the date range
+		global $wpdb;
+		$table_name = $wpdb->prefix . 'betterlinks_clicks';
+
+		foreach ( $link_ids as $link_id ) {
+			// Delete only clicks within the specified date range
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$table_name} WHERE link_id = %d AND DATE(created_at) >= %s AND DATE(created_at) <= %s",
+					intval( $link_id ),
+					$from,
+					$to
+				)
+			);
+		}
+
+		// Clear all related transient caches for all deleted links
+		foreach ( $link_ids as $link_id ) {
+			$transient_key = 'btl_individual_analytics_clicks_' . md5( $from . $to . $link_id );
+			delete_transient( $transient_key );
+
+			$graph_transient_key = 'btl_individual_graph_data_' . md5( $from . $to . $link_id );
+			delete_transient( $graph_transient_key );
+		}
+
+		// Clear all analytics caches
+		\BetterLinks\Helper::clear_analytics_cache();
+
+		// Update the betterlinks_analytics_data option with fresh data from database
+		\BetterLinks\Helper::update_links_analytics();
+
+		// Clear links cache so that page refresh shows updated analytics
+		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
+
+		// Fetch updated analytics data for the link list
+		$unique_list = $this->get_analytics_unique_list( $from, $to );
+		$unique_click_count = $this->get_unique_clicks_count( $from, $to );
+		$analytic = $this->get_analytics_data( $from, $to );
+		$analytic = $analytic ? json_decode( $analytic, true ) : array();
+
+		return new \WP_REST_Response(
+			array(
+				'success' => true,
+				'data'    => array(
+					'unique_list' => $unique_list,
+					'unique_count' => $unique_click_count,
+					'analytic'    => $analytic,
+				),
+			),
+			200
+		);
+	}
+
 	/**
 	 * Check if a given request has access to update a setting
 	 *
