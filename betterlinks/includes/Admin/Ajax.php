@@ -1942,7 +1942,7 @@ class Ajax {
 		// Dismiss the notice in the Notices library system as well
 		// This ensures the notice doesn't show again even after page refresh
 		// The key format is: {app}_{notice_id}_notice_dismissed
-		update_site_option( 'betterlinks_betterlinks_black_friday_2025_notice_dismissed', true );
+		update_site_option( 'betterlinks_betterlinks_feb_camp_2026_notice_dismissed', true );
 
 		wp_send_json_success( array( 'message' => __( 'Notice dismissed successfully.', 'betterlinks' ) ) );
 	}

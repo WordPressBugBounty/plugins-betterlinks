@@ -358,21 +358,22 @@ class Notice {
 
 		// Black Friday Mega Sale Notice
         $black_friday_icon = self::ASSET_URL . 'images/full-logo.svg';
-		$black_friday_message = "<style>#wpnotice-betterlinks-betterlinks_black_friday_2025 { border-left: 3px solid #E1ADEE !important; } .notice-betterlinks-betterlinks_black_friday_2025 { border-left: 4px solid #FF6B6B !important; }</style><div> <p style='margin-top: 0; margin-bottom: 10px; font-size: 14px;'> <strong>Black Friday Mega Sale:</strong> Manage, Shorten & Track Every Click - Smarter, Faster And Easier - Now <strong> Up To $160 OFF! </strong>🎁 </p><a style='display: inline-flex;align-items:center;column-gap:5px; background: #3B4045; color: #FFFFFF; font-size: 14px;' class='button button-primary' href='https://betterlinks.io/bfcm2025-admin-notice' target='_blank'>Upgrade To PRO</a><a style='display: inline-flex;align-items:center;column-gap:5px;margin-left:10px; background: unset; box-shadow: unset; border-style: unset; color: #424242; font-size: 14px; text-decoration: underline;' class='button dismiss-btn' href='#' data-dismiss='true'>I'll Grab It Later</a> </div>";
+		$black_friday_message = "<style>#wpnotice-betterlinks-betterlinks_feb_camp_2026 { border-left: 3px solid #AA02D3 !important; } .notice-betterlinks-betterlinks_feb_camp_2026 { border-left: 4px solid #FF6B6B !important; }</style><div> <p style='margin-top: 0; margin-bottom: 10px; font-size: 14px;'>Manage, Shorten & Track Every Click - Smarter, Faster And AI-Powered - Now <strong> Flat $20 OFF! </strong>🎁 </p><a style='display: inline-flex;align-items:center;column-gap:5px; background: #5626E7; color: #FFFFFF; font-size: 14px; border-radius: 6px; border-color: unset;' class='button button-primary' href='https://betterlinks.io/feb2026-admin-notice' target='_blank'>Upgrade To PRO</a><a style='display: inline-flex;align-items:center;column-gap:5px;margin-left:10px; background: unset; box-shadow: unset; border-style: unset; color: #424242; font-size: 14px; text-decoration: underline;' class='button dismiss-btn' href='#' data-dismiss='true'>I'll Grab It Later</a> </div>";
 
         $_black_friday_notices = [
             'thumbnail' => $black_friday_icon,
             'html'      => $black_friday_message,
         ];
+		// 'betterlinks_black_friday_2025',
         $notices->add(
-            'betterlinks_black_friday_2025',
+            'betterlinks_feb_camp_2026',
             $_black_friday_notices,
             [
-                'start'       => strtotime( '11:59:59pm 16th November, 2025' ),
+                'start'       => strtotime( '12:00:00am 9th February, 2026' ),
                 'recurrence'  => false,
                 'dismissible' => true,
                 'refresh'     => BETTERLINKS_VERSION,
-                "expire"      => strtotime('11:59:59pm 4th December, 2025'),
+                "expire"      => strtotime( '11:59:59pm 8th March, 2026' ),
     			'display_if'  => ! is_plugin_active( 'betterlinks-pro/betterlinks-pro.php' ),
 				'priority'    => 7
             ]
