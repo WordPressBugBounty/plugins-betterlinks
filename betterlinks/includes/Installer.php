@@ -111,6 +111,8 @@ class Installer extends \WP_Background_Process
         $this->createBetterClicksTable(); // Create clicks table after countries table
         $this->createBetterLinkMetaTable();
         $this->createBetterLinkPasswordTable();
+        $this->createBetterUserAgentsTable();
+        $this->modifyBetterLinksClicksTableAddUserAgent();
         // set plugin version in 'option table' if not already setted 
         // (i.e. when this plugin gets installed on a site for the very first time)
         if (!Helper::btl_get_option('betterlinks_version')) {
@@ -169,6 +171,7 @@ class Installer extends \WP_Background_Process
                 'is_case_sensitive'     => false,
                 'enable_custom_domain_menu' => true,
                 'enable_auto_title_suggestion' => true,
+                'enable_user_agent_tracking' => false,
                 'fbs'        => [
                     'enable_fbs' => true,
                     'cat_id'    => $fbs_cat,
@@ -280,10 +283,16 @@ class Installer extends \WP_Background_Process
                 $this->createBetterLinksCountriesTable();
                 $this->modifyBetterLinksClicksTable4();
             }
+            // Ensure User Agent table exists for all versions >= 1.6.7
+            if( version_compare( BETTERLINKS_DB_VERSION, '2.0.0', '>=' ) ){
+                $this->createBetterUserAgentsTable();
+                $this->modifyBetterLinksClicksTableAddUserAgent();
+            }
             
             // Migrate default settings for backward compatibility (runs for all versions)
             // This ensures older users get new default settings that were added over time
             $this->migrate_default_settings();
+           
         }
         Helper::btl_update_option('betterlinks_db_version', BETTERLINKS_DB_VERSION);
     }

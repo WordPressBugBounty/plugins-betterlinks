@@ -94,6 +94,19 @@ class Settings extends Controller {
 
 		$response['uncloaked_categories']      = isset( $response['uncloaked_categories'] ) && is_string( $response['uncloaked_categories'] ) ? json_decode( $response['uncloaked_categories'] ) : array();
 		$response['affiliate_disclosure_text'] = isset( $response['affiliate_disclosure_text'] ) && is_string( $response['affiliate_disclosure_text'] ) ? $response['affiliate_disclosure_text'] : '';
+		
+		// Validate and sanitize excluded IPs
+		if ( isset( $response['excluded_ips'] ) ) {
+			if ( is_array( $response['excluded_ips'] ) ) {
+				$response['excluded_ips'] = array_values( array_filter( array_map( function( $ip ) {
+					$ip = sanitize_text_field( trim( $ip ) );
+					// Validate IP address (IPv4 or IPv6)
+					return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : null;
+				}, $response['excluded_ips'] ) ) );
+			} else {
+				$response['excluded_ips'] = array();
+			}
+		}
 
 		// Pro Logics
 		$response = apply_filters( 'betterlinkspro/admin/update_settings', $response );

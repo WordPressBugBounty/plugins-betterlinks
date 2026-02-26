@@ -37,11 +37,13 @@ class Helper {
 					'is_autolink_headings'        => isset( $options['is_autolink_headings'] ) ? $options['is_autolink_headings'] : false,
 					'uncloaked_categories'        => isset( $options['uncloaked_categories'] ) ? $options['uncloaked_categories'] : array(),
 					'is_disable_analytics_ip'     => isset( $options['is_disable_analytics_ip'] ) ? $options['is_disable_analytics_ip'] : false,
+					'excluded_ips'                => isset( $options['excluded_ips'] ) ? $options['excluded_ips'] : array(),
 				)
 				: array(
 					'wildcards_is_active' => false,
 					'disablebotclicks'    => false,
 					'force_https'         => false,
+					'excluded_ips'        => array(),
 				);
 	}
 
@@ -388,79 +390,86 @@ class Helper {
 		}
 		$existingData              = file_get_contents( $file );
 		$existingData              = json_decode( $existingData, true );
-		$case_sensitive_is_enabled = isset( $existingData['is_case_sensitive'] ) ? $existingData['is_case_sensitive'] : false;
-		$short_url                 = $case_sensitive_is_enabled ? $data['short_url'] : strtolower( $data['short_url'] );
-
-		if ( isset( $data['wildcards'] ) && ! empty( $data['wildcards'] ) ) {
-			$tempArray = $existingData['wildcards'];
-			if ( is_array( $tempArray ) ) {
-				$found_old_entry = false;
-
-				// First, try to find and remove by old_short_url if provided
-				if ( ! empty( $old_short_url ) ) {
-					$old_short_url_lower = strtolower( $old_short_url );
-					if ( isset( $tempArray[ $old_short_url ] ) ) {
-						unset( $tempArray[ $old_short_url ] );
-						$found_old_entry = true;
-					} elseif ( isset( $tempArray[ $old_short_url_lower ] ) ) {
-						unset( $tempArray[ $old_short_url_lower ] );
-						$found_old_entry = true;
-					}
-				}
-
-				// If old entry not found by short_url, search by ID to remove all duplicates
-				if ( ! $found_old_entry && isset( $data['ID'] ) ) {
-					foreach ( $tempArray as $key => $entry ) {
-						if ( isset( $entry['ID'] ) && $entry['ID'] == $data['ID'] ) {
-							unset( $tempArray[ $key ] );
-						}
-					}
-				}
-
-				$tempArray[ $short_url ]   = self::json_link_formatter( $data );
-				$existingData['wildcards'] = $tempArray;
-				return file_put_contents( $file, wp_json_encode( $existingData ) );
-			}
-		} else {
-			$tempArray     = $existingData['links'];
-			$previous_data = array();
-			if ( is_array( $tempArray ) ) {
-				$found_old_entry = false;
-
-				// First, try to find and remove by old_short_url if provided
-				if ( ! empty( $old_short_url ) ) {
-					$old_short_url_lower = strtolower( $old_short_url );
-					if ( isset( $tempArray[ $old_short_url ] ) ) {
-						$previous_data = $tempArray[ $old_short_url ];
-						unset( $tempArray[ $old_short_url ] );
-						$found_old_entry = true;
-					} elseif ( isset( $tempArray[ $old_short_url_lower ] ) ) {
-						$previous_data = $tempArray[ $old_short_url_lower ];
-						unset( $tempArray[ $old_short_url_lower ] );
-						$found_old_entry = true;
-					}
-				}
-
-				// If old entry not found by short_url, search by ID to remove all duplicates
-				if ( ! $found_old_entry && isset( $data['ID'] ) ) {
-					foreach ( $tempArray as $key => $entry ) {
-						if ( isset( $entry['ID'] ) && $entry['ID'] == $data['ID'] ) {
-							$previous_data = $entry;
-							unset( $tempArray[ $key ] );
-						}
-					}
-				}
-
-				$data                    = wp_parse_args( $data, $previous_data );
-				$tempArray[ $short_url ] = self::json_link_formatter( $data );
-				$existingData['links']   = $tempArray;
-				return file_put_contents( $file, wp_json_encode( $existingData ) );
-			}
+		// make sure we always have an array to work with
+		if ( ! is_array( $existingData ) ) {
+			$existingData = array();
 		}
+        $case_sensitive_is_enabled = isset( $existingData['is_case_sensitive'] ) ? $existingData['is_case_sensitive'] : false;
+        $short_url                 = $case_sensitive_is_enabled ? $data['short_url'] : strtolower( $data['short_url'] );
+
+        if ( isset( $data['wildcards'] ) && ! empty( $data['wildcards'] ) ) {
+            $tempArray = isset( $existingData['wildcards'] ) && is_array( $existingData['wildcards'] ) ? $existingData['wildcards'] : array();
+             if ( is_array( $tempArray ) ) {
+                 $found_old_entry = false;
+
+                // First, try to find and remove by old_short_url if provided
+                if ( ! empty( $old_short_url ) ) {
+                    $old_short_url_lower = strtolower( $old_short_url );
+                    if ( isset( $tempArray[ $old_short_url ] ) ) {
+                        unset( $tempArray[ $old_short_url ] );
+                        $found_old_entry = true;
+                    } elseif ( isset( $tempArray[ $old_short_url_lower ] ) ) {
+                        unset( $tempArray[ $old_short_url_lower ] );
+                        $found_old_entry = true;
+                    }
+                }
+
+                // If old entry not found by short_url, search by ID to remove all duplicates
+                if ( ! $found_old_entry && isset( $data['ID'] ) ) {
+                    foreach ( $tempArray as $key => $entry ) {
+                        if ( isset( $entry['ID'] ) && $entry['ID'] == $data['ID'] ) {
+                            unset( $tempArray[ $key ] );
+                        }
+                    }
+                }
+
+                $tempArray[ $short_url ]   = self::json_link_formatter( $data );
+                $existingData['wildcards'] = $tempArray;
+                return file_put_contents( $file, wp_json_encode( $existingData ) );
+            }
+        } else {
+            $tempArray     = isset( $existingData['links'] ) && is_array( $existingData['links'] ) ? $existingData['links'] : array();
+             $previous_data = array();
+             if ( is_array( $tempArray ) ) {
+                 $found_old_entry = false;
+
+                // First, try to find and remove by old_short_url if provided
+                if ( ! empty( $old_short_url ) ) {
+                    $old_short_url_lower = strtolower( $old_short_url );
+                    if ( isset( $tempArray[ $old_short_url ] ) ) {
+                        $previous_data = $tempArray[ $old_short_url ];
+                        unset( $tempArray[ $old_short_url ] );
+                        $found_old_entry = true;
+                    } elseif ( isset( $tempArray[ $old_short_url_lower ] ) ) {
+                        $previous_data = $tempArray[ $old_short_url_lower ];
+                        unset( $tempArray[ $old_short_url_lower ] );
+                        $found_old_entry = true;
+                    }
+                }
+
+                // If old entry not found by short_url, search by ID to remove all duplicates
+                if ( ! $found_old_entry && isset( $data['ID'] ) ) {
+                    foreach ( $tempArray as $key => $entry ) {
+                        if ( isset( $entry['ID'] ) && $entry['ID'] == $data['ID'] ) {
+                            $previous_data = $entry;
+                            unset( $tempArray[ $key ] );
+                        }
+                    }
+                }
+
+                $data                    = wp_parse_args( $data, $previous_data );
+                $tempArray[ $short_url ] = self::json_link_formatter( $data );
+                $existingData['links']   = $tempArray;
+                return file_put_contents( $file, wp_json_encode( $existingData ) );
+            }
+        }
 	}
 	public static function delete_json_into_file( $file, $short_url ) {
 		$existingData = file_get_contents( $file );
 		$existingData = json_decode( $existingData, true );
+		if ( ! is_array( $existingData ) ) {
+			$existingData = array();
+		}
 		if ( isset( $existingData['wildcards'][ $short_url ] ) || isset( $existingData['wildcards'][ strToLower( $short_url ) ] ) ) {
 			$tempArray = $existingData['wildcards'];
 			if ( is_array( $tempArray ) ) {

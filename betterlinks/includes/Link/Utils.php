@@ -206,6 +206,14 @@ class Utils {
 			$click_data['query_params']    = wp_json_encode( $query_params );
 		}
 
+		// Add user agent if tracking is enabled
+		$settings = get_option( BETTERLINKS_LINKS_OPTION_NAME, '[]' );
+		if ( is_string( $settings ) ) {
+			$settings = json_decode( $settings, true );
+		}
+		if ( ! empty( $settings['enable_user_agent_tracking'] ) && isset( $_SERVER['HTTP_USER_AGENT'] ) ) {
+			$click_data['user_agent'] = sanitize_text_field( $_SERVER['HTTP_USER_AGENT'] );
+		}
 		$arg = apply_filters( 'betterlinks/link/insert_click_arg', $click_data );
 
 		if ( BETTERLINKS_EXISTS_CLICKS_JSON ) {

@@ -237,4 +237,30 @@ trait DBTables
             $wpdb->query( $sql );
         }
     }
+    public function createBetterUserAgentsTable() {
+        $table_name = $this->wpdb->prefix . 'betterlinks_user_agents';
+        $sql = "CREATE TABLE IF NOT EXISTS $table_name (
+            id bigint(20) unsigned NOT NULL auto_increment,
+            user_agent text NOT NULL,
+            created_at datetime NOT NULL default CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY user_agent_hash (user_agent(255))
+        ) $this->charset_collate;";
+        dbDelta($sql);
+    }
+
+    public function modifyBetterLinksClicksTableAddUserAgent() {
+        global $wpdb;
+
+        $check_column_exists_sql = sprintf( 'select `column_name` from information_schema.columns where table_schema="%1$s" and table_name="%2$sbetterlinks_clicks" and column_name="user_agent_id";', DB_NAME, $wpdb->prefix );
+        $result                  = $wpdb->query( $check_column_exists_sql );
+
+        if ( ! $result ) {
+            $table_name = $wpdb->prefix . 'betterlinks_clicks';
+            $sql        = "ALTER TABLE {$table_name}
+                ADD COLUMN `user_agent_id` bigint(20) unsigned NULL AFTER `query_params`,
+                ADD INDEX `idx_user_agent_id` (`user_agent_id`);";
+            $wpdb->query( $sql );
+        }
+    }
 }
