@@ -83,6 +83,11 @@ trait Links
             $id = \BetterLinks\Helper::insert_link(apply_filters('betterlinks/api/params', $params));
             $term_data = \BetterLinks\Helper::insert_terms_and_terms_relationship($id, $arg);
             $wpdb->query("COMMIT");
+
+            // Initialize category data with default fallback
+            $arg['cat_id'] = isset($arg['cat_id']) ? $arg['cat_id'] : 1; // Default to Uncategorized
+            $arg['tags_data'] = isset($arg['tags_data']) ? $arg['tags_data'] : [];
+
             // for instant create category system
             foreach ($term_data as $key => $value) {
                 if(empty($value["term_type"])){
@@ -109,6 +114,9 @@ trait Links
                 }
                 
                 \BetterLinks\Helper::insert_json_into_file(trailingslashit(BETTERLINKS_UPLOAD_DIR_PATH) . 'links.json', $params);
+                
+                // Sync missing links when new link is created (including when duplicating)
+                \BetterLinks\Helper::sync_all_missing_links_to_json();
             } else {
                 // Auto-apply UTM template if enabled for this category (when JSON is not used)
                 $updated_target_url = $this->auto_apply_utm_template_to_new_link($id, $arg);
@@ -147,6 +155,11 @@ trait Links
         $term_data = \BetterLinks\Helper::insert_terms_and_terms_relationship($id, $arg);
 
         $wpdb->query("COMMIT");
+
+        // Initialize category data with default fallback
+        $arg['cat_id'] = isset($arg['cat_id']) ? $arg['cat_id'] : 1; // Default to Uncategorized
+        $arg['tags_data'] = isset($arg['tags_data']) ? $arg['tags_data'] : [];
+
         foreach ($term_data as $key => $value) {
             if(empty($value["term_type"])){
                 continue;
@@ -155,7 +168,7 @@ trait Links
                 $arg['tags_data'][] = $value;
             }
             if($value["term_type"] === "category"){
-                $arg['old_cat_id'] = $arg['cat_id'];
+                $arg['old_cat_id'] = isset($arg['cat_id']) ? $arg['cat_id'] : 1;
                 $arg['cat_id'] = $value["term_id"];
                 $arg['cat_data'] = $value;
             }
@@ -163,6 +176,9 @@ trait Links
         if (BETTERLINKS_EXISTS_LINKS_JSON) {
             $params['cat_id'] = $arg['cat_id'];
             \BetterLinks\Helper::update_json_into_file(trailingslashit(BETTERLINKS_UPLOAD_DIR_PATH) . 'links.json', $params, $old_short_url);
+            
+            // Sync missing links when link is updated
+            \BetterLinks\Helper::sync_all_missing_links_to_json();
         }
 
         do_action( 'betterlinkspro/admin/update_link', $id, $arg );

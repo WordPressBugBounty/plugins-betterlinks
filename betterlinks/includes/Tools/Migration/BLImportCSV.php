@@ -12,12 +12,17 @@ class BLImportCSV extends BaseCSV implements ImportCsvInterface {
 		$link_message  = array();
 		$click_message = array();
 		$count         = 0;
-		while ( ( $item = fgetcsv( $csv ) ) !== false ) {
+		while ( ( $item = fgetcsv( $csv, 0, ',', '"', '"' ) ) !== false ) {
 			if ( $count === 0 ) {
 				$this->link_header = $item;
 				++$count;
 				continue;
 			}
+			// Skip rows with mismatched column count
+            if ( count( $item ) !== count( $this->link_header ) ) {
+                ++$count;
+                continue;
+            }
 			$item = array_combine( $this->link_header, $item );
 			if ( isset( $item['short_url'] ) ) {
 				$item['short_url'] = rtrim( $item['short_url'], '/' );

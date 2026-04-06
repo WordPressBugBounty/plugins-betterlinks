@@ -276,6 +276,8 @@ trait Query {
 		global $wpdb;
 		$prefix                                    = $wpdb->prefix;
 		$formattedArray                            = array();
+		// Changed from INNER JOIN to LEFT JOIN to include links without category assignments
+		// This prevents links from disappearing when category relationships are delayed
 		$items                                     = $wpdb->get_results(
 			"SELECT
             bl.ID,
@@ -294,8 +296,10 @@ trait Query {
             bl.uncloaked,
             br.term_id as cat_id
             FROM {$prefix}betterlinks as bl
-            INNER JOIN {$prefix}betterlinks_terms_relationships as br ON bl.ID = br.link_id
-            INNER JOIN {$prefix}betterlinks_terms as bt ON br.term_id = bt.ID AND bt.term_type = 'category'
+            LEFT JOIN {$prefix}betterlinks_terms_relationships as br ON bl.ID = br.link_id
+            LEFT JOIN {$prefix}betterlinks_terms as bt ON br.term_id = bt.ID AND bt.term_type = 'category'
+            GROUP BY bl.ID
+            ORDER BY bl.ID DESC
         "
 		);
 		$options                                   = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );

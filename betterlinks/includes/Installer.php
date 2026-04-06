@@ -23,7 +23,7 @@ class Installer extends \WP_Background_Process
         $this->wpdb = $wpdb;
         $this->charset_collate = $wpdb->get_charset_collate();
         $this->activation = ['set_activation_flag','create_db_tables', 'db_migration', 'fix_betterlinks_db', 'insert_terms_data', 'create_json_files', 'save_settings', 'update_json_links', 'clear_cache'];
-        $this->migration = ['set_activation_flag', 'db_migration', 'fix_betterlinks_db', 'update_json_links', 'clear_cache', 'fix_json_files'];
+        $this->migration = ['set_activation_flag', 'db_migration', 'fix_betterlinks_db', 'update_json_links', 'sync_missing_links_to_json', 'clear_cache', 'fix_json_files'];
         $this->db_version = Helper::btl_get_option('betterlinks_db_version');
     }
 
@@ -227,6 +227,21 @@ class Installer extends \WP_Background_Process
     {
         $Cron = new Cron();
         $Cron->write_json_links();
+    }
+
+    /**
+     * Sync all missing links from database to JSON file during migration/update
+     * Ensures complete synchronization when plugin is updated to v2.4.8+
+     * 
+     * @since 2.4.8
+     * @return void
+     */
+    public function sync_missing_links_to_json()
+    {
+        $result = Helper::sync_all_missing_links_to_json();
+        if ( !empty($result['synced']) && $result['synced'] > 0 ) {
+            error_log( 'BetterLinks Migration: Synced ' . $result['synced'] . ' missing links to JSON (Total: ' . $result['total'] . ')' );
+        }
     }
 
     public function db_migration()

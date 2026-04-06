@@ -838,4 +838,122 @@ class Helper {
 			}
 		}
 	}
+
+	/**
+	 * Rebuild links JSON from database
+	 * Useful when JSON file is corrupted or completely out of sync
+	 * 
+	 * @since 2.6.0
+	 * @return bool True if rebuild successful
+	 */
+	public static function rebuild_links_json() {
+		if ( ! BETTERLINKS_EXISTS_LINKS_JSON ) {
+			return false;
+		}
+
+		$formattedArray = self::get_links_for_json();
+		$json_file = trailingslashit( BETTERLINKS_UPLOAD_DIR_PATH ) . 'links.json';
+		
+		return (bool) file_put_contents( $json_file, wp_json_encode( $formattedArray ) );
+	}
+
+	/**
+	 * Sync all missing links from database to JSON file
+	 * Checks if all database links exist in JSON and adds missing ones
+	 * Called when admin page loads to ensure complete synchronization
+	 * 
+	 * @since 2.6.2
+	 * @return array Results: ['total' => count, 'synced' => count]
+	 */
+	public static function sync_all_missing_links_to_json() {
+		if ( ! BETTERLINKS_EXISTS_LINKS_JSON ) {
+			return array( 'total' => 0, 'synced' => 0 );
+		}
+
+		if ( ! function_exists( 'file_get_contents' ) || ! function_exists( 'file_put_contents' ) ) {
+			return array( 'total' => 0, 'synced' => 0 );
+		}
+
+		$json_file = trailingslashit( BETTERLINKS_UPLOAD_DIR_PATH ) . 'links.json';
+
+		// Read JSON file
+		if ( ! file_exists( $json_file ) ) {
+			// JSON doesn't exist, rebuild from scratch
+			self::rebuild_links_json();
+			return array( 'total' => 0, 'synced' => 0 );
+		}
+
+		$json_content = file_get_contents( $json_file );
+		$json_data = json_decode( $json_content, true );
+
+		// If JSON is corrupted, rebuild
+		if ( ! is_array( $json_data ) ) {
+			self::rebuild_links_json();
+			return array( 'total' => 0, 'synced' => 0 );
+		}
+
+		// Get all published links from database
+		global $wpdb;
+		$all_db_links = $wpdb->get_results(
+			"SELECT ID, short_url, wildcards FROM {$wpdb->prefix}betterlinks WHERE link_status = 'publish'",
+			ARRAY_A
+		);
+
+		$synced_count = 0;
+		$total_links = count( $all_db_links );
+
+		// Check each database link and add if missing from JSON
+		foreach ( $all_db_links as $db_link ) {
+			$short_url = $db_link['short_url'];
+			$link_id = $db_link['ID'];
+			$is_wildcard = isset( $db_link['wildcards'] ) && $db_link['wildcards'];
+
+			// Determine where to look
+			$target_section = $is_wildcard ? 'wildcards' : 'links';
+
+			// Check if link exists in JSON
+			$link_exists = false;
+			if ( isset( $json_data[ $target_section ] ) && is_array( $json_data[ $target_section ] ) ) {
+				if ( isset( $json_data[ $target_section ][ $short_url ] ) ) {
+					$link_exists = true;
+				}
+			}
+
+			// If missing, add it
+			if ( ! $link_exists ) {
+				$full_link_data = $wpdb->get_row(
+					$wpdb->prepare(
+						"SELECT * FROM {$wpdb->prefix}betterlinks WHERE ID = %d",
+						$link_id
+					),
+					ARRAY_A
+				);
+
+				if ( $full_link_data ) {
+					$formatted_link = self::json_link_formatter( $full_link_data );
+
+					if ( $formatted_link ) {
+						// Ensure target section exists
+						if ( ! isset( $json_data[ $target_section ] ) ) {
+							$json_data[ $target_section ] = array();
+						}
+
+						// Add missing link to JSON
+						$json_data[ $target_section ][ $short_url ] = $formatted_link;
+						$synced_count++;
+					}
+				}
+			}
+		}
+
+		// Write back to file if any links were synced
+		if ( $synced_count > 0 ) {
+			file_put_contents( $json_file, wp_json_encode( $json_data ) );
+		}
+
+		return array(
+			'total' => $total_links,
+			'synced' => $synced_count,
+		);
+	}
 }

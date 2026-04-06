@@ -10,6 +10,8 @@ class Cron
         $self = new self();
         add_filter('cron_schedules', [$self, 'add_cron_schedule']);
         add_action('betterlinks/write_json_links', [$self, 'write_json_links']);
+        
+        // Analytics job runs hourly
         if (!wp_next_scheduled('betterlinks/analytics')) {
             $timestamp = time() + (60 * 60);
             wp_schedule_event($timestamp, 'hourly', 'betterlinks/analytics');
@@ -25,6 +27,30 @@ class Cron
         ];
         return $schedules;
     }
+
+    /**
+     * Sync all missing links from database to JSON
+     * Called hourly by CRON job and on-demand via Ajax "Refresh Stats" button
+     * 
+     * @since 2.6.2
+     */
+    public function sync_missing_links_to_json()
+    {
+        try {
+            $result = Helper::sync_all_missing_links_to_json();
+            
+            // Log if links were synced (for debugging)
+            if ( !empty($result['synced']) && $result['synced'] > 0 ) {
+                error_log( 'BetterLinks CRON: Synced ' . $result['synced'] . ' missing links to JSON (Total: ' . $result['total'] . ')' );
+            }
+            
+            return $result;
+        } catch (\Throwable $th) {
+            error_log( 'BetterLinks CRON Error (sync_missing_links_to_json): ' . $th->getMessage() );
+            return array( 'total' => 0, 'synced' => 0, 'error' => $th->getMessage() );
+        }
+    }
+
     public function write_json_links()
     {
         $formattedArray = \BetterLinks\Helper::get_links_for_json();
@@ -33,6 +59,9 @@ class Cron
 
     public function analytics()
     {
+        // Sync missing links to JSON first
+        $this->sync_missing_links_to_json();
+        
         Helper::clear_query_cache();
         Helper::clear_analytics_cache();    
         try {
