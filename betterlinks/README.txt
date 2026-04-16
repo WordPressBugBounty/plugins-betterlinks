@@ -3,9 +3,9 @@ Contributors: wpdevteam, re_enter_rupok, asif2bd, sapanmozammel, priyomukul, has
 Donate link: https://wpdeveloper.com
 Tags: affiliate links, cloaking, link shortener, short links, redirects
 Requires at least: 5.0
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 2.4.8
+Stable tag: 2.4.9
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -162,6 +162,11 @@ BetterLinks is very useful for website owners, affiliate marketers, SEO experts 
 
 
 == Changelog ==
+
+= 2.4.9 - 16/04/2026 =
+
+- Improvement: Added WPML-compatible translatable string support.
+- Few minor bug fixes & improvements
 
 = 2.4.8 - 06/04/2026 =
 

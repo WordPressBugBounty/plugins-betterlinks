@@ -1147,6 +1147,43 @@ trait Query {
 		return $results;
 	}
 
+	public static function get_keywords_for_export() {
+		global $wpdb;
+		$results = $wpdb->get_results(
+			$wpdb->prepare( "SELECT meta_id, meta_value FROM {$wpdb->prefix}betterlinkmeta WHERE meta_key=%s ORDER BY meta_id DESC", 'keywords' ),
+			ARRAY_A
+		);
+		return $results;
+	}
+
+	public static function update_link_meta_by_meta_id( $meta_id, $link_id, $meta_key, $meta_value ) {
+		global $wpdb;
+		$table      = $wpdb->prefix . 'betterlinkmeta';
+		$meta_id    = absint( $meta_id );
+		$link_id    = absint( $link_id );
+		$meta_key   = wp_unslash( $meta_key );
+		$meta_value = wp_unslash( $meta_value );
+		if ( isset( $meta_value['keywords'] ) ) {
+			$meta_value['keywords'] = preg_replace( '/\'|\'|\'/', "'", $meta_value['keywords'] );
+		}
+		$meta_value = \BetterLinks\Helper::maybe_json( $meta_value, false );
+		if ( empty( $meta_id ) || empty( $link_id ) || empty( $meta_key ) ) {
+			return false;
+		}
+		$result = $wpdb->update(
+			$table,
+			array(
+				'meta_value' => $meta_value,
+				'link_id'    => $link_id,
+			),
+			array(
+				'meta_id'  => $meta_id,
+				'meta_key' => $meta_key,
+			)
+		);
+		return $result !== false;
+	}
+
 	public static function get_link_data_by_id( $id, $fields ) {
 		global $wpdb;
 		$query  = $wpdb->prepare( "SELECT `{$fields}` from {$wpdb->prefix}betterlinks WHERE id=%d", array( $id ) );
