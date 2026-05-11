@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class LoadTest extends PHPUnit_Framework_TestCase {
     public function testQuotes() {

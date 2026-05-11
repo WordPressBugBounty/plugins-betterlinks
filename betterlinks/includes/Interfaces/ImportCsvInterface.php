@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks\Interfaces;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 interface ImportCsvInterface {
 

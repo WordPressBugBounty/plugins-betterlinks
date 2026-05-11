@@ -11,6 +11,7 @@
 declare(strict_types=1);
 
 namespace DeviceDetector\Parser;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use DeviceDetector\ClientHints;
 

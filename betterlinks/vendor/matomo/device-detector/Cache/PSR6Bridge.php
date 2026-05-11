@@ -11,6 +11,7 @@
 declare(strict_types=1);
 
 namespace DeviceDetector\Cache;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use Psr\Cache\CacheItemPoolInterface;
 

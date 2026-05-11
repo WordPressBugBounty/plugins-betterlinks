@@ -11,6 +11,7 @@
 declare(strict_types=1);
 
 namespace DeviceDetector;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use DeviceDetector\Cache\CacheInterface;
 use DeviceDetector\Cache\StaticCache;

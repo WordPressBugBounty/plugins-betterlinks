@@ -11,6 +11,7 @@
 declare(strict_types=1);
 
 namespace DeviceDetector\Yaml;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use Exception;
 

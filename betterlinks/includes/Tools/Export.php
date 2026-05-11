@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks\Tools;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class Export {
 

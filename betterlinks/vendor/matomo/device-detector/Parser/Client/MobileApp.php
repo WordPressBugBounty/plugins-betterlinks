@@ -11,6 +11,7 @@
 declare(strict_types=1);
 
 namespace DeviceDetector\Parser\Client;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use DeviceDetector\Cache\CacheInterface;
 use DeviceDetector\ClientHints;

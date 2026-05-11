@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks\Tools\Migration;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Interfaces\ImportCsvInterface;
 use Error;

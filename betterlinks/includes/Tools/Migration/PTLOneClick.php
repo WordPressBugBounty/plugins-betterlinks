@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks\Tools\Migration;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class PTLOneClick extends BaseCSV {
 

@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Admin\Cache;
 

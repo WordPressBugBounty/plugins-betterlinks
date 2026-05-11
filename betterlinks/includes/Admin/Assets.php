@@ -1,6 +1,7 @@
 <?php
 
 namespace BetterLinks\Admin;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Helper;
 
@@ -158,7 +159,6 @@ class Assets
             'betterlinks_nonce' => wp_create_nonce('betterlinks_admin_nonce'),
             'nonce' => wp_create_nonce('wp_rest'),
             'rest_url' => rest_url(),
-            'ajaxurl' => admin_url('admin-ajax.php'),
             'namespace' => BETTERLINKS_PLUGIN_SLUG . '/v1/',
             'plugin_root_url' => BETTERLINKS_PLUGIN_ROOT_URI,
             'plugin_root_path' => BETTERLINKS_ROOT_DIR_PATH,

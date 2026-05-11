@@ -1,6 +1,7 @@
 <?php
 
 namespace BetterLinks;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use Elementor\Controls_Manager;
 use Elementor\Plugin;

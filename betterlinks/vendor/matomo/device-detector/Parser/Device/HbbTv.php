@@ -11,6 +11,7 @@
 declare(strict_types=1);
 
 namespace DeviceDetector\Parser\Device;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
  * Class HbbTv

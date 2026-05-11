@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks\Traits;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Admin\Cache;
 use BetterLinks\Helper;

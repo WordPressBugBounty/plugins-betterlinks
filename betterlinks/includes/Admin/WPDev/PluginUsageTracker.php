@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks\Admin\WPDev;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Helper;
 

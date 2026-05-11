@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 php5to4 ("../spyc.php", 'spyc-latest.php4');
 

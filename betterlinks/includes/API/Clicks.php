@@ -1,5 +1,6 @@
-<?php // phpcs:ignore
+<?php
 namespace BetterLinks\API;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Traits\ArgumentSchema;
 

@@ -1,6 +1,7 @@
 <?php
 
 namespace BetterLinks\Admin;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Admin\WPDev\PluginUsageTracker;
 use Exception;
@@ -215,7 +216,7 @@ class Notice {
 			"<div class='notice notice-success is-dismissible btl-dashboard-notice' id='btl-dashboard-notice'>
 				<p>
 				%s
-				<a target='_blank' href='https://betterlinks.io/docs/auto-link-keywords-import-export-betterlinks/' style='display: inline-block'>
+				<a target='_blank' href='https://betterlinks.io/docs/scheduled-scan-&-reports-with-betterlinks' style='display: inline-block'>
 					%s
 				</a>
 				%s
@@ -223,9 +224,9 @@ class Notice {
 				%s
 				</p>
 		</div>",
-			__( 'NEW: BetterLinks Pro 2.6.5 now includes a powerful ', 'betterlinks' ),
-			__( 'Auto-Link Keyword Import/Export Feature.', 'betterlinks' ),
-			__( ' Check the full ', 'betterlinks' ),
+			__( 'NEW: BetterLinks Pro 2.7 now includes a powerful ', 'betterlinks' ),
+			__( 'Scheduled Scan & Reports', 'betterlinks' ),
+			__( ' functionality Check the full ', 'betterlinks' ),
 			__( 'Changelog', 'betterlinks' ),
 			__( ' for details.', 'betterlinks' ),
 		);

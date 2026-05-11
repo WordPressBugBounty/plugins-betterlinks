@@ -1,6 +1,7 @@
 <?php
 
 namespace BetterLinks\Admin\Notice;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Abstracts\MigrationNotice;
 

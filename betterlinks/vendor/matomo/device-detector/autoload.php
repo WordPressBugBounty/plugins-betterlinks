@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 /**
  * PSR-4 autoloader implementation for the DeviceDetector namespace.
  * First we define the 'dd_autoload' function, and then we register

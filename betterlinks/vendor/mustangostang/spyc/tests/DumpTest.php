@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class DumpTest extends PHPUnit_Framework_TestCase {
 

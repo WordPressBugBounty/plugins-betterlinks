@@ -1,4 +1,5 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class ParseTest extends PHPUnit_Framework_TestCase {
 

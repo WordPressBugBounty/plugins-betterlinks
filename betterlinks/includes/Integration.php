@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class Integration {
 	public static function init() {

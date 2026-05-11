@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Admin\Cache;
 use WP_Http;
@@ -270,7 +271,7 @@ class Helper {
 		foreach ( $items as $item ) {
 			if ( 'category' === $item->term_type ) {
 				// insert analytic data.
-				if ( null !== $item->ID && isset( $analytic[ $item->ID ] ) ) {
+				if ( isset( $analytic[ $item->ID ] ) ) {
 					$item->analytic = $analytic[ $item->ID ];
 				}
 				if ( ! empty( $item->param_struct ) ) {
@@ -285,9 +286,9 @@ class Helper {
 					}
 				}
 
-				if ( null !== $item->ID && isset( $broken_links[ $item->ID ] ) && is_array( $broken_links[ $item->ID ] ) && isset( $broken_links[ $item->ID ]['status']['status_code'] ) && in_array( $broken_links[ $item->ID ]['status']['status_code'], $broken_link_status_codes ) && empty( $broken_links[ $item->ID ]['is_log_removed'] ) ) {
+				if ( isset( $broken_links[ $item->ID ] ) && is_array( $broken_links[ $item->ID ] ) && isset( $broken_links[ $item->ID ]['status']['status_code'] ) && in_array( $broken_links[ $item->ID ]['status']['status_code'], $broken_link_status_codes ) && empty( $broken_links[ $item->ID ]['is_log_removed'] ) ) {
 					$item->link_status = 'broken';
-				} elseif ( 'broken' === $item->link_status && null !== $item->ID && isset( $broken_links[ $item->ID ] ) && is_array( $broken_links[ $item->ID ] ) && isset( $broken_links[ $item->ID ]['old_link_status'] ) && 'broken' !== $broken_links[ $item->ID ]['old_link_status'] ) {
+				} elseif ( 'broken' === $item->link_status && isset( $broken_links[ $item->ID ] ) && is_array( $broken_links[ $item->ID ] ) && isset( $broken_links[ $item->ID ]['old_link_status'] ) && 'broken' !== $broken_links[ $item->ID ]['old_link_status'] ) {
 					// if the link is fixed, but if db is not updated it to fixed link immediately then it will be marked as old status code.
 					$item->link_status = $broken_links[ $item->ID ]['old_link_status'];
 				}
@@ -500,20 +501,23 @@ class Helper {
 
 	public static function sanitize_text_or_array_field( $array_or_string, $key = '' ) {
 
-		$boolean = array( 'true', 'false', '1', '0' );
-		$skip    = array( 'affiliate_disclosure_text', 'allow_contact_text', 'form_title', 'customFields', 'autolink_custom_icon' );
+		$boolean   = array( 'true', 'false', '1', '0' );
+		$skip      = array( 'affiliate_disclosure_text', 'allow_contact_text', 'form_title', 'customFields', 'autolink_custom_icon' );
+		$url_keys  = array( 'link', 'target_url' );
 		if ( is_string( $array_or_string ) ) {
-			if( 'link' === $key ) {
-				return esc_url_raw($array_or_string);
+			if ( in_array( $key, $url_keys, true ) ) {
+				return esc_url_raw( $array_or_string );
 			}
 			$array_or_string = in_array( $array_or_string, $boolean ) || is_bool( $array_or_string ) ? rest_sanitize_boolean( $array_or_string ) : sanitize_text_field( $array_or_string );
 		} elseif ( is_array( $array_or_string ) ) {
-			foreach ( $array_or_string as $key => &$value ) {
-				if ( in_array( $key, $skip ) ) {
+			foreach ( $array_or_string as $field_key => &$value ) {
+				if ( in_array( $field_key, $skip ) ) {
 					continue;
 				}
 				if ( is_array( $value ) ) {
-					$value = self::sanitize_text_or_array_field( $value );
+					$value = self::sanitize_text_or_array_field( $value, $field_key );
+				} elseif ( in_array( $field_key, $url_keys, true ) ) {
+					$value = esc_url_raw( $value );
 				} else {
 					$value = in_array( $value, $boolean ) || is_bool( $value ) ? rest_sanitize_boolean( $value ) : sanitize_text_field( $value );
 				}

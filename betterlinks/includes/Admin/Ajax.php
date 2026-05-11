@@ -1,6 +1,7 @@
 <?php
 
 namespace BetterLinks\Admin;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Admin\WPDev\PluginUsageTracker;
 use BetterLinks\Cron;
@@ -1040,7 +1041,7 @@ class Ajax {
 	}
 	public function get_terms() {
 		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
-		if ( ! apply_filters( 'betterlinks/api/settings_get_items_permissions_check', current_user_can( 'manage_options' ) ) ) {
+		if ( ! apply_filters( 'betterlinks/api/terms_get_items_permissions_check', current_user_can( 'manage_options' ) ) ) {
 			wp_die( "You don't have permission to do this." );
 		}
 		$args = array();
@@ -1338,6 +1339,12 @@ class Ajax {
 			update_post_meta( $ID, $meta_key, $value );
 		} else {
 			add_post_meta( $ID, $meta_key, $value );
+		}
+
+		// Register per-post disclosure text with WPML String Translation.
+		$decoded_value = is_string( $value ) ? json_decode( $value, true ) : $value;
+		if ( is_array( $decoded_value ) && ! empty( $decoded_value['affiliate_disclosure_text'] ) ) {
+			do_action( 'wpml_register_single_string', 'BetterLinks', 'Affiliate Disclosure Text - Post ' . $ID, $decoded_value['affiliate_disclosure_text'] );
 		}
 
 		wp_send_json( $value );
@@ -1676,7 +1683,7 @@ class Ajax {
 	public function apply_utm_template_to_links() {
 		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! apply_filters( 'betterlinks/api/settings_update_items_permissions_check', current_user_can( 'manage_options' ) ) ) {
 			wp_send_json_error( __( 'You do not have permission to perform this action.', 'betterlinks' ) );
 		}
 
@@ -1857,7 +1864,7 @@ class Ajax {
 	public function get_utm_status_counts() {
 		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! apply_filters( 'betterlinks/api/settings_get_items_permissions_check', current_user_can( 'manage_options' ) ) ) {
 			wp_send_json_error( __( 'You do not have permission to perform this action.', 'betterlinks' ) );
 		}
 

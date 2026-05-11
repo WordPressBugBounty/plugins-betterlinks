@@ -1,6 +1,7 @@
 <?php
 
 namespace PriyoMukul\WPNotice;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use Exception;
 use PriyoMukul\WPNotice\Utils\Base;

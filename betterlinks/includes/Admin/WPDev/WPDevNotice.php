@@ -1,6 +1,7 @@
 <?php
 
 namespace BetterLinks\Admin\WPDev;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class WPDevNotice
 {

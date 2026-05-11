@@ -1,6 +1,7 @@
 <?php
 
 namespace BetterLinks\API;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Helper;
 use BetterLinks\Traits\ArgumentSchema;

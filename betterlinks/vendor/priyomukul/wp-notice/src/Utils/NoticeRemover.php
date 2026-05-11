@@ -1,6 +1,7 @@
 <?php
 
 namespace PriyoMukul\WPNotice\Utils;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use PriyoMukul\WPNotice\Notices;
 

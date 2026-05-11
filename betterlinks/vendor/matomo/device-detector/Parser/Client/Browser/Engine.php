@@ -11,6 +11,7 @@
 declare(strict_types=1);
 
 namespace DeviceDetector\Parser\Client\Browser;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use DeviceDetector\Parser\Client\AbstractClientParser;
 

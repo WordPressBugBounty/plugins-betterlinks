@@ -1,6 +1,7 @@
 <?php
 
 namespace BetterLinks\Traits;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Admin\Cache;
 
@@ -641,30 +642,22 @@ trait Query {
 				$addedDbColumnsString   .= ', %d';
 			}
 		}
-		// Check if user agent tracking is enabled AND column exists
-		$settings = get_option( BETTERLINKS_LINKS_OPTION_NAME, '[]' );
-		if ( is_string( $settings ) ) {
-			$settings = json_decode( $settings, true );
-		}
-		$is_user_agent_tracking_enabled = ! empty( $settings['enable_user_agent_tracking'] );
-		
-		// Check if user_agent_id column exists in clicks table
-		$user_agent_column_exists = $wpdb->get_var( 
-			$wpdb->prepare( 
-				'SELECT `column_name` FROM information_schema.columns WHERE table_schema=%s AND table_name=%s AND column_name="user_agent_id"',
-				DB_NAME,
-				$wpdb->prefix . 'betterlinks_clicks'
-			)
-		);
-		
-		// Handle user agent if tracking is enabled, column exists, and user agent is provided
-		$user_agent_id = null;
-		$should_include_user_agent = $is_user_agent_tracking_enabled && $user_agent_column_exists && isset( $item['user_agent'] );
-		if ( $should_include_user_agent ) {
-			$user_agent_id = self::get_or_insert_user_agent_id( $item['user_agent'] );
-		}
-
-		if ( $is_extra_data_tracking_compatible ) {
+	// Check if user agent tracking is enabled AND column exists
+	$settings = get_option( BETTERLINKS_LINKS_OPTION_NAME, '[]' );
+	if ( is_string( $settings ) ) {
+		$settings = json_decode( $settings, true );
+	}
+	$is_user_agent_tracking_enabled = ! empty( $settings['enable_user_agent_tracking'] );
+	
+	// Cache the column existence check to avoid querying information_schema on every redirect
+	$user_agent_column_exists = self::get_user_agent_column_exists();
+	
+	// Handle user agent if tracking is enabled, column exists, and user agent is provided
+	$user_agent_id = null;
+	$should_include_user_agent = $is_user_agent_tracking_enabled && $user_agent_column_exists && isset( $item['user_agent'] );
+	if ( $should_include_user_agent ) {
+		$user_agent_id = self::get_or_insert_user_agent_id( $item['user_agent'] );
+	}		if ( $is_extra_data_tracking_compatible ) {
 			$addedPlaceholderString .= ', brand_name, model, bot_name, browser_type, os_version, browser_version, language, query_params';
 			$addedDbColumnsString   .= ', %s, %s, %s, %s, %s, %s, %s, %s';
 		}
@@ -793,27 +786,36 @@ trait Query {
 	public static function get_clicks_count($from = '', $to = '') {
 		global $wpdb;
 		
-		// Get excluded IPs
+		// Get excluded IPs and build condition safely
 		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
 		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
-		$excluded_ips_condition = '';
-		if ( ! empty( $excluded_ips ) ) {
-			$placeholders = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
-			$excluded_ips_condition = $wpdb->prepare( " AND ip NOT IN ({$placeholders})", $excluded_ips );
+		
+		$where_conditions = array();
+		$query_params = array();
+		
+		// Add date range condition
+		if ( '' !== $from && '' !== $to ) {
+			$where_conditions[] = 'created_at BETWEEN %s AND %s';
+			$query_params[] = $from . ' 00:00:00';
+			$query_params[] = $to . ' 23:59:59';
 		}
 		
-		$where = '';
-		if( '' !== $from && '' !== $to ){
-			$where = "WHERE created_at BETWEEN '$from 00:00:00' AND '$to 23:59:59'" . $excluded_ips_condition;
-		} elseif ( ! empty( $excluded_ips_condition ) ) {
-			$where = "WHERE 1=1" . $excluded_ips_condition;
+		// Add excluded IPs condition
+		if ( ! empty( $excluded_ips ) ) {
+			$placeholders = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
+			$where_conditions[] = "ip NOT IN ({$placeholders})";
+			$query_params = array_merge( $query_params, $excluded_ips );
 		}
+		
+		$where_clause = ! empty( $where_conditions ) ? 'WHERE ' . implode( ' AND ', $where_conditions ) : '';
 
-		$query        = "SELECT link_id, count(id) as total_clicks from {$wpdb->prefix}betterlinks_clicks {$where} group by link_id";
-		$total_clicks = $wpdb->get_results( $query, ARRAY_A );
+		// Total clicks query
+		$total_query = "SELECT link_id, count(id) as total_clicks from {$wpdb->prefix}betterlinks_clicks {$where_clause} group by link_id";
+		$total_clicks = ! empty( $query_params ) ? $wpdb->get_results( $wpdb->prepare( $total_query, $query_params ), ARRAY_A ) : $wpdb->get_results( $total_query, ARRAY_A );
 
-		$query         = "SELECT T1.link_id, count(ip) as unique_clicks from ( SELECT ip, link_id FROM {$wpdb->prefix}betterlinks_clicks {$where} GROUP BY `ip`, `link_id` ) as T1 GROUP BY T1.link_id ORDER BY T1.link_id";
-		$unique_clicks = $wpdb->get_results( $query, ARRAY_A );
+		// Unique clicks query  
+		$unique_query = "SELECT T1.link_id, count(ip) as unique_clicks from ( SELECT ip, link_id FROM {$wpdb->prefix}betterlinks_clicks {$where_clause} GROUP BY `ip`, `link_id` ) as T1 GROUP BY T1.link_id ORDER BY T1.link_id";
+		$unique_clicks = ! empty( $query_params ) ? $wpdb->get_results( $wpdb->prepare( $unique_query, $query_params ), ARRAY_A ) : $wpdb->get_results( $unique_query, ARRAY_A );
 
 		return array(
 			'total_clicks'  => $total_clicks,
@@ -880,17 +882,22 @@ trait Query {
 		$is_extra_data_tracking_compatible = apply_filters( 'betterlinks/is_extra_data_tracking_compatible', false );
 		$extra_data_tracking_columns       = $is_extra_data_tracking_compatible ? 'CLICKS.os, CLICKS.device, CLICKS.brand_name, ' : '';
 		
-		// Get excluded IPs
+		// Get excluded IPs and build condition safely
 		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
 		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
-		$excluded_ips_condition = '';
+		
+		$query_params = array( $from . ' 00:00:00', $to . ' 23:59:00' );
+		$where_conditions = array( 'CLICKS.created_at BETWEEN %s AND %s' );
+		
 		if ( ! empty( $excluded_ips ) ) {
 			$placeholders = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
-			$excluded_ips_condition = $wpdb->prepare( " AND CLICKS.ip NOT IN ({$placeholders})", $excluded_ips );
+			$where_conditions[] = "CLICKS.ip NOT IN ({$placeholders})";
+			$query_params = array_merge( $query_params, $excluded_ips );
 		}
 		
-		$query                             = $wpdb->prepare(
-			"SELECT 
+		$where_clause = implode( ' AND ', $where_conditions );
+		
+		$query = "SELECT 
                 CLICKS.ID AS click_ID, 
                 CLICKS.link_id, 
                 CLICKS.browser, 
@@ -906,15 +913,13 @@ trait Query {
                 {$prefix}betterlinks_clicks AS CLICKS 
                 LEFT JOIN {$prefix}betterlinks ON {$prefix}betterlinks.id = CLICKS.link_id 
             WHERE 
-                CLICKS.created_at BETWEEN %s AND %s {$excluded_ips_condition}
+                {$where_clause}
             GROUP BY 
                 CLICKS.id 
             ORDER BY 
-                CLICKS.created_at DESC limit 100000",
-			$from . ' 00:00:00',
-			$to . ' 23:59:00'
-		);
-		$results                           = $wpdb->get_results( $query, ARRAY_A );
+                CLICKS.created_at DESC limit 100000";
+		
+		$results = $wpdb->get_results( $wpdb->prepare( $query, $query_params ), ARRAY_A );
 		return $results;
 	}
 
@@ -1240,5 +1245,33 @@ trait Query {
 			'ai_link_generator' => !empty( get_option( 'betterlinks_ai_generator_used', false ) ),
 			'utm_builder' => !empty( get_option( 'betterlinks_utm_builder_used', false ) ),
 		];
+	}
+
+	/**
+	 * Cached check for user_agent_id column existence to avoid hitting information_schema on every redirect
+	 * 
+	 * @return bool
+	 */
+	private static function get_user_agent_column_exists() {
+		global $wpdb;
+		
+		$transient_key = 'betterlinks_user_agent_column_exists';
+		$column_exists = get_transient( $transient_key );
+		
+		if ( $column_exists === false ) {
+			// Only hit information_schema when not cached
+			$column_exists = $wpdb->get_var( 
+				$wpdb->prepare( 
+					'SELECT `column_name` FROM information_schema.columns WHERE table_schema=%s AND table_name=%s AND column_name="user_agent_id"',
+					DB_NAME,
+					$wpdb->prefix . 'betterlinks_clicks'
+				)
+			);
+			
+			// Cache for 1 hour - column structure doesn't change often
+			set_transient( $transient_key, $column_exists ? 'yes' : 'no', HOUR_IN_SECONDS );
+		}
+		
+		return $column_exists === 'yes';
 	}
 }

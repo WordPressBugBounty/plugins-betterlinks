@@ -1,6 +1,7 @@
 <?php
 
 namespace BetterLinks\Tools;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
  * Prompt Analyzer - Parses user prompts to extract constraints for AI link generation

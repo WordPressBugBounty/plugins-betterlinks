@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks\Services;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Helper;
 

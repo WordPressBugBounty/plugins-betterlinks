@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Helper;
 
@@ -32,7 +33,7 @@ class Cron
      * Sync all missing links from database to JSON
      * Called hourly by CRON job and on-demand via Ajax "Refresh Stats" button
      * 
-     * @since 2.6.2
+     * @since 2.4.9
      */
     public function sync_missing_links_to_json()
     {

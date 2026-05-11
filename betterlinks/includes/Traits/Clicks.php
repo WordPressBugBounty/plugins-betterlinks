@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks\Traits;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Helper;
 
@@ -53,30 +54,31 @@ trait Clicks {
 
 		global $wpdb;
 		
-		// Get excluded IPs
+		// Get excluded IPs and build safe query
 		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
 		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
-		$excluded_ips_condition = '';
+		
+		$query_params = array( $from . ' 00:00:00', $to . ' 23:59:59' );
+		$where_conditions = array( 'created_at BETWEEN %s AND %s' );
+		
 		if ( ! empty( $excluded_ips ) ) {
 			$placeholders = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
-			$excluded_ips_condition = $wpdb->prepare( " AND ip NOT IN ({$placeholders})", $excluded_ips );
+			$where_conditions[] = "ip NOT IN ({$placeholders})";
+			$query_params = array_merge( $query_params, $excluded_ips );
 		}
 		
-		$query        = $wpdb->prepare( 
-			"SELECT count(id) as click_count, DATE(created_at) as c_date FROM {$wpdb->prefix}betterlinks_clicks 
-            WHERE created_at  BETWEEN %s AND %s {$excluded_ips_condition} GROUP BY c_date ORDER BY c_date DESC",
-			$from . ' 00:00:00',
-			$to . ' 23:59:59',
-		 );
-		$total_counts = $wpdb->get_results( $query, ARRAY_A );
+		$where_clause = 'WHERE ' . implode( ' AND ', $where_conditions );
+		
+		// Total counts query
+		$total_query = "SELECT count(id) as click_count, DATE(created_at) as c_date FROM {$wpdb->prefix}betterlinks_clicks 
+            {$where_clause} GROUP BY c_date ORDER BY c_date DESC";
+		$total_counts = $wpdb->get_results( $wpdb->prepare( $total_query, $query_params ), ARRAY_A );
 
-		$query         = $wpdb->prepare( 
-			"SELECT count(ip) as uniq_count, T1.c_date from ( SELECT ip, DATE( created_at ) as c_date FROM {$wpdb->prefix}betterlinks_clicks 
-            WHERE created_at  BETWEEN %s AND %s {$excluded_ips_condition} GROUP BY `ip`, `c_date` ) as T1 GROUP BY T1.c_date ORDER BY T1.c_date DESC",
-			$from . ' 00:00:00',
-			$to . ' 23:59:59',
-		 );
-		$unique_counts = $wpdb->get_results(  $query, ARRAY_A );
+		// Unique counts query - use same params twice for subquery
+		$unique_query_params = array_merge( $query_params, $query_params );
+		$unique_query = "SELECT count(ip) as uniq_count, T1.c_date from ( SELECT ip, DATE( created_at ) as c_date FROM {$wpdb->prefix}betterlinks_clicks 
+            {$where_clause} GROUP BY `ip`, `c_date` ) as T1 GROUP BY T1.c_date ORDER BY T1.c_date DESC";
+		$unique_counts = $wpdb->get_results( $wpdb->prepare( $unique_query, $unique_query_params ), ARRAY_A );
 
 		$results = array(
 			'total_count'  => $total_counts,
@@ -103,30 +105,39 @@ trait Clicks {
 
 		global $wpdb;
 		
-		// Get excluded IPs
+		// Get excluded IPs and build safe query parameters
 		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
 		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
-		$excluded_ips_condition = '';
+		
+		$base_params = array( $tag_id, "{$from} 00:00:00", "{$to} 23:59:59" );
+		$where_conditions = array( "t.term_type='tags'", "t.id=%d", "c.created_at BETWEEN %s AND %s" );
+		
 		if ( ! empty( $excluded_ips ) ) {
 			$placeholders = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
-			$excluded_ips_condition = $wpdb->prepare( " AND c.ip NOT IN ({$placeholders})", $excluded_ips );
+			$where_conditions[] = "c.ip NOT IN ({$placeholders})";
+			$base_params = array_merge( $base_params, $excluded_ips );
 		}
 		
-		$query        = "SELECT COUNT(c.id) as click_count, DATE(c.created_at) AS c_date FROM {$wpdb->prefix}betterlinks_clicks c 
+		$where_clause = implode( ' AND ', $where_conditions );
+		
+		// Total counts query
+		$total_query = "SELECT COUNT(c.id) as click_count, DATE(c.created_at) AS c_date FROM {$wpdb->prefix}betterlinks_clicks c 
 							LEFT JOIN {$wpdb->prefix}betterlinks_terms_relationships tr ON tr.link_id=c.link_id 
 							LEFT JOIN {$wpdb->prefix}betterlinks_terms t ON tr.term_id=t.id 
-						WHERE t.term_type='tags' AND t.id='%d' AND c.created_at BETWEEN %s AND %s {$excluded_ips_condition}
+						WHERE {$where_clause}
 						GROUP BY c_date ORDER BY c_date DESC";
-		$total_counts = $wpdb->get_results( $wpdb->prepare( $query, $tag_id, "{$from} 00:00:00", "{$to} 23:59:59" ), ARRAY_A );
+		$total_counts = $wpdb->get_results( $wpdb->prepare( $total_query, $base_params ), ARRAY_A );
 
-		$query         = "SELECT COUNT(ip) as uniq_count, T1.c_date FROM 
+		// Unique counts query - duplicate params for subquery  
+		$unique_params = array_merge( $base_params, $base_params );
+		$unique_query = "SELECT COUNT(ip) as uniq_count, T1.c_date FROM 
 							( SELECT ip, DATE( created_at ) AS c_date FROM {$wpdb->prefix}betterlinks_clicks c
 								LEFT JOIN {$wpdb->prefix}betterlinks_terms_relationships tr ON c.link_id=tr.link_id 
 								LEFT JOIN {$wpdb->prefix}betterlinks_terms t ON tr.term_id=t.id 
-									WHERE t.term_type='tags' AND t.id='%d' AND created_at BETWEEN %s AND %s {$excluded_ips_condition}
+									WHERE {$where_clause}
 								GROUP BY `ip`, `c_date` ) AS T1  
 							GROUP BY T1.c_date ORDER BY T1.c_date DESC";
-		$unique_counts = $wpdb->get_results( $wpdb->prepare( $query, $tag_id, "{$from} 00:00:00", "{$to} 23:59:59" ), ARRAY_A );
+		$unique_counts = $wpdb->get_results( $wpdb->prepare( $unique_query, $unique_params ), ARRAY_A );
 
 		$results = array(
 			'total_count'  => $total_counts,
@@ -206,14 +217,20 @@ trait Clicks {
 		$clicks_table = $wpdb->prefix . 'betterlinks_clicks';
 		$countries_table = $wpdb->prefix . 'betterlinks_countries';
 		
-		// Get excluded IPs
+		// Get excluded IPs and build safe query parameters
 		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
 		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
-		$excluded_ips_condition = '';
+		
+		$base_params = array( $id, $from . ' 00:00:00', $to . ' 23:59:59' );
+		$where_conditions = array( 'c.link_id=%d', 'c.created_at BETWEEN %s AND %s' );
+		
 		if ( ! empty( $excluded_ips ) ) {
 			$placeholders = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
-			$excluded_ips_condition = $wpdb->prepare( " AND c.ip NOT IN ({$placeholders})", $excluded_ips );
+			$where_conditions[] = "c.ip NOT IN ({$placeholders})";
+			$base_params = array_merge( $base_params, $excluded_ips );
 		}
+		
+		$where_clause = implode( ' AND ', $where_conditions );
 		
 		// Check if extra data tracking (including country data) is enabled
 		$is_extra_data_tracking_compatible = apply_filters( 'betterlinks/is_extra_data_tracking_compatible', false );
@@ -230,54 +247,38 @@ trait Clicks {
 		if ( $is_extra_data_tracking_compatible ) {
 			// Use normalized schema with JOIN to countries table (Pro version)
 			if ( $user_agents_table_exists ) {
-				$query = $wpdb->prepare(
-					"SELECT c.ID, c.link_id, c.ip, c.browser, c.referer, c.os, c.device, c.query_params, c.created_at,
+				$query_sql = "SELECT c.ID, c.link_id, c.ip, c.browser, c.referer, c.os, c.device, c.query_params, c.created_at,
 					 co.country_code, co.country_name, ua.user_agent
 					 FROM {$clicks_table} c
 					 LEFT JOIN {$countries_table} co ON c.country_id = co.id
 					 LEFT JOIN {$user_agents_table} ua ON c.user_agent_id = ua.id
-					 WHERE c.link_id=%d AND c.created_at BETWEEN %s AND %s {$excluded_ips_condition}
-					 ORDER BY c.created_at DESC",
-					$id,
-					$from . ' 00:00:00',
-					$to . ' 23:59:59'
-				);
+					 WHERE {$where_clause}
+					 ORDER BY c.created_at DESC";
+				$query = $wpdb->prepare( $query_sql, $base_params );
 			} else {
-				$query = $wpdb->prepare(
-					"SELECT c.ID, c.link_id, c.ip, c.browser, c.referer, c.os, c.device, c.query_params, c.created_at,
+				$query_sql = "SELECT c.ID, c.link_id, c.ip, c.browser, c.referer, c.os, c.device, c.query_params, c.created_at,
 					 co.country_code, co.country_name, NULL as user_agent
 					 FROM {$clicks_table} c
 					 LEFT JOIN {$countries_table} co ON c.country_id = co.id
-					 WHERE c.link_id=%d AND c.created_at BETWEEN %s AND %s {$excluded_ips_condition}
-					 ORDER BY c.created_at DESC",
-					$id,
-					$from . ' 00:00:00',
-					$to . ' 23:59:59'
-				);
+					 WHERE {$where_clause}
+					 ORDER BY c.created_at DESC";
+				$query = $wpdb->prepare( $query_sql, $base_params );
 			}
 		} else {
 			// Basic query without country data (Free version)
 			if ( $user_agents_table_exists ) {
-				$query = $wpdb->prepare(
-					"SELECT c.ID, c.link_id, c.ip, c.browser, c.referer, c.created_at, ua.user_agent
+				$query_sql = "SELECT c.ID, c.link_id, c.ip, c.browser, c.referer, c.created_at, ua.user_agent
 					 FROM {$clicks_table} c
 					 LEFT JOIN {$user_agents_table} ua ON c.user_agent_id = ua.id
-					 WHERE c.link_id=%d AND c.created_at BETWEEN %s AND %s {$excluded_ips_condition}
-					 ORDER BY c.created_at DESC",
-					$id,
-					$from . ' 00:00:00',
-					$to . ' 23:59:59'
-				);
+					 WHERE {$where_clause}
+					 ORDER BY c.created_at DESC";
+				$query = $wpdb->prepare( $query_sql, $base_params );
 			} else {
-				$query = $wpdb->prepare(
-					"SELECT c.ID, c.link_id, c.ip, c.browser, c.referer, c.created_at, NULL as user_agent
+				$query_sql = "SELECT c.ID, c.link_id, c.ip, c.browser, c.referer, c.created_at, NULL as user_agent
 					 FROM {$clicks_table} c
-					 WHERE c.link_id=%d AND c.created_at BETWEEN %s AND %s {$excluded_ips_condition}
-					 ORDER BY c.created_at DESC",
-					$id,
-					$from . ' 00:00:00',
-					$to . ' 23:59:59'
-				);
+					 WHERE {$where_clause}
+					 ORDER BY c.created_at DESC";
+				$query = $wpdb->prepare( $query_sql, $base_params );
 			}
 		}
 		$results = $wpdb->get_results( $query, ARRAY_A );
@@ -327,16 +328,23 @@ trait Clicks {
 		}
 		global $wpdb;
 		
-		// Get excluded IPs
+		// Get excluded IPs and build safe query
 		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
 		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
-		$excluded_ips_condition = '';
+		
+		$query_params = array( $from . ' 00:00:00', $to . ' 23:59:59' );
+		$where_conditions = array( 'created_at BETWEEN %s AND %s' );
+		
 		if ( ! empty( $excluded_ips ) ) {
 			$placeholders = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
-			$excluded_ips_condition = $wpdb->prepare( " AND ip NOT IN ({$placeholders})", $excluded_ips );
+			$where_conditions[] = "ip NOT IN ({$placeholders})";
+			$query_params = array_merge( $query_params, $excluded_ips );
 		}
 		
-		$query = "SELECT COUNT( DISTINCT ip ) AS count FROM {$wpdb->prefix}betterlinks_clicks WHERE created_at BETWEEN '{$from} 00:00:00' AND '{$to} 23:59:59'" . $excluded_ips_condition;
+		$where_clause = 'WHERE ' . implode( ' AND ', $where_conditions );
+		
+		$query_sql = "SELECT COUNT( DISTINCT ip ) AS count FROM {$wpdb->prefix}betterlinks_clicks {$where_clause}";
+		$query = $wpdb->prepare( $query_sql, $query_params );
 		$results = $wpdb->get_row( $query, ARRAY_A );
 		$results = current( $results );
 		set_transient( $transient_key, $results, self::$transient_timeout );

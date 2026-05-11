@@ -1,6 +1,7 @@
 <?php
 
 namespace BetterLinks\Admin;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class Metabox {
 

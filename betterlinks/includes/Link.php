@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Link\Utils;
 use DeviceDetector\DeviceDetector;

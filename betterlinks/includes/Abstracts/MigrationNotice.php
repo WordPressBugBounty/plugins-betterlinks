@@ -1,6 +1,7 @@
 <?php
 
 namespace BetterLinks\Abstracts;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 abstract class MigrationNotice
 {

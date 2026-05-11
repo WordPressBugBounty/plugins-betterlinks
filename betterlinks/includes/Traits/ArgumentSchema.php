@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks\Traits;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 trait ArgumentSchema
 {

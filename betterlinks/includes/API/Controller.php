@@ -1,5 +1,6 @@
 <?php
 namespace BetterLinks\API;
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 abstract class Controller {
 
