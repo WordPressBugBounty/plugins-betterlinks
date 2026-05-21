@@ -359,23 +359,23 @@ class Notice {
 
 		// Black Friday Mega Sale Notice
         $black_friday_icon = self::ASSET_URL . 'images/full-logo.svg';
-		$black_friday_message = "<style>#wpnotice-betterlinks-betterlinks_spring_camp_2026_deal { border-left: 3px solid #5252DC !important; } .notice-betterlinks-betterlinks_spring_camp_2026_deal { border-left: 4px solid #FF6B6B !important; }</style><div> <p style='margin-top: 0; margin-bottom: 10px; font-size: 14px;'><strong>🌸 Spring Savings: </strong>Get AI-Powered Features To Manage, Shorten & Track Every Click – Now <strong> Flat 25% OFF! </strong>⚡️ </p><a style='display: inline-flex;align-items:center;column-gap:5px; background: #5252DC; color: #FFFFFF; font-size: 14px; border-radius: 6px; border-color: unset; font-weight: 500;' class='button button-primary' href='https://betterlinks.io/spring2026-admin-notice' target='_blank'>Upgrade To Pro Now</a><a style='display: inline-flex;align-items:center;column-gap:5px;margin-left:10px; background: unset; box-shadow: unset; border-style: unset; color: #424242; font-size: 14px; text-decoration: underline;' class='button dismiss-btn' href='#' data-dismiss='true'>Maybe Later</a> </div>";
-
+		$black_friday_message = "<style>#wpnotice-betterlinks-betterlinks_summer_camp_2026_deal { border-left: 3px solid #5252DC !important; } .notice-betterlinks-betterlinks_summer_camp_2026_deal { border-left: 4px solid #FF6B6B !important; }</style><div> <p style='margin-top: 0; margin-bottom: 10px; font-size: 14px;'><strong>🏖️ Summer Savings: </strong>Get AI-powered features to manage, shorten & track every click – now <strong> up to $150 OFF! </strong></p><a style='display: inline-flex;align-items:center;column-gap:5px; background: #5252DC; color: #FFFFFF; font-size: 14px; border-radius: 6px; border-color: unset; font-weight: 500;' class='button button-primary' href='https://betterlinks.io/summer2026-admin-notice' target='_blank'>Upgrade To Pro Now</a><a style='display: inline-flex;align-items:center;column-gap:5px;margin-left:10px; background: unset; box-shadow: unset; border-style: unset; color: #424242; font-size: 14px; text-decoration: underline;' class='button dismiss-btn' href='#' data-dismiss='true'>I Don’t Want Any Discount</a> </div>";
         $_black_friday_notices = [
             'thumbnail' => $black_friday_icon,
             'html'      => $black_friday_message,
         ];
 		// 'betterlinks_black_friday_2025',
 		// 'betterlinks_feb_camp_2026',
+		// 'betterlinks_spring_camp_2026_deal',
         $notices->add(
-            'betterlinks_spring_camp_2026_deal',
+            'betterlinks_summer_camp_2026_deal',
             $_black_friday_notices,
             [
-                'start'       => strtotime( '12:00:00am 08th April, 2026' ),
+                'start'       => strtotime( '12:00:00am 20th May, 2026' ),
                 'recurrence'  => false,
                 'dismissible' => true,
                 'refresh'     => BETTERLINKS_VERSION,
-                "expire"      => strtotime( '12:00:00am 10th May, 2026' ),
+                "expire"      => strtotime( '12:00:00am 25th June, 2026' ),
     			'display_if'  => ! is_plugin_active( 'betterlinks-pro/betterlinks-pro.php' ),
 				'priority'    => 7
             ]
