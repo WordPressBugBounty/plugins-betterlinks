@@ -24,9 +24,13 @@ class S30RImportCSV extends BaseCSV implements ImportCsvInterface
             $item = $this->prepare_csv_data_to_import($item);
             $link_id = $this->insert_link($item);
             if ($link_id) {
-                $message[] = 'Imported Successfully "' . $item['short_url'] . '"';
+                if ($this->last_operation === 'updated') {
+                    $message[] = 'Updated existing "' . $item['short_url'] . '"';
+                } else {
+                    $message[] = 'Imported Successfully "' . $item['short_url'] . '"';
+                }
             } else {
-                $message[] = 'Imported Failed "' . $item['short_url'] . '" already exists.';
+                $message[] = 'Skipped "' . $item['short_url'] . '" already exists.';
             }
         }
         return [
@@ -68,6 +72,6 @@ class S30RImportCSV extends BaseCSV implements ImportCsvInterface
         if (strpos($url, "/") === 0) {
             return $url;
         }
-        return parse_url($url, PHP_URL_SCHEME) === null ? '/' . $url : $url;
+        return wp_parse_url($url, PHP_URL_SCHEME) === null ? '/' . $url : $url;
     }
 }

@@ -1,4 +1,5 @@
 <?php
+// phpcs:ignoreFile -- Third-party WPDeveloper notice library, vendored and updated upstream.
 
 namespace BetterLinks\Admin\WPDev;
 if ( ! defined( 'ABSPATH' ) ) { exit; }
@@ -230,7 +231,7 @@ class WPDevNotice
      */
     public function makeTime($current, $time)
     {
-        return intval(strtotime(date('r', $current) . "+$time"));
+        return intval(strtotime(gmdate('r', $current) . "+$time"));
     }
     /**
      * Automatice Maybe Later.
@@ -253,18 +254,18 @@ class WPDevNotice
     public function clicked()
     {
         if (isset($_GET['plugin'])) {
-            $plugin = sanitize_text_field($_GET['plugin']);
+            $plugin = sanitize_text_field(wp_unslash( $_GET['plugin'] ));
             if ($plugin === $this->plugin_name) {
                 $options_data = $this->get_options_data();
                 $clicked_from = current($this->next_notice());
                 if (isset($_GET['plugin_action'])) {
-                    $plugin_action = sanitize_text_field($_GET['plugin_action']);
+                    $plugin_action = sanitize_text_field(wp_unslash( $_GET['plugin_action'] ));
                 }
                 if (isset($_GET['dismiss'])) {
-                    $dismiss = sanitize_text_field($_GET['dismiss']);
+                    $dismiss = sanitize_text_field(wp_unslash( $_GET['dismiss'] ));
                 }
                 if (isset($_GET['later'])) {
-                    $later = sanitize_text_field($_GET['later']);
+                    $later = sanitize_text_field(wp_unslash( $_GET['later'] ));
                 }
 
                 $later_time = '';
@@ -311,8 +312,8 @@ class WPDevNotice
      */
     private function redirect_to()
     {
-        $request_uri  = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        $query_string = parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY);
+        $request_uri  = wp_parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $query_string = wp_parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY);
         parse_str($query_string, $current_url);
 
         $unset_array = array('dismiss', 'plugin', '_wpnonce', 'later', 'plugin_action', 'marketing_optin');
@@ -537,11 +538,11 @@ class WPDevNotice
     {
         $current_notice = current($this->next_notice());
         if ($current_notice == 'opt_in') {
-            do_action($this->do_notice_action);
+            do_action($this->do_notice_action);  // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
             return;
         }
         do_action('wpdeveloper_before_notice_for_' . $this->plugin_name);
-        do_action($this->do_notice_action);
+        do_action($this->do_notice_action);  // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
         do_action('wpdeveloper_after_notice_for_' . $this->plugin_name);
     }
     /**

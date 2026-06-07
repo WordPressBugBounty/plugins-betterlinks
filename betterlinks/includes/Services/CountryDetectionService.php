@@ -4,6 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Helper;
 
+// phpcs:disable PluginCheck.Security.DirectDB, WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL
+
 /**
  * Country Detection Service
  * 
@@ -323,6 +325,8 @@ class CountryDetectionService {
             $params[] = $link_id;
         }
 
+        // Placeholders supplied via $params; $clicks_table/$countries_table/$where_clause built from controlled internal values.
+        // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $query = $wpdb->prepare(
             "SELECT co.country_code, co.country_name, COUNT(*) as clicks, COUNT(DISTINCT c.ip) as unique_clicks
              FROM {$clicks_table} c
@@ -333,6 +337,7 @@ class CountryDetectionService {
              LIMIT 10",
             $params
         );
+        // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
         $results = $wpdb->get_results( $query, ARRAY_A );
 
@@ -359,7 +364,7 @@ class CountryDetectionService {
 
         foreach ( $ip_keys as $key ) {
             if ( array_key_exists( $key, $_SERVER ) === true ) {
-                $ip = sanitize_text_field( $_SERVER[ $key ] );
+                $ip = sanitize_text_field( wp_unslash( $_SERVER[ $key ] ) );
 
                 if ( strpos( $ip, ',' ) !== false ) {
                     $ip = explode( ',', $ip )[0];

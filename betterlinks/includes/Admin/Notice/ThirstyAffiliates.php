@@ -22,6 +22,7 @@ class ThirstyAffiliates extends MigrationNotice
                 }
             } elseif (get_option('betterlinks_notice_ta_migrate')) {
                 if (!get_option('betterlinks_hide_notice_ta_deactive')) {
+                    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page check, no state mutation.
                     if (!isset($_GET['page']) || (isset($_GET['page']) && $_GET['page'] !== 'thirstylink')) {
                         add_action('admin_notices', [$self, 'deactive_notice'], 100);
                     }
@@ -36,8 +37,8 @@ class ThirstyAffiliates extends MigrationNotice
         ?>
         <div class="notice notice-info betterlinks-notice-thirstyaffiliates-migrate <?php echo self::$pagenow !== 'admin.php' ? 'is-dismissible' : ''; ?>">
             <p>
-                <?php _e('Whoops! You are already using ThirstyAffiliates on your website. To migrate your ThirstyAffiliates data to BetterLinks, click here.', 'betterlinks'); ?>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=betterlinks-settings&migration=thirstyaffiliates')); ?>" class="button button-primary"><?php _e(
+                <?php esc_html_e('Whoops! You are already using ThirstyAffiliates on your website. To migrate your ThirstyAffiliates data to BetterLinks, click here.', 'betterlinks'); ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=betterlinks-settings&migration=thirstyaffiliates')); ?>" class="button button-primary"><?php esc_html_e(
             'Start Migration',
             'betterlinks'
         ); ?></a>
@@ -50,8 +51,8 @@ class ThirstyAffiliates extends MigrationNotice
         ?>
         <div class="notice notice-error betterlinks-notice-deactive-thirstyaffiliates <?php echo self::$pagenow !== 'admin.php' ? 'is-dismissible' : ''; ?>">
             <p>
-                <?php _e('All ThirstyAffiliates have been successfully migrated to BetterLinks. You can now safely deactivate ThirstyAffiliates on your website.', 'betterlinks'); ?>
-                <a href="#" class="button button-primary deactive"><?php _e('Deactivate ThirstyAffiliates', 'betterlinks'); ?></a>
+                <?php esc_html_e('All ThirstyAffiliates have been successfully migrated to BetterLinks. You can now safely deactivate ThirstyAffiliates on your website.', 'betterlinks'); ?>
+                <a href="#" class="button button-primary deactive"><?php esc_html_e('Deactivate ThirstyAffiliates', 'betterlinks'); ?></a>
             </p>
         </div>
         <?php
@@ -66,7 +67,7 @@ class ThirstyAffiliates extends MigrationNotice
 				e.preventDefault();
 				jQuery.post(ajaxurl, {
 					'action': 'betterlinks/admin/deactive_thirstyaffiliates',
-					'security': "<?php echo $nonce; ?>"
+					'security': "<?php echo esc_attr($nonce); ?>"
 				}, function(response) {
 					if(response.success){
 						location.reload(true); 
@@ -76,14 +77,14 @@ class ThirstyAffiliates extends MigrationNotice
 			jQuery('.betterlinks-notice-deactive-thirstyaffiliates button.notice-dismiss').on('click', function(){
 				jQuery.post(ajaxurl, {
 					'action': 'betterlinks/admin/migration_thirstyaffiliates_notice_hide',
-					'security': "<?php echo $nonce; ?>",
+					'security': "<?php echo esc_attr($nonce); ?>",
 					'type': 'deactive'
 				}, function(response) {});
 			})
 			jQuery('.betterlinks-notice-thirstyaffiliates-migrate button.notice-dismiss').on('click', function(){
 				jQuery.post(ajaxurl, {
 					'action': 'betterlinks/admin/migration_thirstyaffiliates_notice_hide',
-					'security': "<?php echo $nonce; ?>",
+					'security': "<?php echo esc_attr($nonce); ?>",
 					'type': 'migrate'
 				}, function(response) {});
 			})

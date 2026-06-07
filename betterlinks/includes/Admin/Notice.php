@@ -162,7 +162,7 @@ class Notice {
 						},
 						close: function() {
 							// dismissPointer(pointerId);
-							var nonce = '<?php echo $nonce; ?>';
+							var nonce = '<?php echo esc_js($nonce); ?>';
 								// Send AJAX request to set transient
 								$.ajax({
 									url: '<?php echo esc_url(admin_url( 'admin-ajax.php' )); ?>',
@@ -200,8 +200,8 @@ class Notice {
 			}
 			// To showing notice in BetterLinks page
 			add_action( 'admin_notices', function () {
-				do_action( 'btl_admin_notices' );
-				do_action( 'btl_compatibity_notices' );
+				do_action( 'btl_admin_notices' );  // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+				do_action( 'btl_compatibity_notices' );  // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 				Notice\PrettyLinks::init();
 				Notice\Simple301::init();
 				Notice\ThirstyAffiliates::init();
@@ -224,11 +224,11 @@ class Notice {
 				%s
 				</p>
 		</div>",
-			__( 'NEW: BetterLinks Pro 2.7 now includes a powerful ', 'betterlinks' ),
-			__( 'Scheduled Scan & Reports', 'betterlinks' ),
-			__( ' functionality Check the full ', 'betterlinks' ),
-			__( 'Changelog', 'betterlinks' ),
-			__( ' for details.', 'betterlinks' ),
+			esc_html__( 'NEW: BetterLinks Pro 2.7 now includes a powerful ', 'betterlinks' ),
+			esc_html__( 'Scheduled Scan & Reports', 'betterlinks' ),
+			esc_html__( ' functionality Check the full ', 'betterlinks' ),
+			esc_html__( 'Changelog', 'betterlinks' ),
+			esc_html__( ' for details.', 'betterlinks' ),
 		);
 	}
 
@@ -267,6 +267,7 @@ class Notice {
 			__( 'Howdy', 'betterlinks' ),
 			$current_user->user_login,
 			sprintf(
+				/* translators: %s = placeholder values supplied by WordPress */
 				__( '👋 You have created %d Shortened URLs so far 🎉 If you are enjoying using BetterLinks, feel free to leave a 5* Review on the WordPress Forum.', 'betterlinks' ),
 				$total_links
 			)

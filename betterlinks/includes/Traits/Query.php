@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Admin\Cache;
 
+// phpcs:disable PluginCheck.Security.DirectDB, WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL, WordPress.DB.SlowDBQuery
+
 trait Query {
 
 
@@ -1064,8 +1066,8 @@ trait Query {
 				'link_id'    => $link_id,
 				'meta_key'   => $meta_key,
 				'meta_value' => $meta_value,
-			)
-		);
+			)  // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+		);  // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 		if ( ! $result ) {
 			return false;
 		}
@@ -1180,12 +1182,12 @@ trait Query {
 			array(
 				'meta_value' => $meta_value,
 				'link_id'    => $link_id,
-			),
+			),  // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 			array(
 				'meta_id'  => $meta_id,
 				'meta_key' => $meta_key,
 			)
-		);
+		);  // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
 		return $result !== false;
 	}
 

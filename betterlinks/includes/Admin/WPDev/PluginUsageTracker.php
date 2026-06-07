@@ -1,4 +1,5 @@
 <?php
+// phpcs:ignoreFile -- Third-party WPInsights tracker, vendored and updated upstream.
 namespace BetterLinks\Admin\WPDev;
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
@@ -171,8 +172,8 @@ class PluginUsageTracker {
      * @return void
      */
     private function redirect_to() {
-        $request_uri  = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
-        $query_string = parse_url( $_SERVER['REQUEST_URI'], PHP_URL_QUERY );
+        $request_uri  = wp_parse_url( $_SERVER['REQUEST_URI'], PHP_URL_PATH );
+        $query_string = wp_parse_url( $_SERVER['REQUEST_URI'], PHP_URL_QUERY );
         parse_str( $query_string, $current_url );
 
         $unset_array = array( 'dismiss', 'plugin', '_wpnonce', 'later', 'plugin_action', 'marketing_optin' );
@@ -678,8 +679,8 @@ class PluginUsageTracker {
                 return;
             }
 
-            $plugin = sanitize_text_field( $_GET['plugin'] );
-            $action = sanitize_text_field( $_GET['plugin_action'] );
+            $plugin = sanitize_text_field( wp_unslash( $_GET['plugin'] ) );
+            $action = sanitize_text_field( wp_unslash( $_GET['plugin_action'] ) );
             $this->opt_in( $action, $plugin );
             // if ( $action == 'yes' ) {
             //     $this->schedule_tracking();
@@ -727,11 +728,11 @@ class PluginUsageTracker {
     public function deactivate_reasons_form_submit() {
         check_ajax_referer( 'wpins_deactivation_nonce', 'security' );
         if ( isset( $_POST['values'] ) ) {
-            $values = sanitize_text_field( $_POST['values'] );
+            $values = sanitize_text_field( wp_unslash( $_POST['values'] ) );
             update_option( 'wpins_deactivation_reason_' . $this->plugin_name, $values, 'no' );
         }
         if ( isset( $_POST['details'] ) ) {
-            $details = sanitize_text_field( $_POST['details'] );
+            $details = sanitize_text_field( wp_unslash( $_POST['details'] ) );
             update_option( 'wpins_deactivation_details_' . $this->plugin_name, $details, 'no' );
         }
         echo 'success';
@@ -783,7 +784,7 @@ class PluginUsageTracker {
                 'type'        => 'textarea',
             ],
         );
-        return apply_filters( 'wpins_form_text_' . $this->plugin_name, $form );
+        return apply_filters( 'wpins_form_text_' . $this->plugin_name, $form );  // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
     }
     /**
      * Deactivate Reasons Form.

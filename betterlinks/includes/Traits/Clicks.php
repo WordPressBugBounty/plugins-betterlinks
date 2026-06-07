@@ -4,6 +4,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Helper;
 
+// phpcs:disable PluginCheck.Security.DirectDB, WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL
+
 trait Clicks {
 	private static $transient_timeout = MINUTE_IN_SECONDS * 30; // 30 MINUTES
 

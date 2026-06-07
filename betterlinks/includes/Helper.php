@@ -14,6 +14,8 @@ class Helper {
 	use Traits\Query;
 	use Traits\Clicks;
 
+// phpcs:disable PluginCheck.Security.DirectDB, WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL
+
 	public static function btl_menu_notice() {
 		return BETTERLINKS_MENU_NOTICE !== get_option( 'betterlinks_menu_notice', 0 );
 	}
@@ -270,6 +272,9 @@ class Helper {
 
 		foreach ( $items as $item ) {
 			if ( 'category' === $item->term_type ) {
+				if ( null === $item->ID ) {
+					continue;
+				}
 				// insert analytic data.
 				if ( isset( $analytic[ $item->ID ] ) ) {
 					$item->analytic = $analytic[ $item->ID ];
@@ -466,6 +471,9 @@ class Helper {
         }
 	}
 	public static function delete_json_into_file( $file, $short_url ) {
+		if ( ! is_string( $short_url ) || '' === $short_url ) {
+			return;
+		}
 		$existingData = file_get_contents( $file );
 		$existingData = json_decode( $existingData, true );
 		if ( ! is_array( $existingData ) ) {

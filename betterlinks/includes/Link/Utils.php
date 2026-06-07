@@ -115,6 +115,7 @@ class Utils {
 		header( 'Pragma: no-cache' );
 		header( 'X-Redirect-Powered-By:  https://www.betterlinks.io/' );
 
+		// phpcs:disable WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- BetterLinks redirects to the user-configured external target URL by design; wp_safe_redirect would block off-site URLs and break the plugin's core feature.
 		switch ( $data['redirect_type'] ) {
 			case '301':
 				wp_redirect( esc_url_raw( $target_url ), 301 );
@@ -132,6 +133,7 @@ class Utils {
 				wp_redirect( esc_url_raw( $target_url ) );
 				exit;
 		}
+		// phpcs:enable WordPress.Security.SafeRedirect.wp_redirect_wp_redirect
 	}
 
 	public function start_trakcing( $data ) {
@@ -157,7 +159,7 @@ class Utils {
 			'referer'             => isset( $_SERVER['HTTP_REFERER'] ) ? $_SERVER['HTTP_REFERER'] : '', // phpcs:ignore
 			'uri'                 => $data['link_slug'],
 			'click_count'         => 0,
-			'visitor_id'          => isset( $_COOKIE[ $visitor_cookie ] ) ? sanitize_text_field( $_COOKIE[ $visitor_cookie ] ) : '',
+			'visitor_id'          => isset( $_COOKIE[ $visitor_cookie ] ) ? sanitize_text_field( wp_unslash( $_COOKIE[ $visitor_cookie ] ) ) : '',
 			'click_order'         => 0,
 			'created_at'          => $now,
 			'created_at_gmt'      => $now_gmt,
@@ -213,7 +215,7 @@ class Utils {
 			$settings = json_decode( $settings, true );
 		}
 		if ( ! empty( $settings['enable_user_agent_tracking'] ) && isset( $_SERVER['HTTP_USER_AGENT'] ) ) {
-			$click_data['user_agent'] = sanitize_text_field( $_SERVER['HTTP_USER_AGENT'] );
+			$click_data['user_agent'] = sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) );
 		}
 		$arg = apply_filters( 'betterlinks/link/insert_click_arg', $click_data );
 
@@ -226,23 +228,23 @@ class Utils {
 					do_action( 'betterlinks/link/after_insert_click', $arg['link_id'], $click_id, $arg['target_url'] );
 				}
 			} catch ( \Throwable $th ) {
-				echo $th->getMessage();
+				echo esc_html( $th->getMessage() );
 			}
 		}
 	}
 
 	public function get_current_client_IP() {
-		$address = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( $_SERVER['REMOTE_ADDR'] ) : '';
+		$address = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
 		if ( isset( $_SERVER['HTTP_CLIENT_IP'] ) && $_SERVER['HTTP_CLIENT_IP'] != '127.0.0.1' ) {
-			$address = sanitize_text_field( $_SERVER['HTTP_CLIENT_IP'] );
+			$address = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
 		} elseif ( isset( $_SERVER['HTTP_X_FORWARDED'] ) && $_SERVER['HTTP_X_FORWARDED'] != '127.0.0.1' ) {
-			$address = sanitize_text_field( $_SERVER['HTTP_X_FORWARDED'] );
+			$address = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED'] ) );
 		} elseif ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) && $_SERVER['HTTP_X_FORWARDED_FOR'] != '127.0.0.1' ) {
-			$address = sanitize_text_field( $_SERVER['HTTP_X_FORWARDED_FOR'] );
+			$address = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
 		} elseif ( isset( $_SERVER['HTTP_FORWARDED'] ) && $_SERVER['HTTP_FORWARDED'] != '127.0.0.1' ) {
-			$address = sanitize_text_field( $_SERVER['HTTP_FORWARDED'] );
+			$address = sanitize_text_field( wp_unslash( $_SERVER['HTTP_FORWARDED'] ) );
 		} elseif ( isset( $_SERVER['HTTP_FORWARDED_FOR'] ) && $_SERVER['HTTP_FORWARDED_FOR'] !== '127.0.0.1' ) {
-			$address = sanitize_text_field( $_SERVER['HTTP_FORWARDED_FOR'] );
+			$address = sanitize_text_field( wp_unslash( $_SERVER['HTTP_FORWARDED_FOR'] ) );
 		}
 		$IPS = explode( ',', $address );
 		if ( isset( $IPS[1] ) ) {
@@ -309,7 +311,7 @@ class Utils {
 	}
 
 	public static function prevent_unwanted_cle() {
-		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( sanitize_url( $_SERVER['REQUEST_URI'] ) ) : '';
+		$request_uri = isset( $_SERVER['REQUEST_URI'] ) ? sanitize_url( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '';
 
 		$params = strpos($request_uri, 'action%3Dbtl_cle%26api_key');
 		if ( !empty( $params ) ) { // to prevent short link creation of the 'Here is your BetterLinks' page

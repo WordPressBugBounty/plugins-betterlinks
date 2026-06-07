@@ -38,7 +38,8 @@ class Admin {
 
 	public function skip_no_conflict() {
 		$whitelist = [ '127.0.0.1', '::1' ];
-		if ( in_array( $_SERVER['REMOTE_ADDR'], $whitelist ) ) {
+		$remote = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+		if ( in_array( $remote, $whitelist, true ) ) {
 			return true;
 		}
 

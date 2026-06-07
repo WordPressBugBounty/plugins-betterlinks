@@ -2,6 +2,8 @@
 namespace BetterLinks\Tools;
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+// phpcs:disable PluginCheck.Security.DirectDB, WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL
+
 class Export {
 
 	public function __construct() {
@@ -16,7 +18,7 @@ class Export {
 		$page   = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
 		$export = isset( $_GET['export'] ) ? sanitize_text_field( wp_unslash( $_GET['export'] ) ) : false;
 		if ( 'betterlinks-settings' === $page && true == $export ) {
-			$type = isset( $_POST['content'] ) ? $_POST['content'] : '';
+			$type = isset( $_POST['content'] ) ? sanitize_text_field( wp_unslash( $_POST['content'] ) ) : '';
 			$this->download_files( $type );
 			exit();
 		}

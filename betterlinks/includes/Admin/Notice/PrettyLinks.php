@@ -35,6 +35,7 @@ class PrettyLinks extends MigrationNotice
                 global $pagenow;
                 $self::$pagenow = $pagenow;
                 if (!get_option('betterlinks_hide_notice_ptl_deactive')) {
+                    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only post-type check, no state mutation.
                     if (!isset($_GET['post_type']) || (isset($_GET['post_type']) && $_GET['post_type'] !== 'pretty-link')) {
                         add_action('admin_notices', [$self, 'deactive_notice'], 100);
                     }
@@ -94,7 +95,7 @@ class PrettyLinks extends MigrationNotice
 				e.preventDefault();
 				jQuery.post(ajaxurl, {
 					'action': 'betterlinks/admin/deactive_prettylinks',
-					'security': "<?php echo $nonce; // phpcs:ignore ?>"
+					'security': "<?php echo esc_attr( $nonce ); ?>"
 				}, function(response) {
 					if(response.success){
 						location.reload(true);
@@ -105,7 +106,7 @@ class PrettyLinks extends MigrationNotice
 			jQuery('.betterlinks-notice-deactive-prettylinks button.notice-dismiss').on('click', function(){
 				jQuery.post(ajaxurl, {
 					'action': 'betterlinks/admin/migration_prettylinks_notice_hide',
-					'security': "<?php echo $nonce; // phpcs:ignore ?>",
+					'security': "<?php echo esc_attr( $nonce ); ?>",
 					'type': 'deactive'
 				}, function(response) {});
 			})
@@ -113,7 +114,7 @@ class PrettyLinks extends MigrationNotice
 			jQuery('.betterlinks-notice-pt-migrate button.notice-dismiss').on('click', function(){
 				jQuery.post(ajaxurl, {
 					'action': 'betterlinks/admin/migration_prettylinks_notice_hide',
-					'security': "<?php echo $nonce; // phpcs:ignore ?>",
+					'security': "<?php echo esc_attr( $nonce ); ?>",
 					'type': 'migrate'
 				}, function(response) {});
 			})

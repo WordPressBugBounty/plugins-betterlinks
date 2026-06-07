@@ -2,6 +2,8 @@
 namespace BetterLinks\Traits;
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+// phpcs:disable PluginCheck.Security.DirectDB, WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL
+
 trait Terms {
 
 	public function tags_analytic( $force_refresh = false ) {

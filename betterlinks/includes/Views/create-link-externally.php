@@ -8,6 +8,8 @@
 
 // @-collapse
 if ( ! defined( 'ABSPATH' ) ) {
+
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
 	die( 'You are not allowed here.' );
 }
 if ( empty( $prevent_unwanted_click ) ) {
@@ -140,9 +142,9 @@ if ( empty( $prevent_unwanted_click ) ) {
 								</svg>
 							</div>
 						</a>
-						<a href="https://t.me/share/url?url=<?php echo esc_attr( $encoded_short_url ); ?>&text=<?php echo esc_attr( $link_title ); ?>" target="_blank" title="<?php esc_html_e( 'Share to Telegram', 'betterlinks-pro' ); ?>">
+						<a href="https://t.me/share/url?url=<?php echo esc_attr( $encoded_short_url ); ?>&text=<?php echo esc_attr( $link_title ); ?>" target="_blank" title="<?php esc_html_e( 'Share to Telegram', 'betterlinks' ); ?>">
 							<div id="linkedin-share-button" class="share-button">
-								<img src="<?php echo esc_attr( $telegram ); ?>" alt="<?php echo esc_html_e( 'Share to Telegram', 'betterlinks-pro' ); ?>" style="width:22px;"/>
+								<img src="<?php echo esc_attr( $telegram ); ?>" alt="<?php echo esc_html_e( 'Share to Telegram', 'betterlinks' ); ?>" style="width:22px;"/>
 							</div>
 						</a>
 						

@@ -21,9 +21,13 @@ class TAImportCSV extends BaseCSV implements ImportCsvInterface
                         ]);
                     }
                     if ($link_id) {
-                        $message[] = 'Imported Successfully "' . $item['short_url'] . '"';
+                        if ($this->last_operation === 'updated') {
+                            $message[] = 'Updated existing "' . $item['short_url'] . '"';
+                        } else {
+                            $message[] = 'Imported Successfully "' . $item['short_url'] . '"';
+                        }
                     } else {
-                        $message[] = 'Imported Failed "' . $item['short_url'] . '" already exists.';
+                        $message[] = 'Skipped "' . $item['short_url'] . '" already exists.';
                     }
                 }
             }

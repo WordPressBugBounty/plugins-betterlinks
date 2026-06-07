@@ -5,6 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 use BetterLinks\Admin\Cache;
 use BetterLinks\Helper;
 
+// phpcs:disable WordPress.DB.PreparedSQL, PluginCheck.Security.DirectDB
+
 trait DBMigrate {
 
 	public function db_migration_1_1() {

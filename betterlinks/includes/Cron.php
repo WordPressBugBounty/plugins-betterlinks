@@ -24,7 +24,7 @@ class Cron
     {
         $schedules['every_one_and_half_hours'] = [
             'interval' => 5400, // Every 90 Minutes
-            'display' => __('Every 90 Minutes'),
+            'display' => __('Every 90 Minutes', 'betterlinks' ),
         ];
         return $schedules;
     }
@@ -42,12 +42,12 @@ class Cron
             
             // Log if links were synced (for debugging)
             if ( !empty($result['synced']) && $result['synced'] > 0 ) {
-                error_log( 'BetterLinks CRON: Synced ' . $result['synced'] . ' missing links to JSON (Total: ' . $result['total'] . ')' );
+                // PCP-DEBUG-DISABLED: error_log( 'BetterLinks CRON: Synced ' . $result['synced'] . ' missing links to JSON (Total: ' . $result['total'] . ')' );
             }
             
             return $result;
         } catch (\Throwable $th) {
-            error_log( 'BetterLinks CRON Error (sync_missing_links_to_json): ' . $th->getMessage() );
+            // PCP-DEBUG-DISABLED: error_log( 'BetterLinks CRON Error (sync_missing_links_to_json): ' . $th->getMessage() );
             return array( 'total' => 0, 'synced' => 0, 'error' => $th->getMessage() );
         }
     }

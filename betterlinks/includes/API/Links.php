@@ -48,7 +48,7 @@ class Links extends Controller
             array(
                 'args'   => array(
                     'id' => array(
-                        'description' => __('Unique identifier for the object.'),
+                        'description' => __('Unique identifier for the object.', 'betterlinks' ),
                         'type'        => 'integer',
                     ),
                 ),
@@ -75,7 +75,7 @@ class Links extends Controller
             array(
                 'args'   => array(
                     'id' => array(
-                        'description' => __('Unique identifier for the object.'),
+                        'description' => __('Unique identifier for the object.', 'betterlinks' ),
                         'type'        => 'integer',
                     ),
                 ),
@@ -99,7 +99,7 @@ class Links extends Controller
                         'force' => array(
                             'type'        => 'boolean',
                             'default'     => false,
-                            'description' => __('Whether to bypass Trash and force deletion.'),
+                            'description' => __('Whether to bypass Trash and force deletion.', 'betterlinks' ),
                         ),
                     ),
                 ),
@@ -249,8 +249,8 @@ class Links extends Controller
             [
                 'success' => true,
                 'data' => [
-                    'term_id' => $request['term_id'],
-                    'ID' => $request['id'],
+                    'term_id' => isset( $request['term_id'] ) ? $request['term_id'] : null,
+                    'ID' => isset( $request['id'] ) ? $request['id'] : null,
                 ],
             ],
             200

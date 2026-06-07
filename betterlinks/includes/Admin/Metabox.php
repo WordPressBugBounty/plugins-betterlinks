@@ -22,7 +22,12 @@ class Metabox {
     public function affiliate_disclosure_teaser($post) {
         ?>
          <div>
-            <p><?php esc_html_e('This will allow you to add an Affiliate Link Disclosure in this '. $post->post_type, 'betterlinks'); ?></p>
+            <p>
+                <?php
+                /* translators: %s: post type slug (post, page, etc.) */
+                printf( esc_html__( 'This will allow you to add an Affiliate Link Disclosure in this %s', 'betterlinks' ), esc_html( $post->post_type ) );
+                ?>
+            </p>
             <div class="betterlinks-affiliate-link-disclosure">
             <div class="betterlinks-form-group betterlinks-form-flex">
                 <label>
@@ -91,7 +96,7 @@ class Metabox {
             <div class="betterlinks_auto_create_link_form">
                 <div class="betterlinks-form-group">
                     <label>
-                        <?php echo site_url() . '/' ?>
+                        <?php echo esc_html( site_url() . '/' ); ?>
                         <span class="pro-badge">
                             <?php esc_html_e('Pro', 'betterlinks') ?>
                         </span>

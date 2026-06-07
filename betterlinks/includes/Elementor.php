@@ -119,6 +119,7 @@ class Elementor {
 	 * @param Any $data - Data.
 	 */
 	public function disable_elementor_preview_redirect( $data ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- detecting Elementor preview mode, no state mutation.
 		$elementor_preview = isset( $_GET['elementor-preview'] );
 
 		if ( $elementor_preview ) {
@@ -276,6 +277,7 @@ class Elementor {
 					'condition' => array(
 						'bl_ir_active' => 'yes',
 					),
+					/* translators: %s: URL to the BetterLinks Pro upgrade page. */
 					'raw'       => sprintf( __( 'Get the <a href="%s" target="_blank" style="color: red;">PRO</a> version for more advanced link redirection features & many more!', 'betterlinks' ), 'https://wpdeveloper.com/in/upgrade-betterlinks' ),
 				)
 			);

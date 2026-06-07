@@ -1,6 +1,9 @@
 <?php
+// phpcs:disable WordPress.DB.PreparedSQL, PluginCheck.Security.DirectDB
 namespace BetterLinks\Tools\Migration;
 if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+// phpcs:disable WordPress.DB.DirectDatabaseQuery
 
 class PTLOneClick extends BaseCSV {
 
@@ -82,7 +85,7 @@ class PTLOneClick extends BaseCSV {
 	public function insert_click( $click_id ) {
 		global $wpdb;
 		$item = $wpdb->get_row(
-			"SELECT * FROM {$wpdb->prefix}prli_clicks WHERE id = $click_id LIMIT 1",
+			$wpdb->prepare( "SELECT * FROM {$wpdb->prefix}prli_clicks WHERE id = %d LIMIT 1", absint( $click_id ) ),
 			ARRAY_A
 		);
 

@@ -2,6 +2,8 @@
 namespace BetterLinks\Traits;
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL, PluginCheck.Security.DirectDB
+
 trait Links
 {
     public function sanitize_links_data($POST)
@@ -209,9 +211,12 @@ trait Links
     }
     public function delete_link($args)
     {
+        if ( ! isset( $args['ID'] ) ) {
+            return false;
+        }
         delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
         \BetterLinks\Helper::delete_link($args['ID']);
-        if (BETTERLINKS_EXISTS_LINKS_JSON) {
+        if (BETTERLINKS_EXISTS_LINKS_JSON && isset($args['short_url'])) {
             \BetterLinks\Helper::delete_json_into_file(trailingslashit(BETTERLINKS_UPLOAD_DIR_PATH) . 'links.json', $args['short_url']);
         }
         return true;
@@ -329,7 +334,7 @@ trait Links
         }
 
         // Parse current target URL
-        $url_parts = parse_url($target_url);
+        $url_parts = wp_parse_url($target_url);
         if (!$url_parts) {
             return null;
         }

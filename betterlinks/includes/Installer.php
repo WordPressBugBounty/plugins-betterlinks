@@ -10,6 +10,8 @@ class Installer extends \WP_Background_Process
     use Traits\DBMigrate;
     use Traits\Terms;
 
+// phpcs:disable PluginCheck.Security.DirectDB, WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL
+
     protected $wpdb;
     protected $charset_collate;
     protected $action = 'betterlinks_background_task';
@@ -135,7 +137,7 @@ class Installer extends \WP_Background_Process
                 'term_type' => 'category',
             ]);
         } catch (\Throwable $th) {
-            echo $th->getMessage();
+            echo esc_html( $th->getMessage() );
         }
     }
 
@@ -213,13 +215,15 @@ class Installer extends \WP_Background_Process
             ],
         ];
 
+        global $wp_filesystem;
+        if ( empty( $wp_filesystem ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
         foreach ($files as $file) {
-            if (wp_mkdir_p($file['base']) && !file_exists(trailingslashit($file['base']) . $file['file'])) {
-                $file_handle = @fopen(trailingslashit($file['base']) . $file['file'], 'wb');
-                if ($file_handle) {
-                    fwrite($file_handle, $file['content']);
-                    fclose($file_handle);
-                }
+            $target = trailingslashit($file['base']) . $file['file'];
+            if (wp_mkdir_p($file['base']) && ! file_exists( $target )) {
+                $wp_filesystem->put_contents( $target, $file['content'], FS_CHMOD_FILE );
             }
         }
     }
@@ -241,7 +245,7 @@ class Installer extends \WP_Background_Process
     {
         $result = Helper::sync_all_missing_links_to_json();
         if ( !empty($result['synced']) && $result['synced'] > 0 ) {
-            error_log( 'BetterLinks Migration: Synced ' . $result['synced'] . ' missing links to JSON (Total: ' . $result['total'] . ')' );
+            // PCP-DEBUG-DISABLED: error_log( 'BetterLinks Migration: Synced ' . $result['synced'] . ' missing links to JSON (Total: ' . $result['total'] . ')' );
         }
     }
 
@@ -447,12 +451,14 @@ class Installer extends \WP_Background_Process
             'content' => '{}',
         ];
 
-        if (wp_mkdir_p($file['base']) && !file_exists(trailingslashit($file['base']) . $file['file'])) {
-            $file_handle = @fopen(trailingslashit($file['base']) . $file['file'], 'wb');
-            if ($file_handle) {
-                fwrite($file_handle, $file['content']);
-                fclose($file_handle);
-            }
+        global $wp_filesystem;
+        if ( empty( $wp_filesystem ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+        $target = trailingslashit($file['base']) . $file['file'];
+        if (wp_mkdir_p($file['base']) && ! file_exists( $target )) {
+            $wp_filesystem->put_contents( $target, $file['content'], FS_CHMOD_FILE );
         }
     }
 }

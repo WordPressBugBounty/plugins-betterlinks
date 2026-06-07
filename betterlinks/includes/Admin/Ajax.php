@@ -16,6 +16,8 @@ class Ajax {
 	use \BetterLinks\Traits\Clicks;
 	use \BetterLinks\Traits\ArgumentSchema;
 
+// phpcs:disable PluginCheck.Security.DirectDB, WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL
+
 	public function __construct() {
 		// link & clicks.
 		add_action( 'wp_ajax_betterlinks/admin/search_clicks_data', array( $this, 'search_clicks_data' ) );
@@ -121,8 +123,8 @@ class Ajax {
 
 		$helper        = new Helper();
 		$id            = isset( $_POST['id'] ) ? sanitize_text_field( wp_unslash( $_POST['id'] ) ) : null;
-		$short_url     = isset( $_POST['short_url'] ) ? sanitize_text_field( $_POST['short_url'] ) : null;
-		$old_short_url = isset( $_POST['old_short_url'] ) ? sanitize_text_field( $_POST['old_short_url'] ) : null;
+		$short_url     = isset( $_POST['short_url'] ) ? sanitize_text_field( wp_unslash( $_POST['short_url'] ) ) : null;
+		$old_short_url = isset( $_POST['old_short_url'] ) ? sanitize_text_field( wp_unslash( $_POST['old_short_url'] ) ) : null;
 
 		if ( $helper::is_exists_short_url( $short_url ) ) {
 			wp_send_json_error(
@@ -183,8 +185,8 @@ class Ajax {
 		$helper = new Helper();
 
 		$settings = Cache::get_json_settings();
-		$title    = isset( $_POST['title'] ) ? sanitize_text_field( $_POST['title'] ) : '';
-		$taskId   = isset( $_POST['taskId'] ) ? sanitize_text_field( $_POST['taskId'] ) : null;
+		$title    = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+		$taskId   = isset( $_POST['taskId'] ) ? sanitize_text_field( wp_unslash( $_POST['taskId'] ) ) : null;
 		if ( empty( $taskId ) ) {
 			wp_send_json_error(
 				array(
@@ -193,8 +195,8 @@ class Ajax {
 			);
 		}
 		$slug             = "fbs-{$taskId}";
-		$target_url       = isset( $_POST['target_url'] ) ? sanitize_url( $_POST['target_url'] ) : null;
-		$short_url        = isset( $_POST['short_url'] ) ? sanitize_text_field( $_POST['short_url'] ) : null;
+		$target_url       = isset( $_POST['target_url'] ) ? sanitize_url( wp_unslash( $_POST['target_url'] ) ) : null;
+		$short_url        = isset( $_POST['short_url'] ) ? sanitize_text_field( wp_unslash( $_POST['short_url'] ) ) : null;
 		$prefix           = isset( $settings['prefix'] ) ? $settings['prefix'] . '/' : '';
 		$short_url        = ! empty( $short_url ) ? $short_url : $prefix . $slug;
 		$nofollow         = ! empty( $settings['nofollow'] ) ? $settings['nofollow'] : null;
@@ -273,8 +275,8 @@ class Ajax {
 			wp_die( "You don't have permission to do this." );
 		}
 
-		$boardUrl = isset( $_POST['boardUrl'] ) ? sanitize_text_field( $_POST['boardUrl'] ) : null;
-		$taskId   = isset( $_POST['taskId'] ) ? (int) sanitize_text_field( $_POST['taskId'] ) : null;
+		$boardUrl = isset( $_POST['boardUrl'] ) ? sanitize_text_field( wp_unslash( $_POST['boardUrl'] ) ) : null;
+		$taskId   = isset( $_POST['taskId'] ) ? (int) sanitize_text_field( wp_unslash( $_POST['taskId'] ) ) : null;
 
 		$target_url = null;
 
@@ -342,7 +344,7 @@ class Ajax {
 			);
 		}
 
-		$target_url = isset( $_POST['target_url'] ) ? sanitize_url( $_POST['target_url'] ) : '';
+		$target_url = isset( $_POST['target_url'] ) ? sanitize_url( wp_unslash( $_POST['target_url'] ) ) : '';
 		$title      = ( new Helper() )->fetch_target_url( $target_url );
 
 		if ( empty( $title ) ) {
@@ -435,8 +437,8 @@ class Ajax {
 			wp_die( "You don't have permission to do this." );
 		}
 		// give betterlinks a lot of time to properly set the migration work for background.
-		set_time_limit( 300 );
-		$re_run = isset( $_POST['re_run'] ) ? $_POST['re_run'] : false;
+		set_time_limit( 300 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- migration job needs extended runtime.
+		$re_run = isset( $_POST['re_run'] ) ? sanitize_text_field( wp_unslash( $_POST['re_run'] ) ) : false;
 
 		if ( empty($re_run) && Helper::btl_get_option( 'btl_prettylink_migration_should_not_start_in_background' ) ) {
 			// preventing multiple migration call to prevent duplicate datas from migrating.
@@ -517,12 +519,16 @@ class Ajax {
 	public function write_json_clicks() {
 		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
 		if ( apply_filters( 'betterlinks/admin/current_user_can_edit_settings', current_user_can( 'manage_options' ) ) && ! BETTERLINKS_EXISTS_CLICKS_JSON ) {
-			$emptyContent = '{}';
-			$file_handle  = @fopen( trailingslashit( BETTERLINKS_UPLOAD_DIR_PATH ) . 'clicks.json', 'wb' );
-			if ( $file_handle ) {
-				fwrite( $file_handle, $emptyContent );
-				fclose( $file_handle );
+			global $wp_filesystem;
+			if ( empty( $wp_filesystem ) ) {
+				require_once ABSPATH . 'wp-admin/includes/file.php';
+				WP_Filesystem();
 			}
+			$wp_filesystem->put_contents(
+				trailingslashit( BETTERLINKS_UPLOAD_DIR_PATH ) . 'clicks.json',
+				'{}',
+				FS_CHMOD_FILE
+			);
 			wp_send_json_success( true );
 		}
 		wp_send_json_error( false );
@@ -539,8 +545,8 @@ class Ajax {
 	public function short_url_unique_checker() {
 		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
 		if ( apply_filters( 'betterlinks/admin/current_user_can_edit_settings', current_user_can( 'manage_options' ) ) ) {
-			$ID            = isset( $_POST['ID'] ) ? sanitize_text_field( $_POST['ID'] ) : '';
-			$slug          = isset( $_POST['slug'] ) ? sanitize_text_field( $_POST['slug'] ) : '';
+			$ID            = isset( $_POST['ID'] ) ? sanitize_text_field( wp_unslash( $_POST['ID'] ) ) : '';
+			$slug          = isset( $_POST['slug'] ) ? sanitize_text_field( wp_unslash( $_POST['slug'] ) ) : '';
 			$alreadyExists = false;
 			$resutls       = array();
 			if ( ! empty( $slug ) ) {
@@ -562,8 +568,8 @@ class Ajax {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( "You don't have permission to do this." );
 		}
-		$ID            = isset( $_POST['ID'] ) ? sanitize_text_field( $_POST['ID'] ) : '';
-		$slug          = isset( $_POST['slug'] ) ? sanitize_text_field( $_POST['slug'] ) : '';
+		$ID            = isset( $_POST['ID'] ) ? sanitize_text_field( wp_unslash( $_POST['ID'] ) ) : '';
+		$slug          = isset( $_POST['slug'] ) ? sanitize_text_field( wp_unslash( $_POST['slug'] ) ) : '';
 		$alreadyExists = false;
 		$resutls       = array();
 		if ( ! empty( $slug ) ) {
@@ -607,7 +613,7 @@ class Ajax {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( "You don't have permission to do this." );
 		}
-		$type = isset( $_POST['type'] ) ? sanitize_text_field( $_POST['type'] ) : '';
+		$type = isset( $_POST['type'] ) ? sanitize_text_field( wp_unslash( $_POST['type'] ) ) : '';
 		if ( $type == 'deactive' ) {
 			update_option( 'betterlinks_hide_notice_s301r_deactive', true );
 		} elseif ( $type == 'migrate' ) {
@@ -628,7 +634,7 @@ class Ajax {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( "You don't have permission to do this." );
 		}
-		$title   = isset( $_GET['title'] ) ? sanitize_text_field( $_GET['title'] ) : '';
+		$title   = isset( $_GET['title'] ) ? sanitize_text_field( wp_unslash( $_GET['title'] ) ) : '';
 		$results = Helper::search_clicks_data( $title );
 
 		wp_send_json_success(
@@ -642,7 +648,7 @@ class Ajax {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( "You don't have permission to do this." );
 		}
-		$links = ( isset( $_POST['links'] ) ? explode( ',', sanitize_text_field( $_POST['links'] ) ) : array() );
+		$links = ( isset( $_POST['links'] ) ? explode( ',', sanitize_text_field( wp_unslash( $_POST['links'] ) ) ) : array() );
 		if ( count( $links ) > 0 ) {
 			foreach ( $links as $key => $value ) {
 				Helper::insert_link(
@@ -661,8 +667,8 @@ class Ajax {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( "You don't have permission to do this." );
 		}
-		$source      = ( isset( $_POST['source'] ) ? explode( ',', sanitize_text_field( $_POST['source'] ) ) : array() );
-		$destination = ( isset( $_POST['destination'] ) ? explode( ',', sanitize_text_field( $_POST['destination'] ) ) : array() );
+		$source      = ( isset( $_POST['source'] ) ? explode( ',', sanitize_text_field( wp_unslash( $_POST['source'] ) ) ) : array() );
+		$destination = ( isset( $_POST['destination'] ) ? explode( ',', sanitize_text_field( wp_unslash( $_POST['destination'] ) ) ) : array() );
 		if ( count( $source ) > 0 ) {
 			foreach ( $source as $key => $value ) {
 				Helper::insert_link(
@@ -728,7 +734,7 @@ class Ajax {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( "You don't have permission to do this." );
 		}
-		$short_url = ( isset( $_POST['short_url'] ) ? sanitize_text_field( $_POST['short_url'] ) : '' );
+		$short_url = ( isset( $_POST['short_url'] ) ? sanitize_text_field( wp_unslash( $_POST['short_url'] ) ) : '' );
 		$results   = Helper::get_link_by_short_url( $short_url );
 		wp_send_json_success( is_array( $results ) ? current( $results ) : false );
 	}
@@ -737,7 +743,7 @@ class Ajax {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( "You don't have permission to do this." );
 		}
-		$short_url = ( isset( $_POST['target_url'] ) ? sanitize_text_field( $_POST['target_url'] ) : '' );
+		$short_url = ( isset( $_POST['target_url'] ) ? sanitize_text_field( wp_unslash( $_POST['target_url'] ) ) : '' );
 		$results   = Helper::get_link_by_permalink( $short_url );
 		wp_send_json_success( is_array( $results ) ? $results : false );
 	}
@@ -747,7 +753,7 @@ class Ajax {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( "You don't have permission to do this." );
 		}
-		$ID      = ( isset( $_POST['ID'] ) ? sanitize_text_field( $_POST['ID'] ) : '' );
+		$ID      = ( isset( $_POST['ID'] ) ? sanitize_text_field( wp_unslash( $_POST['ID'] ) ) : '' );
 		$results = Helper::get_terms_by_link_ID_and_term_type( $ID, 'category' );
 		return wp_send_json( $results );
 	}
@@ -779,7 +785,7 @@ class Ajax {
 			wp_die( "You don't have permission to do this." );
 		}
 
-		$category_name = isset($_POST['category_name']) ? sanitize_text_field($_POST['category_name']) : '';
+		$category_name = isset($_POST['category_name']) ? sanitize_text_field(wp_unslash( $_POST['category_name'] )) : '';
 		
 		if (empty($category_name)) {
 			wp_send_json_error(array('message' => __('Category name is required', 'betterlinks')));
@@ -945,9 +951,9 @@ class Ajax {
 		}
 		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
 		$args = array(
-			'ID'        => ( isset( $_REQUEST['ID'] ) ? sanitize_text_field( $_REQUEST['ID'] ) : '' ),
-			'short_url' => ( isset( $_REQUEST['short_url'] ) ? sanitize_text_field( $_REQUEST['short_url'] ) : '' ),
-			'term_id'   => ( isset( $_REQUEST['term_id'] ) ? sanitize_text_field( $_REQUEST['term_id'] ) : '' ),
+			'ID'        => ( isset( $_REQUEST['ID'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['ID'] ) ) : '' ),
+			'short_url' => ( isset( $_REQUEST['short_url'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['short_url'] ) ) : '' ),
+			'term_id'   => ( isset( $_REQUEST['term_id'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['term_id'] ) ) : '' ),
 		);
 		$this->delete_link( $args );
 
@@ -1046,10 +1052,10 @@ class Ajax {
 		}
 		$args = array();
 		if ( isset( $_REQUEST['ID'] ) ) {
-			$args['ID'] = sanitize_text_field( $_REQUEST['ID'] );
+			$args['ID'] = sanitize_text_field( wp_unslash( $_REQUEST['ID'] ) );
 		}
 		if ( isset( $_REQUEST['term_type'] ) ) {
-			$args['term_type'] = sanitize_text_field( $_REQUEST['term_type'] );
+			$args['term_type'] = sanitize_text_field( wp_unslash( $_REQUEST['term_type'] ) );
 		}
 
 		$results = $this->get_all_terms_data( $args );
@@ -1071,10 +1077,10 @@ class Ajax {
 		}
 		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
 		$args    = array(
-			'ID'        => ( isset( $_REQUEST['ID'] ) ? absint( sanitize_text_field( $_REQUEST['ID'] ) ) : 0 ),
-			'term_name' => ( isset( $_REQUEST['term_name'] ) ? sanitize_text_field( $_REQUEST['term_name'] ) : '' ),
-			'term_slug' => ( isset( $_REQUEST['term_slug'] ) ? sanitize_text_field( $_REQUEST['term_slug'] ) : '' ),
-			'term_type' => ( isset( $_REQUEST['term_type'] ) ? sanitize_text_field( $_REQUEST['term_type'] ) : '' ),
+			'ID'        => ( isset( $_REQUEST['ID'] ) ? absint( sanitize_text_field( wp_unslash( $_REQUEST['ID'] ) ) ) : 0 ),
+			'term_name' => ( isset( $_REQUEST['term_name'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['term_name'] ) ) : '' ),
+			'term_slug' => ( isset( $_REQUEST['term_slug'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['term_slug'] ) ) : '' ),
+			'term_type' => ( isset( $_REQUEST['term_type'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['term_type'] ) ) : '' ),
 		);
 		$results = $this->create_term( $args );
 		wp_send_json_success(
@@ -1089,9 +1095,9 @@ class Ajax {
 		}
 		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
 		$args = array(
-			'cat_id'   => ( isset( $_REQUEST['ID'] ) ? absint( sanitize_text_field( $_REQUEST['ID'] ) ) : 0 ),
-			'cat_name' => ( isset( $_REQUEST['term_name'] ) ? sanitize_text_field( $_REQUEST['term_name'] ) : '' ),
-			'cat_slug' => ( isset( $_REQUEST['term_slug'] ) ? sanitize_text_field( $_REQUEST['term_slug'] ) : '' ),
+			'cat_id'   => ( isset( $_REQUEST['ID'] ) ? absint( sanitize_text_field( wp_unslash( $_REQUEST['ID'] ) ) ) : 0 ),
+			'cat_name' => ( isset( $_REQUEST['term_name'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['term_name'] ) ) : '' ),
+			'cat_slug' => ( isset( $_REQUEST['term_slug'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['term_slug'] ) ) : '' ),
 		);
 		$this->update_term( $args );
 		wp_send_json_success(
@@ -1110,8 +1116,8 @@ class Ajax {
 		}
 		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
 		$args = array(
-			'cat_id' => ( isset( $_REQUEST['cat_id'] ) ? absint( sanitize_text_field( $_REQUEST['cat_id'] ) ) : 0 ),
-			'tag_id' => ( isset( $_REQUEST['tag_id'] ) ? absint( sanitize_text_field( $_REQUEST['tag_id'] ) ) : 0 ),
+			'cat_id' => ( isset( $_REQUEST['cat_id'] ) ? absint( sanitize_text_field( wp_unslash( $_REQUEST['cat_id'] ) ) ) : 0 ),
+			'tag_id' => ( isset( $_REQUEST['tag_id'] ) ? absint( sanitize_text_field( wp_unslash( $_REQUEST['tag_id'] ) ) ) : 0 ),
 		);
 
 		// Check if trying to delete the default 'Uncategorized' category (ID: 1)
@@ -1144,9 +1150,9 @@ class Ajax {
 		if ( ! apply_filters( 'betterlinks/api/analytics_items_permissions_check', current_user_can( 'manage_options' ) ) ) {
 			wp_die( "You don't have permission to do this." );
 		}
-		$from = isset( $_REQUEST['from'] ) ? sanitize_text_field( $_REQUEST['from'] ) : date( 'Y-m-d', strtotime( ' - 30 days' ) );
-		$to   = isset( $_REQUEST['to'] ) ? sanitize_text_field( $_REQUEST['to'] ) : date( 'Y-m-d' );
-		$ID   = ( isset( $_REQUEST['ID'] ) ? sanitize_text_field( $_REQUEST['ID'] ) : '' );
+		$from = isset( $_REQUEST['from'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['from'] ) ) : gmdate( 'Y-m-d', strtotime( ' - 30 days' ) );
+		$to   = isset( $_REQUEST['to'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['to'] ) ) : gmdate( 'Y-m-d' );
+		$ID   = ( isset( $_REQUEST['ID'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['ID'] ) ) : '' );
 		if ( ! empty( $ID ) && class_exists( 'BetterLinksPro' ) ) {
 			$results = \BetterLinksPro\Helper::get_individual_link_analytics(
 				array(
@@ -1170,9 +1176,9 @@ class Ajax {
 		}
 		global $wpdb;
 		$prefix          = $wpdb->prefix;
-		$days_older_than = isset( $_REQUEST['days_older_than'] ) ? sanitize_text_field( $_REQUEST['days_older_than'] ) : false;
-		$from            = isset( $_REQUEST['from'] ) ? sanitize_text_field( $_REQUEST['from'] ) : date( 'Y-m-d', strtotime( ' - 30 days' ) );
-		$to              = isset( $_REQUEST['to'] ) ? sanitize_text_field( $_REQUEST['to'] ) : date( 'Y-m-d' );
+		$days_older_than = isset( $_REQUEST['days_older_than'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['days_older_than'] ) ) : false;
+		$from            = isset( $_REQUEST['from'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['from'] ) ) : gmdate( 'Y-m-d', strtotime( ' - 30 days' ) );
+		$to              = isset( $_REQUEST['to'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['to'] ) ) : gmdate( 'Y-m-d' );
 		$link_id         = isset( $_REQUEST['link_id'] ) ? intval( $_REQUEST['link_id'] ) : null;
 		$query           = '';
 		
@@ -1232,8 +1238,8 @@ class Ajax {
 		}
 		global $wpdb;
 		$prefix  = $wpdb->prefix;
-		$from    = isset( $_REQUEST['from'] ) ? sanitize_text_field( $_REQUEST['from'] ) : date( 'Y-m-d', strtotime( ' - 30 days' ) );
-		$to      = isset( $_REQUEST['to'] ) ? sanitize_text_field( $_REQUEST['to'] ) : date( 'Y-m-d' );
+		$from    = isset( $_REQUEST['from'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['from'] ) ) : gmdate( 'Y-m-d', strtotime( ' - 30 days' ) );
+		$to      = isset( $_REQUEST['to'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['to'] ) ) : gmdate( 'Y-m-d' );
 		$link_id = isset( $_REQUEST['link_id'] ) ? intval( $_REQUEST['link_id'] ) : null;
 
 		// Build count query similar to delete query
@@ -1303,7 +1309,7 @@ class Ajax {
 		}
 
 		$ID    = ( isset( $_POST['ID'] ) ? intval( $_POST['ID'] ) : '' );
-		$value = ( isset( $_POST['value'] ) ? sanitize_text_field( $_POST['value'] ) : '' );
+		$value = ( isset( $_POST['value'] ) ? sanitize_text_field( wp_unslash( $_POST['value'] ) ) : '' );
 
 		update_post_meta( $ID, 'betterlinks_enable_affiliate_link_disclosure', $value );
 
@@ -1320,7 +1326,7 @@ class Ajax {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( "You don't have permission to do this." );
 		}
-		$ID        = ( isset( $_POST['ID'] ) ? intval( sanitize_text_field( $_POST['ID'] ) ) : '' );
+		$ID        = ( isset( $_POST['ID'] ) ? intval( sanitize_text_field( wp_unslash( $_POST['ID'] ) ) ) : '' );
 		$post_meta = get_post_meta( $ID, 'betterlinks_enable_affiliate_link_disclosure' );
 		wp_send_json( $post_meta );
 	}
@@ -1330,8 +1336,8 @@ class Ajax {
 			wp_die( "You don't have permission to do this." );
 		}
 
-		$ID    = isset( $_POST['ID'] ) ? sanitize_text_field( $_POST['ID'] ) : '';
-		$value = isset( $_POST['value'] ) ? $_POST['value'] : '';
+		$ID    = isset( $_POST['ID'] ) ? sanitize_text_field( wp_unslash( $_POST['ID'] ) ) : '';
+		$value = isset( $_POST['value'] ) ? wp_kses_post( wp_unslash( $_POST['value'] ) ) : '';
 
 		$meta_key = 'betterlinks_enable_affiliate_link_disclosure_text';
 
@@ -1344,7 +1350,7 @@ class Ajax {
 		// Register per-post disclosure text with WPML String Translation.
 		$decoded_value = is_string( $value ) ? json_decode( $value, true ) : $value;
 		if ( is_array( $decoded_value ) && ! empty( $decoded_value['affiliate_disclosure_text'] ) ) {
-			do_action( 'wpml_register_single_string', 'BetterLinks', 'Affiliate Disclosure Text - Post ' . $ID, $decoded_value['affiliate_disclosure_text'] );
+			do_action( 'wpml_register_single_string', 'BetterLinks', 'Affiliate Disclosure Text - Post ' . $ID, $decoded_value['affiliate_disclosure_text'] ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML public hook name; cannot be prefixed.
 		}
 
 		wp_send_json( $value );
@@ -1356,7 +1362,7 @@ class Ajax {
 			wp_die( "You don't have permission to do this." );
 		}
 
-		$ID       = isset( $_POST['ID'] ) ? sanitize_text_field( $_POST['ID'] ) : '';
+		$ID       = isset( $_POST['ID'] ) ? sanitize_text_field( wp_unslash( $_POST['ID'] ) ) : '';
 		$meta_key = 'betterlinks_enable_affiliate_link_disclosure_text';
 
 		$data           = array();
@@ -1405,7 +1411,7 @@ class Ajax {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( "You don't have permission to do this." );
 		}
-		$opt_in_value = isset( $_POST['opt_in_value'] ) ? sanitize_text_field( $_POST['opt_in_value'] ) : 'no';
+		$opt_in_value = isset( $_POST['opt_in_value'] ) ? sanitize_text_field( wp_unslash( $_POST['opt_in_value'] ) ) : 'no';
 		$opt_in = PluginUsageTracker::get_instance( BETTERLINKS_PLUGIN_FILE, [
 			'opt_in'       => true,
 			'goodbye_form' => true,
@@ -1432,12 +1438,13 @@ class Ajax {
 	}
 	
 	public function js_analytics_tracking() {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- public click-tracking beacon called from any frontend page; nonce is not feasible.
 		global $wpdb;
 
-		$searchKey = !empty( $_POST['target_url'] ) ? 'target_url' : 'ID';
-		$searchValue = (isset( $_POST['target_url'] ) ? sanitize_url($_POST['target_url']) : '');
-		$searchValue = (empty( $searchValue ) && isset( $_POST['linkId'] ) ? sanitize_text_field( $_POST['linkId'] ) : '');
-		$location = isset( $_POST['location'] ) ? esc_url_raw( $_POST['location'] ) : '';
+		$searchKey = ! empty( $_POST['target_url'] ) ? 'target_url' : 'ID';
+		$searchValue = ( isset( $_POST['target_url'] ) ? sanitize_url( wp_unslash( $_POST['target_url'] ) ) : '' );
+		$searchValue = ( empty( $searchValue ) && isset( $_POST['linkId'] ) ? sanitize_text_field( wp_unslash( $_POST['linkId'] ) ) : '' );
+		$location    = isset( $_POST['location'] ) ? esc_url_raw( wp_unslash( $_POST['location'] ) ) : '';
 		$query = $wpdb->prepare( "select short_url from {$wpdb->prefix}betterlinks where {$searchKey}=%s", $searchValue );
 		$short_url = $wpdb->get_row( $query, ARRAY_A );
 		$short_url = current( $short_url );
@@ -1448,10 +1455,10 @@ class Ajax {
 
 		// Accept country data from frontend geolocation
 		if ( isset( $_POST['country_code'] ) ) {
-			$data['country_code'] = sanitize_text_field( $_POST['country_code'] );
+			$data['country_code'] = sanitize_text_field( wp_unslash( $_POST['country_code'] ) );
 		}
 		if ( isset( $_POST['country_name'] ) ) {
-			$data['country_name'] = sanitize_text_field( $_POST['country_name'] );
+			$data['country_name'] = sanitize_text_field( wp_unslash( $_POST['country_name'] ) );
 		}
 
 		Helper::init_tracking($data, $utils);
@@ -1459,6 +1466,7 @@ class Ajax {
 		wp_send_json([
 			'data' => true
 		]);
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 	}
 
 	/**
@@ -1479,8 +1487,8 @@ class Ajax {
 		global $wpdb;
 
 		$click_id = isset( $_POST['click_id'] ) ? intval( $_POST['click_id'] ) : 0;
-		$country_code = isset( $_POST['country_code'] ) ? sanitize_text_field( $_POST['country_code'] ) : '';
-		$country_name = isset( $_POST['country_name'] ) ? sanitize_text_field( $_POST['country_name'] ) : '';
+		$country_code = isset( $_POST['country_code'] ) ? sanitize_text_field( wp_unslash( $_POST['country_code'] ) ) : '';
+		$country_name = isset( $_POST['country_name'] ) ? sanitize_text_field( wp_unslash( $_POST['country_name'] ) ) : '';
 
 		if ( ! $click_id || ! $country_code || ! $country_name ) {
 			wp_send_json_error( array(
@@ -1554,9 +1562,9 @@ class Ajax {
 		global $wpdb;
 
 		$link_id = isset( $_POST['link_id'] ) ? intval( $_POST['link_id'] ) : 0;
-		$ip = isset( $_POST['ip'] ) ? sanitize_text_field( $_POST['ip'] ) : '';
-		$country_code = isset( $_POST['country_code'] ) ? sanitize_text_field( $_POST['country_code'] ) : '';
-		$country_name = isset( $_POST['country_name'] ) ? sanitize_text_field( $_POST['country_name'] ) : '';
+		$ip = isset( $_POST['ip'] ) ? sanitize_text_field( wp_unslash( $_POST['ip'] ) ) : '';
+		$country_code = isset( $_POST['country_code'] ) ? sanitize_text_field( wp_unslash( $_POST['country_code'] ) ) : '';
+		$country_name = isset( $_POST['country_name'] ) ? sanitize_text_field( wp_unslash( $_POST['country_name'] ) ) : '';
 
 		if ( ! $link_id || ! $ip || ! $country_code || ! $country_name ) {
 			wp_send_json_error( array(
@@ -1597,6 +1605,7 @@ class Ajax {
 			$this->clear_individual_clicks_transient( $link_id );
 
 			wp_send_json_success( array(
+				/* translators: %s = placeholder values supplied by WordPress */
 				'message' => sprintf( __( 'Country data updated for %d clicks', 'betterlinks' ), $updated ),
 				'country_code' => $country_code,
 				'country_name' => $country_name,
@@ -1651,7 +1660,7 @@ class Ajax {
 			wp_send_json_error( __( 'You do not have permission to perform this action.', 'betterlinks' ) );
 		}
 
-		$category_ids = isset( $_POST['category_ids'] ) ? array_map( 'intval', $_POST['category_ids'] ) : array();
+		$category_ids = isset( $_POST['category_ids'] ) ? array_map( 'intval', (array) wp_unslash( $_POST['category_ids'] ) ) : array();
 
 		if ( empty( $category_ids ) ) {
 			wp_send_json_error( __( 'No categories provided.', 'betterlinks' ) );
@@ -1659,15 +1668,19 @@ class Ajax {
 
 		global $wpdb;
 
-		// Get links for the specified categories
+		// Get links for the specified categories.
+		// $placeholders is built locally as '%d,%d,...' from the count of $category_ids;
+		// $category_ids is an int[] (intval applied above). Table prefix is wpdb-controlled.
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$placeholders = implode( ',', array_fill( 0, count( $category_ids ), '%d' ) );
 		$query = $wpdb->prepare(
-			"SELECT DISTINCT l.ID, l.short_url, l.target_url, l.link_title 
+			"SELECT DISTINCT l.ID, l.short_url, l.target_url, l.link_title
 			FROM {$wpdb->prefix}betterlinks l
 			INNER JOIN {$wpdb->prefix}betterlinks_terms_relationships tr ON l.ID = tr.link_id
 			WHERE tr.term_id IN ($placeholders)",
 			...$category_ids
 		);
+		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$links = $wpdb->get_results( $query, ARRAY_A );
 
@@ -1690,11 +1703,13 @@ class Ajax {
 		// Clear cache to ensure fresh data after updates
 		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
 
-		// Parse JSON data that comes from makeRequest
-		$template_data = isset( $_POST['template_data'] ) ? json_decode( stripslashes( $_POST['template_data'] ), true ) : array();
-		$category_ids = isset( $_POST['category_ids'] ) ? json_decode( stripslashes( $_POST['category_ids'] ), true ) : array();
-		$rewrite_existing = isset( $_POST['rewrite_existing'] ) ? filter_var( $_POST['rewrite_existing'], FILTER_VALIDATE_BOOLEAN ) : false;
-		$reset_existing = isset( $_POST['reset_existing'] ) ? filter_var( $_POST['reset_existing'], FILTER_VALIDATE_BOOLEAN ) : false;
+		// Parse JSON data that comes from makeRequest. JSON content is validated by json_decode + array shape checks below; sanitize_text_field would corrupt JSON.
+		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$template_data    = isset( $_POST['template_data'] ) ? json_decode( wp_unslash( $_POST['template_data'] ), true ) : array();
+		$category_ids     = isset( $_POST['category_ids'] ) ? json_decode( wp_unslash( $_POST['category_ids'] ), true ) : array();
+		// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$rewrite_existing = isset( $_POST['rewrite_existing'] ) ? filter_var( wp_unslash( $_POST['rewrite_existing'] ), FILTER_VALIDATE_BOOLEAN ) : false;
+		$reset_existing   = isset( $_POST['reset_existing'] ) ? filter_var( wp_unslash( $_POST['reset_existing'] ), FILTER_VALIDATE_BOOLEAN ) : false;
 
 		// Convert to integers if needed
 		if ( is_array( $category_ids ) ) {
@@ -1714,15 +1729,18 @@ class Ajax {
 
 		global $wpdb;
 
-		// Get links for the specified categories
+		// Get links for the specified categories.
+		// $placeholders is built locally as '%d,%d,...' from $category_ids (int[]); table prefix is wpdb-controlled.
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$placeholders = implode( ',', array_fill( 0, count( $category_ids ), '%d' ) );
 		$query = $wpdb->prepare(
-			"SELECT DISTINCT l.ID, l.target_url 
+			"SELECT DISTINCT l.ID, l.target_url
 			FROM {$wpdb->prefix}betterlinks l
 			INNER JOIN {$wpdb->prefix}betterlinks_terms_relationships tr ON l.ID = tr.link_id
 			WHERE tr.term_id IN ($placeholders)",
 			...$category_ids
 		);
+		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$links = $wpdb->get_results( $query, ARRAY_A );
 		$updated_count = 0;
@@ -1730,7 +1748,7 @@ class Ajax {
 
 		foreach ( $links as $link ) {
 			$target_url = $link['target_url'];
-			$parsed_url = parse_url( $target_url );
+			$parsed_url = wp_parse_url( $target_url );
 			
 			// Check if URL already has UTM parameters
 			$existing_query = isset( $parsed_url['query'] ) ? $parsed_url['query'] : '';
@@ -1824,13 +1842,15 @@ class Ajax {
 
 		$message = $reset_existing
 			? sprintf(
-				__( 'UTM parameters reset successfully. Updated: %d, Skipped: %d, Total: %d', 'betterlinks' ),
+				/* translators: 1: number of links updated, 2: number skipped, 3: total links processed. */
+				__( 'UTM parameters reset successfully. Updated: %1$d, Skipped: %2$d, Total: %3$d', 'betterlinks' ),
 				$updated_count,
 				$skipped_count,
 				count( $links )
 			)
 			: sprintf(
-				__( 'UTM template applied successfully. Updated: %d, Skipped: %d, Total: %d', 'betterlinks' ),
+				/* translators: 1: number of links updated, 2: number skipped, 3: total links processed. */
+				__( 'UTM template applied successfully. Updated: %1$d, Skipped: %2$d, Total: %3$d', 'betterlinks' ),
 				$updated_count,
 				$skipped_count,
 				count( $links )
@@ -1868,7 +1888,10 @@ class Ajax {
 			wp_send_json_error( __( 'You do not have permission to perform this action.', 'betterlinks' ) );
 		}
 
-		$category_ids = isset( $_POST['category_ids'] ) ? json_decode( stripslashes( $_POST['category_ids'] ), true ) : array();
+		// JSON content validated by json_decode + intval below; sanitize_text_field would corrupt JSON.
+		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		$category_ids = isset( $_POST['category_ids'] ) ? json_decode( wp_unslash( $_POST['category_ids'] ), true ) : array();
+		// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 		// Convert to integers if needed
 		if ( is_array( $category_ids ) ) {
@@ -1881,25 +1904,28 @@ class Ajax {
 
 		global $wpdb;
 
-		// Get links for the specified categories
+		// Get links for the specified categories.
+		// $placeholders is built locally as '%d,%d,...' from $category_ids (int[]); table prefix is wpdb-controlled.
+		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$placeholders = implode( ',', array_fill( 0, count( $category_ids ), '%d' ) );
 		$query = $wpdb->prepare(
-			"SELECT DISTINCT l.ID, l.target_url 
+			"SELECT DISTINCT l.ID, l.target_url
 			FROM {$wpdb->prefix}betterlinks l
 			INNER JOIN {$wpdb->prefix}betterlinks_terms_relationships tr ON l.ID = tr.link_id
 			WHERE tr.term_id IN ($placeholders)",
 			...$category_ids
 		);
+		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		$links = $wpdb->get_results( $query, ARRAY_A );
-		
+
 		$total_links = count( $links );
 		$links_with_utm = 0;
 		$links_without_utm = 0;
 
 		foreach ( $links as $link ) {
 			$target_url = $link['target_url'];
-			$parsed_url = parse_url( $target_url );
+			$parsed_url = wp_parse_url( $target_url );
 			
 			// Check if URL already has UTM parameters
 			$existing_query = isset( $parsed_url['query'] ) ? $parsed_url['query'] : '';
@@ -1975,7 +2001,7 @@ class Ajax {
 			wp_send_json_error( array( 'message' => 'Insufficient permissions' ) );
 		}
 
-		if ( ! wp_verify_nonce( $_POST['security'], 'betterlinks_nonce' ) ) {
+		if ( ! isset( $_POST['security'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['security'] ) ), 'betterlinks_nonce' ) ) {
 			wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
 		}
 
@@ -1999,7 +2025,7 @@ class Ajax {
 			wp_send_json_error( array( 'message' => 'Insufficient permissions' ) );
 		}
 
-		if ( ! wp_verify_nonce( $_POST['security'], 'betterlinks_nonce' ) ) {
+		if ( ! isset( $_POST['security'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['security'] ) ), 'betterlinks_nonce' ) ) {
 			wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
 		}
 

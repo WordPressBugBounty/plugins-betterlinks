@@ -52,7 +52,7 @@ class Clicks extends Controller {
 			array(
 				'args' => array(
 					'id' => array(
-						'description' => __( 'Unique identifier for the object.' ),
+						'description' => __( 'Unique identifier for the object.' , 'betterlinks' ),
 						'type'        => 'integer',
 					),
 				),
@@ -70,7 +70,7 @@ class Clicks extends Controller {
 			array(
 				'args' => array(
 					'id' => array(
-						'description' => __( 'Unique identifier for the object.' ),
+						'description' => __( 'Unique identifier for the object.' , 'betterlinks' ),
 						'type'        => 'integer',
 					),
 				),
@@ -89,7 +89,7 @@ class Clicks extends Controller {
 			array(
 				'args' => array(
 					'id' => array(
-						'description' => __( 'Unique identifier for the object.' ),
+						'description' => __( 'Unique identifier for the object.' , 'betterlinks' ),
 						'type'        => 'integer',
 					),
 				),
@@ -165,8 +165,8 @@ class Clicks extends Controller {
 	 */
 	public function get_graphs( $request ) {
 		$request = $request->get_params();
-		$from    = $this->sanitize_date( $request['from'] ) ? $request['from'] : date( 'Y-m-d', strtotime( ' - 30 days' ) );
-		$to      = $this->sanitize_date( $request['to'] ) ? $request['to'] : date( 'Y-m-d' );
+		$from    = $this->sanitize_date( $request['from'] ) ? $request['from'] : gmdate( 'Y-m-d', strtotime( ' - 30 days' ) );
+		$to      = $this->sanitize_date( $request['to'] ) ? $request['to'] : gmdate( 'Y-m-d' );
 
 		$graph_data = $this->get_analytics_graph_data( $from, $to );
 		return new \WP_REST_Response(
@@ -398,15 +398,15 @@ class Clicks extends Controller {
 		}
 
 		// Get date range from params
-		$from = isset( $params['from'] ) ? sanitize_text_field( $params['from'] ) : date( 'Y-m-d', strtotime( ' - 30 days' ) );
-		$to = isset( $params['to'] ) ? sanitize_text_field( $params['to'] ) : date( 'Y-m-d' );
+		$from = isset( $params['from'] ) ? sanitize_text_field( $params['from'] ) : gmdate( 'Y-m-d', strtotime( ' - 30 days' ) );
+		$to = isset( $params['to'] ) ? sanitize_text_field( $params['to'] ) : gmdate( 'Y-m-d' );
 
 		// Delete the clicks from the database - only within the date range
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'betterlinks_clicks';
 
 		foreach ( $click_ids as $click_id ) {
-			$wpdb->delete(
+			$wpdb->delete( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 				$table_name,
 				array(
 					'ID'      => intval( $click_id ),
@@ -489,15 +489,16 @@ class Clicks extends Controller {
 		}
 
 		// Get date range from params
-		$from = isset( $params['from'] ) ? sanitize_text_field( $params['from'] ) : date( 'Y-m-d', strtotime( ' - 30 days' ) );
-		$to = isset( $params['to'] ) ? sanitize_text_field( $params['to'] ) : date( 'Y-m-d' );
+		$from = isset( $params['from'] ) ? sanitize_text_field( $params['from'] ) : gmdate( 'Y-m-d', strtotime( ' - 30 days' ) );
+		$to = isset( $params['to'] ) ? sanitize_text_field( $params['to'] ) : gmdate( 'Y-m-d' );
 
 		// Delete clicks for the specified links ONLY within the date range
 		global $wpdb;
 		$table_name = $wpdb->prefix . 'betterlinks_clicks';
 
+		// $table_name is {$wpdb->prefix}betterlinks_clicks (wpdb-controlled); values are placeholdered.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		foreach ( $link_ids as $link_id ) {
-			// Delete only clicks within the specified date range
 			$wpdb->query(
 				$wpdb->prepare(
 					"DELETE FROM {$table_name} WHERE link_id = %d AND DATE(created_at) >= %s AND DATE(created_at) <= %s",
@@ -507,6 +508,7 @@ class Clicks extends Controller {
 				)
 			);
 		}
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 		// Clear all related transient caches for all deleted links
 		foreach ( $link_ids as $link_id ) {

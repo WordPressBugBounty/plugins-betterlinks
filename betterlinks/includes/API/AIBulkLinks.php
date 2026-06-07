@@ -12,6 +12,8 @@ class AIBulkLinks extends Controller {
 	use ArgumentSchema;
 	use \BetterLinks\Traits\Links;
 
+// phpcs:disable WordPress.DB.DirectDatabaseQuery
+
 	/**
 	 * Initialize hooks and option name
 	 */
@@ -430,6 +432,7 @@ class AIBulkLinks extends Controller {
 				'success' => true,
 				'data'    => $published_links,
 				'message' => sprintf(
+					/* translators: %d: number of AI-generated links that were published. */
 					__( 'Successfully published %d links', 'betterlinks' ),
 					count( $published_links )
 				),

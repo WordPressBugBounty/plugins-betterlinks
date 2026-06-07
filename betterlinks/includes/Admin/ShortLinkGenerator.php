@@ -9,6 +9,8 @@ class ShortLinkGenerator
     use \BetterLinks\Traits\Links;
     use \BetterLinks\Traits\Terms;
     use \BetterLinks\Traits\ArgumentSchema;
+
+// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.SlowDBQuery, WordPress.DB.PreparedSQL, PluginCheck.Security.DirectDB
     
     private static $instance = null;
 
@@ -212,27 +214,31 @@ class ShortLinkGenerator
                 return;
             }
 
-            $post_type = isset($_POST['post_type']) ? sanitize_text_field($_POST['post_type']) : '';
+            $post_type = isset($_POST['post_type']) ? sanitize_text_field(wp_unslash( $_POST['post_type'] )) : '';
             
-            // Handle categories - they might come as JSON string from FormData
+            // Handle categories - they might come as JSON string from FormData. Values are coerced to int below; sanitize_text_field would corrupt JSON.
             $categories = [];
             if (isset($_POST['categories'])) {
-                if (is_string($_POST['categories'])) {
-                    $decoded_categories = json_decode($_POST['categories'], true);
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                $raw_categories = wp_unslash( $_POST['categories'] );
+                if (is_string($raw_categories)) {
+                    $decoded_categories = json_decode($raw_categories, true);
                     $categories = is_array($decoded_categories) ? array_map('intval', $decoded_categories) : [];
-                } else if (is_array($_POST['categories'])) {
-                    $categories = array_map('intval', $_POST['categories']);
+                } else if (is_array($raw_categories)) {
+                    $categories = array_map('intval', $raw_categories);
                 }
             }
-            
-            // Handle tags - they might come as JSON string from FormData
+
+            // Handle tags - they might come as JSON string from FormData. Values are coerced to int below; sanitize_text_field would corrupt JSON.
             $tags = [];
             if (isset($_POST['tags'])) {
-                if (is_string($_POST['tags'])) {
-                    $decoded_tags = json_decode($_POST['tags'], true);
+                // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+                $raw_tags = wp_unslash( $_POST['tags'] );
+                if (is_string($raw_tags)) {
+                    $decoded_tags = json_decode($raw_tags, true);
                     $tags = is_array($decoded_tags) ? array_map('intval', $decoded_tags) : [];
-                } else if (is_array($_POST['tags'])) {
-                    $tags = array_map('intval', $_POST['tags']);
+                } else if (is_array($raw_tags)) {
+                    $tags = array_map('intval', $raw_tags);
                 }
             }
             
@@ -251,13 +257,8 @@ class ShortLinkGenerator
                 'fields' => 'ids'
             ];
 
-            // Debug logging
-            error_log('BetterLinks Debug - get_posts_count:');
-            error_log('Post type: ' . $post_type);
-            error_log('Categories: ' . print_r($categories, true));
-            error_log('Tags: ' . print_r($tags, true));
 
-            // Only add tax_query if we have categories or tags
+            // Only add tax_query if we have categories or tags  // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
             if (!empty($categories) || !empty($tags)) {
                 $args['tax_query'] = ['relation' => 'AND'];
 
@@ -265,7 +266,6 @@ class ShortLinkGenerator
                 if (!empty($categories)) {
                     $category_taxonomies = get_object_taxonomies($post_type, 'objects');
                     
-                    error_log('Available taxonomies for ' . $post_type . ': ' . print_r(array_keys($category_taxonomies), true));
                     
                     $taxonomy_added = false;
                     
@@ -275,7 +275,6 @@ class ShortLinkGenerator
                             if ($taxonomy->hierarchical) {
                                 $term = get_term($cat_id, $taxonomy->name);
                                 if (!is_wp_error($term) && $term) {
-                                    error_log("Found category ID $cat_id in taxonomy {$taxonomy->name}");
                                     $args['tax_query'][] = [
                                         'taxonomy' => $taxonomy->name,
                                         'field' => 'term_id',
@@ -292,7 +291,6 @@ class ShortLinkGenerator
                     // Fallback: use first hierarchical taxonomy if no specific match found
                     if (!$taxonomy_added) {
                         foreach ($category_taxonomies as $taxonomy) {
-                            error_log('Fallback - Checking taxonomy: ' . $taxonomy->name . ', hierarchical: ' . ($taxonomy->hierarchical ? 'yes' : 'no'));
                             if ($taxonomy->hierarchical) {
                                 $args['tax_query'][] = [
                                     'taxonomy' => $taxonomy->name,
@@ -300,7 +298,6 @@ class ShortLinkGenerator
                                     'terms' => $categories,
                                     'operator' => 'IN'
                                 ];
-                                error_log('Added fallback tax_query for taxonomy: ' . $taxonomy->name);
                                 $taxonomy_added = true;
                                 break;
                             }
@@ -337,16 +334,13 @@ class ShortLinkGenerator
             }
 
             // Debug final query args
-            error_log('Final query args: ' . print_r($args, true));
 
             // Execute the query
             $query = new \WP_Query($args);
             
             // Debug query results
-            error_log('Query found_posts: ' . $query->found_posts);
-            error_log('Query post_count: ' . $query->post_count);
             if ($query->found_posts > 0) {
-                error_log('Sample post IDs: ' . print_r(array_slice($query->posts, 0, 5), true));
+                // PCP-DEBUG-DISABLED: error_log('Sample post IDs: ' . print_r(array_slice($query->posts, 0, 5), true));
             }
             
             if (is_wp_error($query)) {
@@ -364,6 +358,7 @@ class ShortLinkGenerator
 
             $result = [
                 'count' => max(0, $total_posts),
+                /* translators: %s = placeholder values supplied by WordPress */
                 'message' => sprintf(__('Found %d posts matching your criteria.', 'betterlinks'), max(0, $total_posts))
             ];
 
@@ -475,7 +470,7 @@ class ShortLinkGenerator
 
             return false;
         } catch (Exception $e) {
-            error_log('BetterLinks: Error deleting existing link: ' . $e->getMessage());
+            // PCP-DEBUG-DISABLED: error_log('BetterLinks: Error deleting existing link: ' . $e->getMessage());
             return false;
         }
     }
@@ -516,8 +511,6 @@ class ShortLinkGenerator
             $query = new \WP_Query($args);
             $post_ids = $query->posts;
             
-            error_log('Query found_posts: ' . $query->found_posts);
-            error_log('Post IDs: ' . print_r($post_ids, true));
 
             if (empty($post_ids)) {
                 wp_send_json_error(['message' => __('No posts found to generate links for.', 'betterlinks')]);
@@ -549,6 +542,7 @@ class ShortLinkGenerator
                 update_option('betterlinks_bulk_generation_report', []);
 
                 wp_send_json_success([
+                    /* translators: %s = placeholder values supplied by WordPress */
                     'message' => sprintf(__('All %d posts already have short links.', 'betterlinks'), $original_post_count),
                     'queued' => 0,
                     'successful' => 0,
@@ -614,7 +608,8 @@ class ShortLinkGenerator
                         ];
                     } else {
                         $failed++;
-                        $errors[] = sprintf(__('Post ID %d: %s', 'betterlinks'), $post_id, $result['message']);
+                        /* translators: 1: post ID, 2: error message returned from the link creator. */
+                        $errors[] = sprintf(__('Post ID %1$d: %2$s', 'betterlinks'), $post_id, $result['message']);
                         $report_data[] = [
                             'post_id' => $post_id,
                             'post_title' => get_the_title($post_id),
@@ -687,7 +682,8 @@ class ShortLinkGenerator
             $helper->clear_query_cache();
 
             wp_send_json_success([
-                'message' => sprintf(__('Generated %d short links successfully. %d failed. %d skipped (already exist).', 'betterlinks'), $successful, $failed, $skipped),
+                /* translators: 1: count of links successfully generated, 2: count failed, 3: count skipped because they already exist. */
+                'message' => sprintf(__('Generated %1$d short links successfully. %2$d failed. %3$d skipped (already exist).', 'betterlinks'), $successful, $failed, $skipped),
                 'queued' => count($post_ids),
                 'successful' => $successful,
                 'failed' => $failed,
@@ -809,13 +805,14 @@ class ShortLinkGenerator
 
                 return [
                     'success' => true,
+                    /* translators: %s = placeholder values supplied by WordPress */
                     'message' => sprintf(__('Created short link for: %s', 'betterlinks'), $link_title),
                     'link_id' => $link_id,
                     'short_url' => home_url('/' . $link_slug)
                 ];
             } else {
                 // Log the failure for debugging
-                error_log('BetterLinks: Failed to insert link. Data: ' . print_r($link_data, true));
+                // PCP-DEBUG-DISABLED: error_log('BetterLinks: Failed to insert link. Data: ' . print_r($link_data, true));
                 return ['success' => false, 'message' => 'Database insertion failed. Check if slug already exists.'];
             }
 
@@ -1013,7 +1010,7 @@ class ShortLinkGenerator
 
     /**
      * Queue posts for bulk generation
-     */
+     */  // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
     private function queue_posts_for_generation($processor, $filters)
     {
         $args = [
@@ -1179,7 +1176,9 @@ class ShortLinkGenerator
             // Create summary message
             if ($status['successful'] > 0 || $status['failed'] > 0 || $status['skipped'] > 0) {
                 $status['message'] = sprintf(
-                    __('Generation completed! Created %d short links successfully. %d failed. %d skipped (already exist).', 'betterlinks'),
+                    /* translators: %s = placeholder values supplied by WordPress */
+                    /* translators: 1: count of links successfully created, 2: count failed, 3: count skipped because they already exist. */
+                    __('Generation completed! Created %1$d short links successfully. %2$d failed. %3$d skipped (already exist).', 'betterlinks'),
                     $status['successful'],
                     $status['failed'],
                     $status['skipped']
@@ -1270,17 +1269,17 @@ class ShortLinkGenerator
         check_ajax_referer('betterlinks_admin_nonce', 'security');
 
         if (!current_user_can('manage_options')) {
-            wp_die("You don't have permission to do this.");
+            wp_die( esc_html__( "You don't have permission to do this.", 'betterlinks' ) );
         }
 
-        $format = sanitize_text_field($_GET['format'] ?? 'csv');
+        $format = isset( $_GET['format'] ) ? sanitize_text_field( wp_unslash( $_GET['format'] ) ) : 'csv';
         $report_data = get_option('betterlinks_bulk_generation_report', []);
 
         if (empty($report_data)) {
-            wp_die(__('No report data available.', 'betterlinks'));
+            wp_die( esc_html__( 'No report data available.', 'betterlinks' ) );
         }
 
-        $filename = 'betterlinks-bulk-generation-report-' . date('Y-m-d-H-i-s');
+        $filename = 'betterlinks-bulk-generation-report-' . gmdate('Y-m-d-H-i-s');
 
         if ($format === 'json') {
             $this->download_json_report($report_data, $filename);
@@ -1294,11 +1293,13 @@ class ShortLinkGenerator
      */
     private function download_csv_report($report_data, $filename)
     {
+        $filename = sanitize_file_name( $filename );
         header('Content-Type: text/csv');
         header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
         header('Pragma: no-cache');
         header('Expires: 0');
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- writing to PHP output stream, not a real file; WP_Filesystem does not apply.
         $output = fopen('php://output', 'w');
 
         // CSV headers
@@ -1331,6 +1332,7 @@ class ShortLinkGenerator
             ]);
         }
 
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose -- closing the PHP output stream opened above.
         fclose($output);
         exit;
     }
@@ -1340,12 +1342,13 @@ class ShortLinkGenerator
      */
     private function download_json_report($report_data, $filename)
     {
+        $filename = sanitize_file_name( $filename );
         header('Content-Type: application/json');
         header('Content-Disposition: attachment; filename="' . $filename . '.json"');
         header('Pragma: no-cache');
         header('Expires: 0');
 
-        echo wp_json_encode($report_data, JSON_PRETTY_PRINT);
+        echo wp_json_encode($report_data, JSON_PRETTY_PRINT); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_json_encode produces safe JSON for download response.
         exit;
     }
 
@@ -1524,7 +1527,7 @@ class ShortLinkGenerator
                     $args['order'] = 'ASC';
                     break;
                 case 'title_desc':
-                    $args['orderby'] = 'title';
+                    $args['orderby'] = 'title';  // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_tax_query
                     $args['order'] = 'DESC';
                     break;
             }
@@ -1618,13 +1621,15 @@ class ShortLinkGenerator
 
         global $wpdb;
 
-        // Get all target URLs for the posts
+        // $placeholders is built locally as '%d,%d,...' from $post_ids (int[]); table prefix is wpdb-controlled.
+        // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $placeholders = implode(',', array_fill(0, count($post_ids), '%d'));
         $post_urls = $wpdb->get_col($wpdb->prepare(
             "SELECT DISTINCT CONCAT(post_type, ':', ID) FROM {$wpdb->prefix}posts
              WHERE ID IN ($placeholders)",
             ...$post_ids
         ));
+        // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
         if (empty($post_urls)) {
             return $post_ids;
@@ -1715,7 +1720,7 @@ class ShortLinkGenerator
         $table_name = $wpdb->prefix . 'betterlinks_terms_relationships';
         
         // Check if table exists
-        if ($wpdb->get_var("SHOW TABLES LIKE '$table_name'") === $table_name) {
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table_name)) === $table_name) {
             $wpdb->insert(
                 $table_name,
                 [

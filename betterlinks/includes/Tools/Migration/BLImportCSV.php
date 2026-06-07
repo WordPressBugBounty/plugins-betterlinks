@@ -35,14 +35,18 @@ class BLImportCSV extends BaseCSV implements ImportCsvInterface {
 				if ( $is_insert ) {
 					$click_message[] = 'Imported Successfully "' . $item['short_url'] . '"';
 				} else {
-					$click_message[] = 'import failed "' . $item['short_url'] . '" already exists';
+					$click_message[] = 'Skipped "' . $item['short_url'] . '" already exists';
 				}
 			} elseif ( is_array( $item ) && in_array( count( $item ), array( 24, 25, 26, 27 ) ) ) {
 				$is_insert = $this->insert_link_data( $item );
 				if ( $is_insert ) {
-					$link_message[] = 'Imported Successfully "' . $item['short_url'] . '"';
+					if ( $this->last_operation === 'updated' ) {
+						$link_message[] = 'Updated existing "' . $item['short_url'] . '"';
+					} else {
+						$link_message[] = 'Imported Successfully "' . $item['short_url'] . '"';
+					}
 				} else {
-					$link_message[] = 'import failed "' . $item['short_url'] . '" already exists';
+					$link_message[] = 'Skipped "' . $item['short_url'] . '" already exists';
 				}
 			}
 		}
@@ -59,7 +63,7 @@ class BLImportCSV extends BaseCSV implements ImportCsvInterface {
 				$auto_link_keywords = unserialize( $item['auto_link_keywords'] );
 
 				foreach ( $auto_link_keywords as $keyword ) {
-					['meta_key' => $meta_key, 'meta_value' => $meta_value] = $keyword;
+					['meta_key' => $meta_key, 'meta_value' => $meta_value] = $keyword;  // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value
 					if ( Helper::isJson( $meta_value ) ) {
 						$meta_value = json_decode( $meta_value, true );
 					}

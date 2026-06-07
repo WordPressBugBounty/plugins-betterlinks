@@ -4,6 +4,11 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 class BaseCSV {
 
+	// Tracks whether the most recent insert_link() call created a new link or
+	// overwrote an existing one. Importers read this to decide between
+	// "Imported Successfully" and "Updated existing" log messages.
+	protected $last_operation = 'inserted';
+
 	public function insert_link( $item ) {
 		if ( ! isset( $item['short_url'] ) ) {
 			return;
@@ -11,11 +16,13 @@ class BaseCSV {
 		$link    = \BetterLinks\Helper::get_link_by_short_url( $item['short_url'] );
 		$link_id = 0;
 		if ( count( $link ) > 0 ) {
-			$item['ID'] = current( $link )['ID'];
-			$link_id    = \BetterLinks\Helper::insert_link( $item, true );
+			$this->last_operation = 'updated';
+			$item['ID']           = current( $link )['ID'];
+			$link_id              = \BetterLinks\Helper::insert_link( $item, true );
 			\BetterLinks\Helper::remove_terms_relationships_by_link_ID( $link_id );
 		} else {
-			$link_id = \BetterLinks\Helper::insert_link( $item );
+			$this->last_operation = 'inserted';
+			$link_id              = \BetterLinks\Helper::insert_link( $item );
 		}
 		$tags      = \BetterLinks\Helper::insert_tags_terms( ( ! empty( $item['tags'] ) ? explode( ',', $item['tags'] ) : array() ) );
 		$category  = \BetterLinks\Helper::insert_category_terms( ( ! empty( $item['category'] ) ? explode( ',', $item['category'] ) : array( 'uncategorized' ) ) );

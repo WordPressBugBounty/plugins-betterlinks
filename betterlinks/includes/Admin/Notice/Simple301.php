@@ -20,6 +20,7 @@ class Simple301 extends MigrationNotice
             }
         } elseif (defined('SIMPLE301REDIRECTS_VERSION') && get_option('betterlinks_notice_s301r_migrate')) {
             if (!get_option('betterlinks_hide_notice_s301r_deactive')) {
+                // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page check, no state mutation.
                 if (!isset($_GET['page']) || (isset($_GET['page']) && $_GET['page'] !== '301options')) {
                     add_action('admin_notices', [$self, 'deactive_notice'], 100);
                 }
@@ -33,8 +34,8 @@ class Simple301 extends MigrationNotice
         ?>
         <div class="notice notice-info betterlinks-notice-simple301redirects-migrate <?php echo self::$pagenow !== 'admin.php' ? 'is-dismissible' : ''; ?>">
             <p>
-                <?php _e('Whoops! You are already using Simple 301 Redirects on your website. To migrate your Simple 301 Redirects data to BetterLinks, click here.', 'betterlinks'); ?>
-                <a href="<?php echo esc_url(admin_url('admin.php?page=betterlinks-settings&migration=simple301redirects')); ?>" class="button button-primary"><?php _e(
+                <?php esc_html_e('Whoops! You are already using Simple 301 Redirects on your website. To migrate your Simple 301 Redirects data to BetterLinks, click here.', 'betterlinks'); ?>
+                <a href="<?php echo esc_url(admin_url('admin.php?page=betterlinks-settings&migration=simple301redirects')); ?>" class="button button-primary"><?php esc_html_e(
             'Start Migration',
             'betterlinks'
         ); ?></a>
@@ -47,8 +48,8 @@ class Simple301 extends MigrationNotice
         ?>
         <div class="notice notice-error betterlinks-notice-deactive-simple301redirects <?php echo self::$pagenow !== 'admin.php' ? 'is-dismissible' : ''; ?>">
             <p>
-                <?php _e('All Simple 301 Redirects have been successfully migrated to BetterLinks. You can now safely deactivate Simple 301 Redirects on your website.', 'betterlinks'); ?>
-                <a href="#" class="button button-primary deactive"><?php _e('Deactivate Simple 301 Redirects', 'betterlinks'); ?></a>
+                <?php esc_html_e('All Simple 301 Redirects have been successfully migrated to BetterLinks. You can now safely deactivate Simple 301 Redirects on your website.', 'betterlinks'); ?>
+                <a href="#" class="button button-primary deactive"><?php esc_html_e('Deactivate Simple 301 Redirects', 'betterlinks'); ?></a>
             </p>
         </div>
         <?php
@@ -63,7 +64,7 @@ class Simple301 extends MigrationNotice
 				e.preventDefault();
 				jQuery.post(ajaxurl, {
 					'action': 'betterlinks/admin/deactive_simple301redirects',
-					'security': "<?php echo $nonce; ?>"
+					'security': "<?php echo esc_attr($nonce); ?>"
 				}, function(response) {
 					if(response.success){
 						location.reload(true); 
@@ -73,14 +74,14 @@ class Simple301 extends MigrationNotice
 			jQuery('.betterlinks-notice-deactive-simple301redirects button.notice-dismiss').on('click', function(){
 				jQuery.post(ajaxurl, {
 					'action': 'betterlinks/admin/migration_simple301redirects_notice_hide',
-					'security': "<?php echo $nonce; ?>",
+					'security': "<?php echo esc_attr($nonce); ?>",
 					'type': 'deactive'
 				}, function(response) {});
 			})
 			jQuery('.betterlinks-notice-simple301redirects-migrate button.notice-dismiss').on('click', function(){
 				jQuery.post(ajaxurl, {
 					'action': 'betterlinks/admin/migration_simple301redirects_notice_hide',
-					'security': "<?php echo $nonce; ?>",
+					'security': "<?php echo esc_attr($nonce); ?>",
 					'type': 'migrate'
 				}, function(response) {});
 			})

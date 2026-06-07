@@ -53,11 +53,13 @@ class Link extends Utils {
 
 	public function quick_link_creation() {
 		global $betterlinks_settings;
-		if ( isset( $_GET['action'], $_GET['api_key'] ) && sanitize_text_field( $_GET['action'] ) === 'btl_cle' && sanitize_text_field( $_GET['api_key'] ) === md5( AUTH_KEY ) ) {
-			$target_url = isset( $_GET['target_url'] ) ? sanitize_url( $_GET['target_url'] ) : '';
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- authenticated via md5(AUTH_KEY) api_key check below.
+		if ( isset( $_GET['action'], $_GET['api_key'] ) && sanitize_text_field( wp_unslash( $_GET['action'] ) ) === 'btl_cle' && sanitize_text_field( wp_unslash( $_GET['api_key'] ) ) === md5( AUTH_KEY ) ) {
+			$target_url = isset( $_GET['target_url'] ) ? sanitize_url( wp_unslash( $_GET['target_url'] ) ) : '';
 
 			do_action( 'betterlinks_prevent_unwanted_cle' );
-			$title = isset( $_GET['title'] ) ?  sanitize_text_field($_GET['title']) : ''; // geting title from document obj, instead of fetching
+			$title = isset( $_GET['title'] ) ?  sanitize_text_field( wp_unslash( $_GET['title'] ) ) : ''; // geting title from document obj, instead of fetching
+			// phpcs:enable WordPress.Security.NonceVerification.Recommended
 			if ( empty( $betterlinks_settings['cle']['enable_cle'] ) ) {
 				return;
 			}

@@ -72,6 +72,6 @@ class S30RBase
         if (strpos($url, "/") === 0) {
             return $url;
         }
-        return parse_url($url, PHP_URL_SCHEME) === null ? '/' . $url : $url;
+        return wp_parse_url($url, PHP_URL_SCHEME) === null ? '/' . $url : $url;
     }
 }
