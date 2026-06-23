@@ -118,6 +118,9 @@ class AIBulkLinks extends Controller {
 					'gemini_model'       => isset( $all_settings['gemini_model'] ) ? $all_settings['gemini_model'] : 'gemini-2.5-flash',
 					'openai_token_limit' => isset( $all_settings['openai_token_limit'] ) ? intval( $all_settings['openai_token_limit'] ) : 3000,
 					'gemini_token_limit' => isset( $all_settings['gemini_token_limit'] ) ? intval( $all_settings['gemini_token_limit'] ) : 3000,
+					// AI Link Assistant toggles (default ON when unset).
+					'enable_link_genius'     => isset( $all_settings['enable_link_genius'] ) ? (int) $all_settings['enable_link_genius'] : 1,
+					'enable_raw_link_rescue' => isset( $all_settings['enable_raw_link_rescue'] ) ? (int) $all_settings['enable_raw_link_rescue'] : 1,
 				),
 			),
 			200
@@ -201,6 +204,15 @@ class AIBulkLinks extends Controller {
 			$all_settings['gemini_token_limit'] = intval( $params['gemini_token_limit'] );
 		}
 
+		// AI Link Assistant feature toggles.
+		if ( isset( $params['enable_link_genius'] ) ) {
+			$all_settings['enable_link_genius'] = (int) (bool) $params['enable_link_genius'];
+		}
+
+		if ( isset( $params['enable_raw_link_rescue'] ) ) {
+			$all_settings['enable_raw_link_rescue'] = (int) (bool) $params['enable_raw_link_rescue'];
+		}
+
 		// Save API keys to secure separate option
 		$api_keys_json = json_encode( $api_keys );
 		if ( $api_keys_json ) {
@@ -227,6 +239,9 @@ class AIBulkLinks extends Controller {
 					'gemini_model'       => isset( $all_settings['gemini_model'] ) ? $all_settings['gemini_model'] : 'gemini-2.5-flash',
 					'openai_token_limit' => isset( $all_settings['openai_token_limit'] ) ? intval( $all_settings['openai_token_limit'] ) : 3000,
 					'gemini_token_limit' => isset( $all_settings['gemini_token_limit'] ) ? intval( $all_settings['gemini_token_limit'] ) : 3000,
+					// AI Link Assistant toggles (default ON when unset).
+					'enable_link_genius'     => isset( $all_settings['enable_link_genius'] ) ? (int) $all_settings['enable_link_genius'] : 1,
+					'enable_raw_link_rescue' => isset( $all_settings['enable_raw_link_rescue'] ) ? (int) $all_settings['enable_raw_link_rescue'] : 1,
 				),
 			),
 			200

@@ -216,7 +216,7 @@ class Notice {
 			"<div class='notice notice-success is-dismissible btl-dashboard-notice' id='btl-dashboard-notice'>
 				<p>
 				%s
-				<a target='_blank' href='https://betterlinks.io/docs/scheduled-scan-&-reports-with-betterlinks' style='display: inline-block'>
+				<a target='_blank' href='https://betterlinks.io/docs/ai-link-assistant-in-betterlinks' style='display: inline-block'>
 					%s
 				</a>
 				%s
@@ -224,10 +224,10 @@ class Notice {
 				%s
 				</p>
 		</div>",
-			esc_html__( 'NEW: BetterLinks Pro 2.7 now includes a powerful ', 'betterlinks' ),
-			esc_html__( 'Scheduled Scan & Reports', 'betterlinks' ),
-			esc_html__( ' functionality Check the full ', 'betterlinks' ),
-			esc_html__( 'Changelog', 'betterlinks' ),
+			esc_html__( 'NEW: BetterLinks Pro 2.8 now includes ', 'betterlinks' ),
+			esc_html__( 'AI Link Assistant', 'betterlinks' ),
+			esc_html__( ' feature, ', 'betterlinks' ),
+			esc_html__( 'Check the full Changelog', 'betterlinks' ),
 			esc_html__( ' for details.', 'betterlinks' ),
 		);
 	}

@@ -410,8 +410,29 @@ class PluginUsageTracker {
             $body['theme_version'] = sanitize_text_field( $theme->Version );
         }
 
-        $body['optional_data'] = array_merge( Helper::get_link_count(), Helper::get_password_protected_link_count(), Helper::used_features_by_client() ); 
-        
+        $body['optional_data'] = array_merge(
+            Helper::get_link_count(),
+            Helper::get_password_protected_link_count(),
+            Helper::get_redirect_type_breakdown(),
+            Helper::used_features_by_client()
+        );
+
+        /**
+         * Filter the WPInsights optional_data payload before it is sent.
+         *
+         * Lets Pro (or any add-on) contribute its own feature-adoption signals
+         * without free needing to hardcode every Pro option key or query
+         * Pro-owned tables (e.g. wp_betterlinks_meta_tags).
+         *
+         * Callbacks must return an array. Suggested keys: snake_case, prefixed
+         * with the feature area (e.g. `customize_link_preview_count`,
+         * `utm_templates_count`, `is_role_based_permissions_configured`).
+         *
+         * @since 2.4.13
+         * @param array $optional_data The data array that will be sent under `optional_data`.
+         */
+        $body['optional_data'] = apply_filters( 'betterlinks/wpinsights/optional_data', $body['optional_data'] );
+
         return $body;
     }
 

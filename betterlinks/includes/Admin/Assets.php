@@ -160,6 +160,9 @@ class Assets
             'betterlinks_nonce' => wp_create_nonce('betterlinks_admin_nonce'),
             'nonce' => wp_create_nonce('wp_rest'),
             'rest_url' => rest_url(),
+            // Needed by AJAX helpers used in the block editor (e.g. shortURLUniqueCheckGutenberg
+            // in the AutoLink sidebar); without it those calls logged "ajaxurl is not defined".
+            'ajaxurl' => admin_url('admin-ajax.php'),
             'namespace' => BETTERLINKS_PLUGIN_SLUG . '/v1/',
             'plugin_root_url' => BETTERLINKS_PLUGIN_ROOT_URI,
             'plugin_root_path' => BETTERLINKS_ROOT_DIR_PATH,
@@ -167,6 +170,9 @@ class Assets
             'actual_site_url' => site_url(),
             'route_path' => wp_parse_url(admin_url(), PHP_URL_PATH),
             'is_pro_enabled' => apply_filters('betterlinks/pro_enabled', false),
+            // Needed by pro_version_check() in the editor (e.g. the AI Link Assistant
+            // 2.8.0+ gate). Without it the check falls back to its "no Pro" early-return.
+            'betterlinkspro_version' => defined('BETTERLINKS_PRO_VERSION') ? BETTERLINKS_PRO_VERSION : null,
             'prefix' => $prefix,
             'betterlinks_settings' => $betterlinks_settings,
             // Add user permission information for free version

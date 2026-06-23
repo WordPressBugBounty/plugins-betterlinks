@@ -1241,12 +1241,79 @@ trait Query {
 	}
 
 	public static function used_features_by_client() {
-		return [
+		// Pull free settings (betterlinks_links holds force_https, affiliate_link_disclosure,
+		// excluded_ips, custom_domain.*) and Pro option blobs in one batch — all reads are
+		// cheap option lookups. Pro options return defaults on free-only installs.
+		$links_options       = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME, '{}' ), true );
+		$links_options       = is_array( $links_options ) ? $links_options : array();
+		$pro_external_anal   = get_option( 'betterlinkspro_ga', array() );
+		$pro_external_anal   = is_array( $pro_external_anal ) ? $pro_external_anal : array();
+		$pro_auto_link_raw   = get_option( 'betterlinkspro_auto_link_create', '' );
+		$pro_auto_link       = is_string( $pro_auto_link_raw ) && '' !== $pro_auto_link_raw ? json_decode( $pro_auto_link_raw, true ) : array();
+		$pro_auto_link       = is_array( $pro_auto_link ) ? $pro_auto_link : array();
+		$pro_reporting_raw   = get_option( 'betterlinkspro_reporting', '' );
+		$pro_reporting       = is_string( $pro_reporting_raw ) && '' !== $pro_reporting_raw ? json_decode( $pro_reporting_raw, true ) : array();
+		$pro_reporting       = is_array( $pro_reporting ) ? $pro_reporting : array();
+		$pro_broken_cfg_raw  = get_option( 'betterlinkspro_broken_link', '' );
+		$pro_broken_cfg      = is_string( $pro_broken_cfg_raw ) && '' !== $pro_broken_cfg_raw ? json_decode( $pro_broken_cfg_raw, true ) : array();
+		$pro_broken_cfg      = is_array( $pro_broken_cfg ) ? $pro_broken_cfg : array();
+
+		// AI Link Assistant ships in Pro 2.8.0+ and its toggles (in betterlinks_links)
+		// default ON, so a missing key looks "enabled" on every install. Gate on the
+		// stored Pro version to avoid over-reporting on free / older-Pro sites.
+		$pro_version            = get_option( 'betterlinks_pro_version', '' );
+		$is_link_assistant_live = ! empty( $pro_version ) && version_compare( $pro_version, '2.8.0', '>=' );
+
+		return array(
+			// existing — kept for backward compatibility with WPInsights dashboards
 			'betterlinks_broken_link_scanner' => !empty( get_option( 'betterlinkspro_broken_links_logs', [] ) ),
-			'fullsite_link_scanner' => !empty( get_option('betterlinkspro_fullsite_broken_links_logs_cleared', 0) ) || !empty( get_option( 'betterlinkspro_fullsite_broken_links_logs', [] ) ),
-			'ai_link_generator' => !empty( get_option( 'betterlinks_ai_generator_used', false ) ),
-			'utm_builder' => !empty( get_option( 'betterlinks_utm_builder_used', false ) ),
-		];
+			'fullsite_link_scanner'           => !empty( get_option( 'betterlinkspro_fullsite_broken_links_logs_cleared', 0 ) ) || !empty( get_option( 'betterlinkspro_fullsite_broken_links_logs', [] ) ),
+			'ai_link_generator'               => !empty( get_option( 'betterlinks_ai_generator_used', false ) ),
+			'utm_builder'                     => !empty( get_option( 'betterlinks_utm_builder_used', false ) ),
+			// new — settings toggles (Pro feature adoption)
+			'is_ga_enabled'                   => ! empty( $pro_external_anal['is_enable_ga'] ),
+			'is_pixel_enabled'                => ! empty( $pro_external_anal['is_enable_pixel'] ),
+			'is_custom_scripts_enabled'       => ! empty( $pro_external_anal['is_enable_custom_scripts'] ),
+			'is_custom_domain_configured'     => ! empty( $links_options['custom_domain']['enable_shortlink_custom_domain'] ) && ! empty( $links_options['custom_domain']['shortlink_custom_domain'] ),
+			'is_force_https_enabled'          => ! empty( $links_options['force_https'] ),
+			'is_affiliate_disclosure_enabled' => ! empty( $links_options['affiliate_link_disclosure'] ),
+			'is_exclude_ips_configured'       => isset( $links_options['excluded_ips'] ) && is_array( $links_options['excluded_ips'] ) && ! empty( $links_options['excluded_ips'] ),
+			'is_auto_create_links_enabled'    => ! empty( $pro_auto_link['post_shortlinks'] ) || ! empty( $pro_auto_link['page_shortlinks'] ),
+			'is_email_reports_enabled'        => ! empty( $pro_reporting['enable_reporting'] ),
+			'is_broken_link_scan_enabled'     => ! empty( $pro_broken_cfg['enable_scan'] ),
+			// AI Link Assistant — actual usage markers (set by Pro when the feature runs),
+			// the reliable signal for adoption since the settings toggles default ON.
+			'ai_link_assistant_used'                => !empty( get_option( 'betterlinks_link_genius_used', false ) ),
+			'link_suggestion_used'            => !empty( get_option( 'betterlinks_raw_link_rescue_used', false ) ),
+		);
+	}
+
+	/**
+	 * Per-redirect-type adoption rollup, sent to WPInsights so product can see
+	 * which redirect modes users actually create.
+	 *
+	 * Counts:
+	 *   - `cloak_redirect_count`               rows where redirect_type='cloak' (Pro)
+	 *   - `dynamic_redirect_rotation_count`    dynamic_redirect.type='rotation' (split test)
+	 *   - `dynamic_redirect_geographic_count`  dynamic_redirect.type='geographic'
+	 *   - `dynamic_redirect_device_count`      dynamic_redirect.type='device'
+	 *
+	 * LIKE patterns are used instead of MySQL JSON functions for compatibility
+	 * with MySQL 5.6 / MariaDB 10.1.
+	 */
+	public static function get_redirect_type_breakdown() {
+		global $wpdb;
+		// COALESCE wraps each SUM so a links table with zero matching rows
+		// reports 0 instead of NULL in the WPInsights payload.
+		$query = "SELECT
+				COALESCE(SUM(redirect_type='cloak'), 0) AS cloak_redirect_count,
+				COALESCE(SUM(dynamic_redirect LIKE '%\"type\":\"rotation\"%'), 0) AS dynamic_redirect_rotation_count,
+				COALESCE(SUM(dynamic_redirect LIKE '%\"type\":\"geographic\"%'), 0) AS dynamic_redirect_geographic_count,
+				COALESCE(SUM(dynamic_redirect LIKE '%\"type\":\"device\"%'), 0) AS dynamic_redirect_device_count
+			FROM {$wpdb->prefix}betterlinks;";
+
+		$count = $wpdb->get_row( $query, ARRAY_A );
+		return is_array( $count ) ? $count : array();
 	}
 
 	/**
