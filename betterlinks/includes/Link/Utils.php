@@ -75,7 +75,11 @@ class Utils {
 			$target_url .= ( isset( $_target_url['query'] ) ? '&' : '?' ) . $data['pf'];
 		}
 
-		if ( filter_var( $data['track_me'], FILTER_VALIDATE_BOOLEAN ) ) {
+		// A HEAD request is a metadata probe (uptime monitors, preview crawlers, CDN
+		// health checks), not a real visit — resolve the redirect but never record a
+		// click for it, otherwise those automated hits would inflate analytics.
+		$is_head = isset( $_SERVER['REQUEST_METHOD'] ) && 'HEAD' === strtoupper( $_SERVER['REQUEST_METHOD'] ); // phpcs:ignore
+		if ( ! $is_head && filter_var( $data['track_me'], FILTER_VALIDATE_BOOLEAN ) ) {
 			$user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ''; // phpcs:ignore
 			$dd         = new DeviceDetector( $user_agent );
 			$dd->parse();
@@ -85,7 +89,17 @@ class Utils {
 			$data['os']      = OperatingSystem::getOsFamily( $dd->getOs( 'name' ) );
 			$data['browser'] = Browser::getBrowserFamily( $dd->getClient( 'name' ) );
 			$data['device']  = $dd->getDeviceName();
-	
+
+			// Record which hits were bots so Analytics can split human vs bot
+			// traffic. Pro's extra-data tracking sets a richer bot_name via the
+			// filter above; this fills it in on free, where the detector already
+			// ran for the disablebotclicks check, so it costs nothing extra.
+			if ( empty( $data['bot_name'] ) && $dd->isBot() ) {
+				$bot              = $dd->getBot();
+				$bot_name         = isset( $bot['name'] ) ? $bot['name'] : 'Unknown';
+				$data['bot_name'] = substr( $bot_name, 0, 20 ); // column is VARCHAR(20)
+			}
+
 			if ( isset( $betterlinks['disablebotclicks'] ) && $betterlinks['disablebotclicks'] ) {
 				if ( ! $dd->isBot() ) {
 					$this->start_trakcing( $data );
@@ -143,10 +157,18 @@ class Utils {
 		$now            = current_time( 'mysql' );
 		$now_gmt        = current_time( 'mysql', 1 );
 		$visitor_cookie = 'betterlinks_visitor';
-		if ( ! isset( $_COOKIE[ $visitor_cookie ] ) ) {
+		// A visitor seen before sends the cookie back; anyone else is new and gets
+		// one issued now. PHP does not add a cookie set during this request to
+		// $_COOKIE, so keep the generated id in $visitor_id — reading the cookie
+		// back here would store an empty visitor_id for every first-time visitor
+		// and make them invisible to the new-vs-returning report.
+		$is_new_visitor = ! isset( $_COOKIE[ $visitor_cookie ] );
+		if ( $is_new_visitor ) {
 			$visitor_cookie_expire_time = time() + 60 * 60 * 24 * 365; // 1 year
-			$visitor_uid                = uniqid( 'bl' );
-			setcookie( $visitor_cookie, $visitor_uid, $visitor_cookie_expire_time, '/' );
+			$visitor_id                 = uniqid( 'bl' );
+			setcookie( $visitor_cookie, $visitor_id, $visitor_cookie_expire_time, '/' );
+		} else {
+			$visitor_id = sanitize_text_field( wp_unslash( $_COOKIE[ $visitor_cookie ] ) );
 		}
 		// checking if split tes enabled.
 		$is_split_enabled = apply_filters( 'betterlinkspro/admin/split_test_tracking', false, $data );
@@ -159,8 +181,12 @@ class Utils {
 			'referer'             => isset( $_SERVER['HTTP_REFERER'] ) ? $_SERVER['HTTP_REFERER'] : '', // phpcs:ignore
 			'uri'                 => $data['link_slug'],
 			'click_count'         => 0,
-			'visitor_id'          => isset( $_COOKIE[ $visitor_cookie ] ) ? sanitize_text_field( wp_unslash( $_COOKIE[ $visitor_cookie ] ) ) : '',
-			'click_order'         => 0,
+			'visitor_id'          => $visitor_id,
+			// 1 = visitor's first click, 2 = a later one. Deliberately not 0:
+			// every click written before this existed has 0, and those rows carry
+			// a visitor_id too, so 0 has to keep meaning "unknown" or the report
+			// would count all of that history as returning visitors.
+			'click_order'         => $is_new_visitor ? 1 : 2,
 			'created_at'          => $now,
 			'created_at_gmt'      => $now_gmt,
 			'rotation_target_url' => $data['target_url'],

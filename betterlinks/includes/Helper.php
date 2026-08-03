@@ -19,6 +19,47 @@ class Helper {
 	public static function btl_menu_notice() {
 		return BETTERLINKS_MENU_NOTICE !== get_option( 'betterlinks_menu_notice', 0 );
 	}
+
+	/**
+	 * Whether the clicks table has a `bot_name` column.
+	 *
+	 * Part of the current schema and added by the migration, but an install that
+	 * never ran the migration would fail the INSERT and silently lose the click,
+	 * so the write is guarded by this. Lives on Helper rather than in a trait
+	 * because both callers need it and they compose different traits: the insert
+	 * path (Traits\Query, also used by LinkChecker) and the audience report
+	 * (Traits\Clicks, also used by the REST controller).
+	 *
+	 * Cached like the user-agent check so the redirect path never hits
+	 * information_schema.
+	 *
+	 * @return bool
+	 */
+	public static function has_bot_name_column() {
+		global $wpdb;
+
+		$transient_key = 'betterlinks_bot_name_column_exists';
+		$column_exists = get_transient( $transient_key );
+
+		if ( $column_exists === false ) {
+			$column_exists = $wpdb->get_var(
+				$wpdb->prepare(
+					'SELECT `column_name` FROM information_schema.columns WHERE table_schema=%s AND table_name=%s AND column_name="bot_name"',
+					DB_NAME,
+					$wpdb->prefix . 'betterlinks_clicks'
+				)
+			);
+
+			// Normalise before the comparison below: the lookup returns the column
+			// NAME, so returning `$column_exists === 'yes'` directly would report
+			// false on the very first call after the cache expires and only start
+			// working once the cached value is read back.
+			$column_exists = $column_exists ? 'yes' : 'no';
+			set_transient( $transient_key, $column_exists, HOUR_IN_SECONDS );
+		}
+
+		return $column_exists === 'yes';
+	}
 	public static function get_links() {
 		if ( BETTERLINKS_EXISTS_LINKS_JSON ) {
 			$data = json_decode( file_get_contents( BETTERLINKS_UPLOAD_DIR_PATH . '/links.json' ), true );
@@ -81,11 +122,55 @@ class Helper {
 		}
 	}
 
+	/**
+	 * Whether the Promo Cards screen should be reachable.
+	 *
+	 * Free users always get it — the page is an upgrade teaser, so hiding it
+	 * would defeat the point. Only Pro users can switch it off, via the
+	 * "Feature Modules" settings card. The key is missing on installs that
+	 * predate it, which counts as enabled.
+	 *
+	 * @return bool
+	 */
+	public static function is_promo_cards_enabled() {
+		if ( ! apply_filters( 'betterlinks/pro_enabled', false ) ) {
+			return true;
+		}
+
+		$settings = Cache::get_json_settings();
+
+		return ! isset( $settings['enable_promo_cards'] ) || ! empty( $settings['enable_promo_cards'] );
+	}
+
+	/**
+	 * Whether the "Bio Links" submenu is enabled.
+	 *
+	 * Pro-only opt-out, same contract as is_promo_cards_enabled(): in free the
+	 * screen is the upgrade teaser, so it always stays reachable and only Pro
+	 * can hide it from the "Feature Modules" settings card. The key is missing
+	 * on installs that predate it, which counts as enabled.
+	 *
+	 * @return bool
+	 */
+	public static function is_bio_links_enabled() {
+		if ( ! apply_filters( 'betterlinks/pro_enabled', false ) ) {
+			return true;
+		}
+
+		$settings = Cache::get_json_settings();
+
+		return ! isset( $settings['enable_bio_links'] ) || ! empty( $settings['enable_bio_links'] );
+	}
+
 	public static function get_menu_items() {
 		// $enable_custom_domain_menu = get_option(BETTERLINKS_CUSTOM_DOMAIN_MENU, 0);
 		$enable_custom_domain_menu = Cache::get_json_settings();
 		$enable_custom_domain_menu = !empty( $enable_custom_domain_menu['enable_custom_domain_menu'] ) ?  $enable_custom_domain_menu['enable_custom_domain_menu'] : false;
 		
+		// Built in display order — do NOT go back to splicing conditional entries
+		// into an existing array. That is what previously put Bio Links and Promo
+		// Cards above Tags & Categories: every insert used index 1, so each new
+		// one landed directly after "Manage Links" and they stacked in reverse.
 		$menu_items = array(
 			BETTERLINKS_PLUGIN_SLUG                  => array(
 				'title'      => __( 'Manage Links', 'betterlinks' ),
@@ -95,40 +180,66 @@ class Helper {
 				'title'      => __( 'Tags & Categories', 'betterlinks' ),
 				'capability' => 'manage_options',
 			),
-			BETTERLINKS_PLUGIN_SLUG . '-analytics'   => array(
-				'title'      => __( 'Analytics', 'betterlinks' ),
-				'capability' => 'manage_options',
-			),
-			BETTERLINKS_PLUGIN_SLUG . '-link-scanner'   => array(
-				'title'      => __( 'Link Scanner', 'betterlinks' ),
-				'capability' => 'manage_options',
-			),
-			BETTERLINKS_PLUGIN_SLUG . '-settings'    => array(
-				'title'      => __( 'Settings', 'betterlinks' ),
-				'capability' => 'manage_options',
-			),
 		);
-		
 
-		if( get_option( 'betterlinks_quick_setup_step' ) !== 'complete' ){
-			$menu_items[BETTERLINKS_PLUGIN_SLUG . '-quick-setup'] = array(
+		if ( ! empty( $enable_custom_domain_menu ) ) {
+			$menu_items[ BETTERLINKS_PLUGIN_SLUG . '-custom-domain' ] = array(
+				'title'      => __( 'Custom Domain', 'betterlinks' ),
+				'capability' => 'manage_options',
+			);
+		}
+
+		// Free users reach the teaser through this same slug, so the submenu has
+		// to exist here too — otherwise WordPress rejects the page load before
+		// the React router ever sees it.
+		if ( self::is_promo_cards_enabled() ) {
+			$menu_items[ BETTERLINKS_PLUGIN_SLUG . '-promo-cards' ] = array(
+				'title'      => __( 'Promo Cards', 'betterlinks' ),
+				'capability' => 'manage_options',
+			);
+		}
+
+		// Same reasoning as Promo Cards above — free users reach the Bio Links
+		// teaser through this slug, so it must be registered here as well.
+		if ( self::is_bio_links_enabled() ) {
+			$menu_items[ BETTERLINKS_PLUGIN_SLUG . '-bio-links' ] = array(
+				'title'      => __( 'Bio Links', 'betterlinks' ),
+				'capability' => 'manage_options',
+			);
+		}
+
+		$menu_items[ BETTERLINKS_PLUGIN_SLUG . '-analytics' ]    = array(
+			'title'      => __( 'Analytics', 'betterlinks' ),
+			'capability' => 'manage_options',
+		);
+		$menu_items[ BETTERLINKS_PLUGIN_SLUG . '-link-scanner' ] = array(
+			'title'      => __( 'Link Scanner', 'betterlinks' ),
+			'capability' => 'manage_options',
+		);
+		$menu_items[ BETTERLINKS_PLUGIN_SLUG . '-settings' ]     = array(
+			'title'      => __( 'Settings', 'betterlinks' ),
+			'capability' => 'manage_options',
+		);
+
+		if ( get_option( 'betterlinks_quick_setup_step' ) !== 'complete' ) {
+			$menu_items[ BETTERLINKS_PLUGIN_SLUG . '-quick-setup' ] = array(
 				'title'      => __( 'Quick Setup', 'betterlinks' ),
 				'capability' => 'manage_options',
 			);
 		}
 
-		if( !empty( $enable_custom_domain_menu ) ){
-			$before = array_splice( $menu_items, 0, 2 );
-			$inserted = array(
-				BETTERLINKS_PLUGIN_SLUG . '-custom-domain' => array(
-					'title'      => __( 'Custom Domain', 'betterlinks' ),
-					'capability' => 'manage_options',
-				),
-			);
-			$menu_items = $before + $inserted + $menu_items;
+		$menu_items = apply_filters( 'betterlinks/helper/menu_items', $menu_items );
+
+		// Pro registers the same slug through the filter above, so the opt-out
+		// has to be re-applied afterwards to actually take effect.
+		if ( ! self::is_promo_cards_enabled() ) {
+			unset( $menu_items[ BETTERLINKS_PLUGIN_SLUG . '-promo-cards' ] );
+		}
+		if ( ! self::is_bio_links_enabled() ) {
+			unset( $menu_items[ BETTERLINKS_PLUGIN_SLUG . '-bio-links' ] );
 		}
 
-		return apply_filters( 'betterlinks/helper/menu_items', $menu_items );
+		return $menu_items;
 	}
 
 	/**

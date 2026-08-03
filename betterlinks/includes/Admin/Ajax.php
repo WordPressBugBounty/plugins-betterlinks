@@ -23,6 +23,7 @@ class Ajax {
 		add_action( 'wp_ajax_betterlinks/admin/search_clicks_data', array( $this, 'search_clicks_data' ) );
 		add_action( 'wp_ajax_betterlinks/admin/links_reorder', array( $this, 'links_reorder' ) );
 		add_action( 'wp_ajax_betterlinks/admin/links_move_reorder', array( $this, 'links_move_reorder' ) );
+		add_action( 'wp_ajax_betterlinks/admin/terms_reorder', array( $this, 'terms_reorder' ) );
 		add_action( 'wp_ajax_betterlinks/admin/get_links_by_short_url', array( $this, 'get_links_by_short_url' ) );
 		add_action( 'wp_ajax_betterlinks/admin/get_links_by_permalink', array( $this, 'get_links_by_permalink' ) );
 		add_action( 'wp_ajax_betterlinks/admin/get_cat_by_link_id', array( $this, 'get_category_by_link_id' ) );
@@ -688,6 +689,39 @@ class Ajax {
 						'link_order' => $key,
 					),
 					true
+				);
+			}
+		}
+		wp_send_json_success( array() );
+	}
+
+	/**
+	 * Persist the Board view's category (column) order.
+	 *
+	 * Receives an ordered, comma-separated list of category term IDs and writes
+	 * each one's position into the `term_order` column — which the terms query
+	 * already sorts by (`ORDER BY term_order ASC`). Categories are stored in the
+	 * BetterLinks terms table (no term JSON cache), so a direct update is safe.
+	 */
+	public function terms_reorder() {
+		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( "You don't have permission to do this." );
+		}
+		global $wpdb;
+		$terms = ( isset( $_POST['terms'] ) ? explode( ',', sanitize_text_field( wp_unslash( $_POST['terms'] ) ) ) : array() );
+		if ( count( $terms ) > 0 ) {
+			foreach ( $terms as $order => $term_id ) {
+				$term_id = absint( $term_id );
+				if ( ! $term_id ) {
+					continue;
+				}
+				$wpdb->update(
+					"{$wpdb->prefix}betterlinks_terms",
+					array( 'term_order' => (int) $order ),
+					array( 'ID' => $term_id ),
+					array( '%d' ),
+					array( '%d' )
 				);
 			}
 		}

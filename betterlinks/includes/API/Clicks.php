@@ -48,6 +48,45 @@ class Clicks extends Controller {
 
 		register_rest_route(
 			$this->namespace,
+			$endpoint . 'get_countries/',
+			array(
+				array(
+					'methods'             => \WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_countries' ),
+					'permission_callback' => array( $this, 'get_items_permissions_check' ),
+					'args'                => $this->get_clicks_schema(),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			$endpoint . 'get_audience/',
+			array(
+				array(
+					'methods'             => \WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_audience' ),
+					'permission_callback' => array( $this, 'get_items_permissions_check' ),
+					'args'                => $this->get_clicks_schema(),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
+			$endpoint . 'get_timing/',
+			array(
+				array(
+					'methods'             => \WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_timing' ),
+					'permission_callback' => array( $this, 'get_items_permissions_check' ),
+					'args'                => $this->get_clicks_schema(),
+				),
+			)
+		);
+
+		register_rest_route(
+			$this->namespace,
 			$endpoint . '(?P<id>[\d]+)',
 			array(
 				'args' => array(
@@ -174,6 +213,92 @@ class Clicks extends Controller {
 				'success' => true,
 				'data'    => array(
 					'clicks' => $graph_data,
+				),
+			)
+		);
+	}
+
+	/**
+	 * Get clicks aggregated by country for the range.
+	 *
+	 * Backs the Geography section: the choropleth map (every country) plus the
+	 * Top-countries list. Rows are `{ country_code (ISO alpha-2), country_name,
+	 * clicks, unique_clicks }`, already ordered by clicks desc. Countries are
+	 * only recorded when extra data tracking is on, so this is simply empty on
+	 * setups without it — the client renders a "not tracked" state in that case.
+	 *
+	 * @param WP_REST_Request $request Full data about the request.
+	 * @return WP_Error|WP_REST_Response
+	 */
+	public function get_countries( $request ) {
+		$request = $request->get_params();
+		$from    = isset( $request['from'] ) && $this->sanitize_date( $request['from'] ) ? $request['from'] : gmdate( 'Y-m-d', strtotime( ' - 30 days' ) );
+		$to      = isset( $request['to'] ) && $this->sanitize_date( $request['to'] ) ? $request['to'] : gmdate( 'Y-m-d' );
+
+		$countries = \BetterLinks\Services\CountryDetectionService::get_country_statistics( $from, $to );
+
+		return new \WP_REST_Response(
+			array(
+				'success' => true,
+				'data'    => array(
+					'countries' => $countries,
+				),
+			)
+		);
+	}
+
+	/**
+	 * Get clicks bucketed by weekday and hour for the range.
+	 *
+	 * Backs the Timing heatmap. Rows are `{ dow (0=Mon..6=Sun), hr (0..23),
+	 * clicks, unique_clicks }`; empty buckets are omitted and filled client-side.
+	 *
+	 * @param WP_REST_Request $request Full data about the request.
+	 * @return WP_Error|WP_REST_Response
+	 */
+	public function get_timing( $request ) {
+		$request = $request->get_params();
+		$from    = isset( $request['from'] ) && $this->sanitize_date( $request['from'] ) ? $request['from'] : gmdate( 'Y-m-d', strtotime( ' - 30 days' ) );
+		$to      = isset( $request['to'] ) && $this->sanitize_date( $request['to'] ) ? $request['to'] : gmdate( 'Y-m-d' );
+
+		$timing = $this->get_analytics_timing_data( $from, $to );
+
+		return new \WP_REST_Response(
+			array(
+				'success' => true,
+				'data'    => array(
+					'timing' => $timing,
+				),
+			)
+		);
+	}
+
+	/**
+	 * Audience composition for the range — human vs bot and new vs returning.
+	 *
+	 * Backs the two Overview stat cards. Each half carries a `tracked` flag so
+	 * the client can tell "no bots seen" from "this data predates bot tracking",
+	 * and `bots_blocked` reports the Disable Bot Clicks setting, under which bot
+	 * hits are never recorded and the split would read 100% human.
+	 *
+	 * @param WP_REST_Request $request Full data about the request.
+	 * @return WP_Error|WP_REST_Response
+	 */
+	public function get_audience( $request ) {
+		$request = $request->get_params();
+		$from    = isset( $request['from'] ) && $this->sanitize_date( $request['from'] ) ? $request['from'] : gmdate( 'Y-m-d', strtotime( ' - 30 days' ) );
+		$to      = isset( $request['to'] ) && $this->sanitize_date( $request['to'] ) ? $request['to'] : gmdate( 'Y-m-d' );
+
+		$audience = $this->get_analytics_audience_data( $from, $to );
+
+		$options                 = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
+		$audience['bots_blocked'] = ! empty( $options['disablebotclicks'] );
+
+		return new \WP_REST_Response(
+			array(
+				'success' => true,
+				'data'    => array(
+					'audience' => $audience,
 				),
 			)
 		);
@@ -321,10 +446,9 @@ class Clicks extends Controller {
 
 		$results      = $this->get_individual_analytics_clicks( $id, $from, $to );
 		$link_details = $this->get_individual_link_details( $id );
-		$graph_data   = array(
-			'total_count'  => array(),
-			'unique_count' => array(),
-		);
+		// The daily series is a plain count of this link's clicks, so free computes
+		// it too; Pro may still replace it through the filter below.
+		$graph_data = $this->get_individual_graph_data( $id, $from, $to );
 		$graph_data = apply_filters( 'betterlinkspro/get_individual_graph_data', $graph_data, $id, $from, $to );
 
 		return new \WP_REST_Response(
@@ -435,10 +559,7 @@ class Clicks extends Controller {
 
 		$results = $this->get_individual_analytics_clicks( $link_id, $from, $to );
 		$link_details = $this->get_individual_link_details( $link_id );
-		$graph_data = array(
-			'total_count'  => array(),
-			'unique_count' => array(),
-		);
+		$graph_data   = $this->get_individual_graph_data( $link_id, $from, $to );
 		$graph_data = apply_filters( 'betterlinkspro/get_individual_graph_data', $graph_data, $link_id, $from, $to );
 
 		return new \WP_REST_Response(

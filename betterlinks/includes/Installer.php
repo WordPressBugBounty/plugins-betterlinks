@@ -173,6 +173,8 @@ class Installer extends \WP_Background_Process
                 'is_autolink_headings'  => true,
                 'is_case_sensitive'     => false,
                 'enable_custom_domain_menu' => true,
+                'enable_promo_cards'    => true,
+                'enable_bio_links'      => true,
                 'enable_auto_title_suggestion' => true,
                 'enable_user_agent_tracking' => false,
                 'fbs'        => [

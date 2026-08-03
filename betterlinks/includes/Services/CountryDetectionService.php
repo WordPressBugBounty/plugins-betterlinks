@@ -302,12 +302,15 @@ class CountryDetectionService {
      * @param string $from Start date
      * @param string $to End date
      * @param int|null $link_id Optional link ID to filter by
+     * @param int|null $limit Optional row cap. Null returns every country, which
+     *                        the geography map needs so it can shade the whole
+     *                        world; the list view passes a small number.
      * @return array Country statistics
      */
-    public static function get_country_statistics( $from, $to, $link_id = null ) {
+    public static function get_country_statistics( $from, $to, $link_id = null, $limit = null ) {
         global $wpdb;
 
-        $cache_key = 'btl_country_stats_' . md5( $from . $to . $link_id );
+        $cache_key = 'btl_country_stats_' . md5( $from . $to . $link_id . '_' . $limit );
         $cached = get_transient( $cache_key );
 
         if ( $cached && is_array( $cached ) ) {
@@ -325,6 +328,12 @@ class CountryDetectionService {
             $params[] = $link_id;
         }
 
+        $limit_clause = '';
+        if ( null !== $limit ) {
+            $limit_clause = ' LIMIT %d';
+            $params[]     = (int) $limit;
+        }
+
         // Placeholders supplied via $params; $clicks_table/$countries_table/$where_clause built from controlled internal values.
         // phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
         $query = $wpdb->prepare(
@@ -333,8 +342,7 @@ class CountryDetectionService {
              LEFT JOIN {$countries_table} co ON c.country_id = co.id
              {$where_clause}
              GROUP BY c.country_id, co.country_code, co.country_name
-             ORDER BY clicks DESC
-             LIMIT 10",
+             ORDER BY clicks DESC{$limit_clause}",
             $params
         );
         // phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared

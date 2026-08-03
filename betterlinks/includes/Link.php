@@ -7,7 +7,12 @@ use DeviceDetector\DeviceDetector;
 
 class Link extends Utils {
 	public function __construct() {
-		if ( ! is_admin() && isset( $_SERVER['REQUEST_METHOD'] ) && 'GET' === $_SERVER['REQUEST_METHOD'] ) {
+		// HEAD must resolve the same as GET: uptime monitors, link-preview crawlers
+		// (Slack/WhatsApp/iMessage) and CDN health probes issue HEAD first, and if
+		// it 404s they report the link as broken. The redirect path below sends the
+		// status + Location via wp_redirect() and exits, so HEAD naturally gets the
+		// headers with no body; dispatch_redirect() skips click tracking for HEAD.
+		if ( ! is_admin() && isset( $_SERVER['REQUEST_METHOD'] ) && in_array( strtoupper( $_SERVER['REQUEST_METHOD'] ), array( 'GET', 'HEAD' ), true ) ) {
 			add_action( 'init', array( $this, 'run_redirect' ), 0 );
 			add_action( 'betterlinks_quick_link_creation', array( $this, 'quick_link_creation' ) );
 			add_action( 'betterlinks_prevent_unwanted_cle', array( $this, 'prevent_unwanted_cle' ) );

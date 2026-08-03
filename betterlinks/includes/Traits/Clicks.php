@@ -91,6 +91,174 @@ trait Clicks {
 	}
 
 	/**
+	 * Clicks bucketed by weekday and hour, for the Timing heatmap.
+	 *
+	 * One row per (weekday, hour) bucket that had at least one click, with both
+	 * the total click count and the distinct-visitor count. `WEEKDAY()` returns
+	 * 0=Monday..6=Sunday, which matches the Mon-first grid, and `HOUR()` returns
+	 * 0..23. Empty buckets are simply absent — the client fills the full grid.
+	 *
+	 * Uses `created_at` (site-local, like the graph aggregate) so an "18:00"
+	 * bucket reads as 6pm locally rather than in UTC.
+	 *
+	 * @param string $from Start date (Y-m-d).
+	 * @param string $to   End date (Y-m-d).
+	 * @return array Rows of { dow, hr, clicks, unique_clicks }.
+	 */
+	public function get_analytics_timing_data( $from, $to ) {
+		$transient_key = self::get_transient_key( 'btl_analytics_timing_', $from, $to );
+		if ( $results = get_transient( $transient_key ) ) {
+			return $results;
+		}
+
+		global $wpdb;
+
+		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
+		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
+
+		$query_params     = array( $from . ' 00:00:00', $to . ' 23:59:59' );
+		$where_conditions = array( 'created_at BETWEEN %s AND %s' );
+
+		if ( ! empty( $excluded_ips ) ) {
+			$placeholders       = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
+			$where_conditions[] = "ip NOT IN ({$placeholders})";
+			$query_params       = array_merge( $query_params, $excluded_ips );
+		}
+
+		$where_clause = 'WHERE ' . implode( ' AND ', $where_conditions );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$query = "SELECT WEEKDAY(created_at) as dow, HOUR(created_at) as hr, COUNT(id) as clicks, COUNT(DISTINCT ip) as unique_clicks
+			FROM {$wpdb->prefix}betterlinks_clicks {$where_clause} GROUP BY dow, hr";
+		$rows  = $wpdb->get_results( $wpdb->prepare( $query, $query_params ), ARRAY_A );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		$results = $rows ? $rows : array();
+		set_transient( $transient_key, $results, self::$transient_timeout );
+		return $results;
+	}
+
+	/**
+	 * Audience composition for the range: human vs bot, and new vs returning.
+	 *
+	 * Both splits read columns that were only filled in from the release that
+	 * added this report, so each half reports how many rows it could actually
+	 * classify (`tracked`) alongside the counts. Clicks older than that have no
+	 * bot flag and no visitor id; they are counted in `untracked` and the client
+	 * shows the split as unavailable when nothing is classifiable.
+	 *
+	 * - bot: `bot_name` is non-empty only for detected bots.
+	 * - visitors: `click_order` is 1 on a visitor's first tracked click.
+	 *   Distinct visitors are counted, not clicks, so one person browsing ten
+	 *   links is one returning visitor rather than ten.
+	 *
+	 * @param string $from The start date (Y-m-d).
+	 * @param string $to   The end date (Y-m-d).
+	 *
+	 * @return array {
+	 *     @type array $bot      { @type bool $tracked, @type int $human, @type int $bot, @type int $untracked }
+	 *     @type array $visitors { @type bool $tracked, @type int $new, @type int $returning, @type int $untracked }
+	 * }
+	 */
+	public function get_analytics_audience_data( $from, $to ) {
+		$transient_key = self::get_transient_key( 'btl_analytics_audience_', $from, $to );
+		if ( $results = get_transient( $transient_key ) ) {
+			return $results;
+		}
+
+		global $wpdb;
+
+		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
+		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
+
+		$query_params     = array( $from . ' 00:00:00', $to . ' 23:59:59' );
+		$where_conditions = array( 'created_at BETWEEN %s AND %s' );
+
+		if ( ! empty( $excluded_ips ) ) {
+			$placeholders       = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
+			$where_conditions[] = "ip NOT IN ({$placeholders})";
+			$query_params       = array_merge( $query_params, $excluded_ips );
+		}
+
+		$where_clause  = 'WHERE ' . implode( ' AND ', $where_conditions );
+		$clicks_table  = $wpdb->prefix . 'betterlinks_clicks';
+		$bot_supported = \BetterLinks\Helper::has_bot_name_column();
+
+		// Human vs bot, counted in clicks. Rows predating bot tracking have a
+		// NULL bot_name and cannot be attributed either way.
+		$bot = array(
+			'tracked'   => false,
+			'human'     => 0,
+			'bot'       => 0,
+			'untracked' => 0,
+		);
+
+		if ( $bot_supported ) {
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$bot_query = "SELECT
+					SUM( CASE WHEN bot_name IS NOT NULL AND bot_name <> '' THEN 1 ELSE 0 END ) AS bots,
+					SUM( CASE WHEN bot_name = '' THEN 1 ELSE 0 END ) AS humans,
+					SUM( CASE WHEN bot_name IS NULL THEN 1 ELSE 0 END ) AS untracked
+				FROM {$clicks_table} {$where_clause}";
+			$bot_row   = $wpdb->get_row( $wpdb->prepare( $bot_query, $query_params ), ARRAY_A );
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+			if ( $bot_row ) {
+				$bot['bot']       = (int) $bot_row['bots'];
+				$bot['human']     = (int) $bot_row['humans'];
+				$bot['untracked'] = (int) $bot_row['untracked'];
+				$bot['tracked']   = ( $bot['bot'] + $bot['human'] ) > 0;
+			}
+		}
+
+		// New vs returning, counted in distinct visitors. click_order is 1 on a
+		// visitor's first click and 2 on later ones; 0 means the click predates
+		// visitor tracking and cannot be classified either way.
+		//
+		// Each visitor is bucketed by their EARLIEST click in the range, so
+		// someone who arrives and comes back inside the same range counts once,
+		// as new — taking the rows at face value would count them in both halves.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$visitor_query = "SELECT
+				SUM( CASE WHEN first_order = 1 THEN 1 ELSE 0 END ) AS new_visitors,
+				SUM( CASE WHEN first_order = 2 THEN 1 ELSE 0 END ) AS returning_visitors
+			FROM (
+				SELECT visitor_id, MIN( click_order ) AS first_order
+				FROM {$clicks_table} {$where_clause} AND visitor_id <> '' AND click_order > 0
+				GROUP BY visitor_id
+			) AS v";
+		$visitor_row   = $wpdb->get_row( $wpdb->prepare( $visitor_query, $query_params ), ARRAY_A );
+
+		$untracked_query = "SELECT COUNT(*) FROM {$clicks_table} {$where_clause}
+			AND ( visitor_id IS NULL OR visitor_id = '' OR click_order = 0 )";
+		$untracked_count = (int) $wpdb->get_var( $wpdb->prepare( $untracked_query, $query_params ) );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		$visitors = array(
+			'tracked'   => false,
+			'new'       => 0,
+			'returning' => 0,
+			'untracked' => 0,
+		);
+
+		$visitors['untracked'] = $untracked_count;
+
+		if ( $visitor_row ) {
+			$visitors['new']       = (int) $visitor_row['new_visitors'];
+			$visitors['returning'] = (int) $visitor_row['returning_visitors'];
+			$visitors['tracked']   = ( $visitors['new'] + $visitors['returning'] ) > 0;
+		}
+
+		$results = array(
+			'bot'      => $bot,
+			'visitors' => $visitors,
+		);
+
+		set_transient( $transient_key, $results, self::$transient_timeout );
+		return $results;
+	}
+
+	/**
 	 * Get Analytics Graph Data by Tag ID
 	 *
 	 * @param $from The start time.
@@ -292,7 +460,66 @@ trait Clicks {
 
 		set_transient( $transient_key, $results, self::$transient_timeout );
 		return $results;
-	}	/**
+	}
+
+	/**
+	 * Daily clicks series for ONE link — the same aggregate as
+	 * `get_analytics_graph_data()`, scoped to a single `link_id`.
+	 *
+	 * This is a plain COUNT/GROUP BY over the clicks table, so it needs no
+	 * extra-data tracking and belongs in free: the single-link overview reads its
+	 * "Total clicks" tile and its clicks-over-time chart from this, and without it
+	 * both read zero while the click log right below them lists the very rows the
+	 * count is missing.
+	 *
+	 * @param int|string $id   Link id.
+	 * @param string     $from The start time.
+	 * @param string     $to   The end time.
+	 *
+	 * @return array { total_count: rows of { click_count, c_date }, unique_count: rows of { uniq_count, c_date } }
+	 */
+	public function get_individual_graph_data( $id, $from, $to ) {
+		$transient_key = self::get_transient_key( 'btl_individual_graph_data_', $from, $to, $id );
+		if ( $results = get_transient( $transient_key ) ) {
+			return $results;
+		}
+
+		global $wpdb;
+
+		// Get excluded IPs and build safe query parameters
+		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
+		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
+
+		$query_params     = array( $id, $from . ' 00:00:00', $to . ' 23:59:59' );
+		$where_conditions = array( 'link_id=%d', 'created_at BETWEEN %s AND %s' );
+
+		if ( ! empty( $excluded_ips ) ) {
+			$placeholders       = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
+			$where_conditions[] = "ip NOT IN ({$placeholders})";
+			$query_params       = array_merge( $query_params, $excluded_ips );
+		}
+
+		$where_clause = 'WHERE ' . implode( ' AND ', $where_conditions );
+
+		$total_query  = "SELECT count(id) as click_count, DATE(created_at) as c_date FROM {$wpdb->prefix}betterlinks_clicks
+            {$where_clause} GROUP BY c_date ORDER BY c_date DESC";
+		$total_counts = $wpdb->get_results( $wpdb->prepare( $total_query, $query_params ), ARRAY_A );
+
+		// Unique counts query - the where clause sits in the subselect, so the same
+		// params are passed once, not twice.
+		$unique_query  = "SELECT count(ip) as uniq_count, T1.c_date from ( SELECT ip, DATE( created_at ) as c_date FROM {$wpdb->prefix}betterlinks_clicks
+            {$where_clause} GROUP BY `ip`, `c_date` ) as T1 GROUP BY T1.c_date ORDER BY T1.c_date DESC";
+		$unique_counts = $wpdb->get_results( $wpdb->prepare( $unique_query, $query_params ), ARRAY_A );
+
+		$results = array(
+			'total_count'  => is_array( $total_counts ) ? $total_counts : array(),
+			'unique_count' => is_array( $unique_counts ) ? $unique_counts : array(),
+		);
+		set_transient( $transient_key, $results, self::$transient_timeout );
+		return $results;
+	}
+
+	/**
 	 * Returns individual link details
 	 *
 	 * @param int|string $id link id.

@@ -49,7 +49,13 @@ class Assets
                 1
             );
             $dependencies = include_once BETTERLINKS_ASSETS_DIR_PATH . 'js/betterlinks.core.min.asset.php';
-            wp_enqueue_style('betterlinks-admin-style', BETTERLINKS_ASSETS_URI . 'css/betterlinks.css', [], $dependencies['version'], 'all');
+            // Version the stylesheet from its own mtime, not from the JS bundle
+            // hash: a build that only changes SCSS leaves that hash untouched,
+            // so browsers kept serving stale CSS and style fixes looked like
+            // they had no effect.
+            $admin_style_path = BETTERLINKS_ASSETS_DIR_PATH . 'css/betterlinks.css';
+            $admin_style_ver  = file_exists($admin_style_path) ? (string) filemtime($admin_style_path) : $dependencies['version'];
+            wp_enqueue_style('betterlinks-admin-style', BETTERLINKS_ASSETS_URI . 'css/betterlinks.css', [], $admin_style_ver, 'all');
             wp_enqueue_script(
                 'betterlinks-admin-core',
                 BETTERLINKS_ASSETS_URI . 'js/betterlinks.core.min.js',
@@ -87,6 +93,8 @@ class Assets
                 'migratable_plugins' => Helper::get_migratable_plugins(),
                 // Add user permission information for free version
                 'user_can_manage_options' => current_user_can('manage_options'),
+                // Term IDs that cannot be edited/deleted in the UI (Uncategorized + extensions).
+                'protected_term_ids' => array_values(array_map('intval', (array) apply_filters('betterlinks/protected_term_ids', array(1)))),
             ]);
 
             $menu_notice = get_option('betterlinks_menu_notice', 0);
@@ -96,7 +104,11 @@ class Assets
         }
         wp_set_script_translations('betterlinks-admin-core', 'betterlinks', BETTERLINKS_ROOT_DIR_PATH . 'languages/');
         if ( ! in_array( $hook, ['post.php', 'post-new.php'] ) ) {
-            wp_enqueue_style('betterlinks-admin-notice', BETTERLINKS_ASSETS_URI . 'css/betterlinks-admin-notice.css', [], BETTERLINKS_VERSION, 'all');
+            // Version from the file's mtime (not BETTERLINKS_VERSION) so CSS-only
+            // edits invalidate the browser cache — same reason as betterlinks.css above.
+            $notice_style_path = BETTERLINKS_ASSETS_DIR_PATH . 'css/betterlinks-admin-notice.css';
+            $notice_style_ver  = file_exists($notice_style_path) ? (string) filemtime($notice_style_path) : BETTERLINKS_VERSION;
+            wp_enqueue_style('betterlinks-admin-notice', BETTERLINKS_ASSETS_URI . 'css/betterlinks-admin-notice.css', [], $notice_style_ver, 'all');
         }
         if( 'toplevel_page_fluent-boards' == $hook ){
             $dependencies = include_once BETTERLINKS_ASSETS_DIR_PATH . 'js/betterlinks-intflboards.core.min.asset.php';

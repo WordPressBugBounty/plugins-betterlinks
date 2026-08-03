@@ -3,9 +3,9 @@ Contributors: wpdevteam, re_enter_rupok, asif2bd, priyomukul, hasandev
 Donate link: https://wpdeveloper.com
 Tags: affiliate links, cloaking, link shortener, short links, redirects
 Requires at least: 5.0
-Tested up to: 7.0
+Tested up to: 7.0.2
 Requires PHP: 7.4
-Stable tag: 2.4.13
+Stable tag: 3.0.0
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -85,6 +85,8 @@ https://www.youtube.com/watch?v=ZJqBrFhQC1A
 - Global UTM Builder [PRO]
 - Auto Post Link Generator [PRO]
 - AI Bulk Link Generator [PRO]
+- Promo Cards [PRO]
+- Bio Links [PRO]
 
 [ALL FEATURES](https://betterlinks.io/features/) | [DOCUMENTATION](https://betterlinks.io/docs/) | [PRICING](https://betterlinks.io/#pricing)
 
@@ -144,17 +146,45 @@ Visit [WPDeveloper](https://wpdeveloper.com/) to learn more about how to do bett
 
 == Frequently Asked Questions ==
 
-= Does it work with any WordPress theme? =
+= What is BetterLinks used for? =
 
-Yes, it will work with any standard WordPress theme.
+BetterLinks is a WordPress link management plugin for creating short links, branded links, affiliate links, redirects, and trackable campaign URLs directly from your WordPress dashboard.
 
-= Can I migrate to BetterLinks from any plugin? =
+= Who should use BetterLinks? =
 
-If you were previously using any link shortener and redirection plugin, you can migrate to BetterLinks instantly.
+BetterLinks is useful for affiliate marketers, bloggers, SEO professionals, agencies, creators, ecommerce teams, and website owners who need to shorten, cloak, organize, redirect, and track links in WordPress.
 
-= Who can benefit more from BetterLinks? =
+= Can I create branded short links with BetterLinks? =
 
-BetterLinks is very useful for website owners, affiliate marketers, SEO experts or anyone who requires link shortening, redirection, tracking or overall link management on WordPress.
+Yes. BetterLinks lets you create clean, branded, short URLs from your WordPress site so your links are easier to share, remember, and manage.
+
+= Does BetterLinks track link clicks and analytics? =
+
+Yes. BetterLinks includes link tracking and analytics so you can monitor clicks, understand campaign performance, and analyze which links are working best.
+
+= Can I use BetterLinks for affiliate link management? =
+
+Yes. BetterLinks is built for affiliate link management, including shortening, cloaking, organizing, tracking, and managing affiliate URLs from one dashboard.
+
+= Does BetterLinks include a UTM builder? =
+
+Yes. BetterLinks includes UTM campaign-building features so you can add campaign parameters to URLs and track marketing performance more consistently.
+
+= Can BetterLinks scan my website links? =
+
+BetterLinks includes full-site link scanning features that help you review links across your site, detect link status, and manage active or broken links more efficiently.
+
+= Can I migrate from another link shortener plugin to BetterLinks? =
+
+Yes. If you previously used another link shortener, redirection, or link management plugin, BetterLinks provides migration options to help you move your links into BetterLinks.
+
+= Does BetterLinks support AI-powered link management? =
+
+BetterLinks includes AI-powered link management features such as bulk link generation and categorization workflows that can help you create and organize links faster.
+
+= Can I use a custom domain with BetterLinks? =
+
+Yes. BetterLinks supports custom domain workflows so you can create and manage short, brandable URLs with your own domain setup.
 
 
 
@@ -162,6 +192,12 @@ BetterLinks is very useful for website owners, affiliate marketers, SEO experts 
 
 
 == Changelog ==
+
+= 3.0.0 - 03/08/2026 =
+
+- Added: All-new interface with a refreshed, optimized design
+- Improvement: Streamlined workflows with better performance and accessibility
+- Few minor bug fixes & improvements
 
 = 2.4.13 - 23/06/2026 =
 

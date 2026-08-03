@@ -243,6 +243,22 @@ class Terms extends Controller
 			'cat_name' => (isset($request['params']['term_name']) ? sanitize_text_field($request['params']['term_name']) : ''),
 			'cat_slug' => (isset($request['params']['term_slug']) ? sanitize_text_field($request['params']['term_slug']) : ''),
 		);
+
+		// Protected categories (e.g. "Uncategorized", "Link in Bio") cannot be renamed.
+		$protected = array_map('intval', (array) apply_filters('betterlinks/protected_term_ids', array(1)));
+		if ($args['cat_id'] && in_array((int) $args['cat_id'], $protected, true)) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'data'    => array(
+						'message' => __('This category is protected and cannot be edited.', 'betterlinks'),
+						'term_id' => $args['cat_id'],
+					),
+				),
+				403
+			);
+		}
+
 		$this->update_term($args);
 		return new \WP_REST_Response(
 			array(
@@ -273,12 +289,13 @@ class Terms extends Controller
 			$term_id_to_delete = $request['tag_id'];
 		}
 
-		if ($term_id_to_delete && ($term_id_to_delete == 1 || $term_id_to_delete === '1')) {
+		$protected = array_map('intval', (array) apply_filters('betterlinks/protected_term_ids', array(1)));
+		if ($term_id_to_delete && in_array((int) $term_id_to_delete, $protected, true)) {
 			return new \WP_REST_Response(
 				array(
 					'success' => false,
 					'data'    => array(
-						'message' => __('Cannot delete the default "Uncategorized" category.', 'betterlinks'),
+						'message' => __('This category is protected and cannot be deleted.', 'betterlinks'),
 						'term_id' => $term_id_to_delete,
 					),
 				),

@@ -659,11 +659,18 @@ trait Query {
 	$should_include_user_agent = $is_user_agent_tracking_enabled && $user_agent_column_exists && isset( $item['user_agent'] );
 	if ( $should_include_user_agent ) {
 		$user_agent_id = self::get_or_insert_user_agent_id( $item['user_agent'] );
-	}		if ( $is_extra_data_tracking_compatible ) {
+	}		// Pro's extra-data tracking already carries bot_name in its column block;
+		// on free, write it on its own so the human-vs-bot split has data there too.
+		$should_include_bot_name = ! $is_extra_data_tracking_compatible && \BetterLinks\Helper::has_bot_name_column();
+
+		if ( $is_extra_data_tracking_compatible ) {
 			$addedPlaceholderString .= ', brand_name, model, bot_name, browser_type, os_version, browser_version, language, query_params';
 			$addedDbColumnsString   .= ', %s, %s, %s, %s, %s, %s, %s, %s';
+		} elseif ( $should_include_bot_name ) {
+			$addedPlaceholderString .= ', bot_name';
+			$addedDbColumnsString   .= ', %s';
 		}
-		
+
 		// Add user agent ID to the query only if column exists
 		if ( $should_include_user_agent ) {
 			$addedPlaceholderString .= ', user_agent_id';
@@ -704,8 +711,10 @@ trait Query {
 			$db_data_array[] = isset( $item['browser_version'] ) ? $item['browser_version'] : '';
 			$db_data_array[] = isset( $item['language'] ) ? $item['language'] : '';
 			$db_data_array[] = isset( $item['query_params'] ) ? $item['query_params'] : '';
+		} elseif ( $should_include_bot_name ) {
+			$db_data_array[] = isset( $item['bot_name'] ) ? $item['bot_name'] : '';
 		}
-		
+
 		// Add user agent ID to data array only if column exists
 		if ( $should_include_user_agent ) {
 			$db_data_array[] = $user_agent_id;
@@ -842,7 +851,10 @@ trait Query {
 		global $wpdb;
 		$prefix                          = $wpdb->prefix;
 		$individual_analytics_cache_keys = 'btl_individual_analytics_clicks_|btl_individual_graph_data_';
-		$all_analytics_cache_keys        = 'betterlinks_analytics_data|btl_analytics_unique_list_|btl_analytics_unique_list_by_tag_|btl_analytics_graph_|btl_analytics_graph_by_tag_|btl_top_referer_|btl_click_stats_|btl_top_os_|btl_top_browser_|btl_all_referer_|btl_tags_analytics|btl_categories_analytics|btl_analytics_data_|btl_unique_clicks_count_';
+		// Every btl_analytics_* transient belongs here — one left out keeps serving
+		// figures from before the clicks changed until its own 30-minute TTL runs
+		// out, which reads as "the report is broken".
+		$all_analytics_cache_keys        = 'betterlinks_analytics_data|btl_analytics_unique_list_|btl_analytics_unique_list_by_tag_|btl_analytics_graph_|btl_analytics_graph_by_tag_|btl_analytics_audience_|btl_analytics_timing_|btl_top_referer_|btl_click_stats_|btl_top_os_|btl_top_browser_|btl_all_referer_|btl_tags_analytics|btl_categories_analytics|btl_analytics_data_|btl_unique_clicks_count_';
 		$query                           = "DELETE FROM {$prefix}options WHERE option_name regexp '{$individual_analytics_cache_keys}|{$all_analytics_cache_keys}'";
 
 		$result = $wpdb->query( $query );
@@ -1323,7 +1335,7 @@ trait Query {
 	 */
 	private static function get_user_agent_column_exists() {
 		global $wpdb;
-		
+
 		$transient_key = 'betterlinks_user_agent_column_exists';
 		$column_exists = get_transient( $transient_key );
 		

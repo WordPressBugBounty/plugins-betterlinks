@@ -211,24 +211,35 @@ class Notice {
 		}
 	}
 
+	/**
+	 * The "what's new in Pro" bar above the BetterLinks navbar.
+	 *
+	 * Keeps `notice is-dismissible` and the `btl-dashboard-notice` id: WordPress
+	 * injects the dismiss button into `.notice.is-dismissible`, and `App.js` binds
+	 * the persistence AJAX call to that injected `.notice-dismiss` element. The
+	 * `btl-notice` classes are what `_admin-notices.scss` styles; without that
+	 * stylesheet this still degrades to an ordinary WordPress success notice.
+	 */
 	public function new_feature_notice() {
 		printf(
-			"<div class='notice notice-success is-dismissible btl-dashboard-notice' id='btl-dashboard-notice'>
-				<p>
-				%s
-				<a target='_blank' href='https://betterlinks.io/docs/ai-link-assistant-in-betterlinks' style='display: inline-block'>
-					%s
-				</a>
-				%s
-				<a target='_blank' href='https://betterlinks.io/changelog/'>%s</a>
-				%s
+			'<div class="notice notice-success is-dismissible btl-dashboard-notice btl-notice btl-notice--new" id="btl-dashboard-notice">
+				<p class="btl-notice__body">
+					<span class="btl-notice__pill">%1$s</span>
+					<span class="btl-notice__text"><strong>%2$s</strong>%3$s<a class="btl-notice__link" target="_blank" rel="noopener noreferrer" href="%4$s">%5$s</a>%6$s<a class="btl-notice__link" target="_blank" rel="noopener noreferrer" href="%7$s">%8$s</a>%9$s<a class="btl-notice__link" target="_blank" rel="noopener noreferrer" href="%10$s">%11$s</a>%12$s</span>
 				</p>
-		</div>",
-			esc_html__( 'NEW: BetterLinks Pro 2.8 now includes ', 'betterlinks' ),
-			esc_html__( 'AI Link Assistant', 'betterlinks' ),
-			esc_html__( ' feature, ', 'betterlinks' ),
-			esc_html__( 'Check the full Changelog', 'betterlinks' ),
-			esc_html__( ' for details.', 'betterlinks' ),
+			</div>',
+			esc_html__( 'NEW', 'betterlinks' ),
+			esc_html__( 'BetterLinks Pro 3.0 New UI is here!', 'betterlinks' ),
+			esc_html__( ' Explore ', 'betterlinks' ),
+			esc_url( 'https://betterlinks.io/docs/create-promo-cards-with-betterlinks' ),
+			esc_html__( 'Promo Cards', 'betterlinks' ),
+			esc_html__( ', ', 'betterlinks' ),
+			esc_url( 'https://betterlinks.io/docs/create-link-in-bio-betterlinks' ),
+			esc_html__( 'Bio Links', 'betterlinks' ),
+			esc_html__( ', and a refreshed experience. See the ', 'betterlinks' ),
+			esc_url( 'https://betterlinks.io/changelog/' ),
+			esc_html__( 'changelog', 'betterlinks' ),
+			esc_html__( '.', 'betterlinks' )
 		);
 	}
 
@@ -388,7 +399,7 @@ class Notice {
 			self::$cache_bank->clear_notices_in_( [
 				'toplevel_page_betterlinks',
 				'betterlinks_page_betterlinks-keywords-linking',
-				'betterlinks_page_betterlinks-manage-tags',
+				'betterlinks_page_betterlinks-manage-tags-and-categories',
 				'betterlinks_page_betterlinks-custom-domain',
 				'betterlinks_page_betterlinks-analytics',
 				'betterlinks_page_betterlinks-settings',

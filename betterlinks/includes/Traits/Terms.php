@@ -157,10 +157,19 @@ trait Terms {
 		return $updated_tag ?: $args;
 	}
 	public function delete_term( $args ) {
-		if ( isset( $args['cat_id'] ) && $args['cat_id'] != 1 ) {
+		/**
+		 * Term IDs that can never be deleted/renamed. Defaults to the built-in
+		 * "Uncategorized" category (ID 1); extensions (e.g. the Pro "Link in Bio"
+		 * category) add their own protected IDs here.
+		 *
+		 * @param int[] $ids
+		 */
+		$protected = (array) apply_filters( 'betterlinks/protected_term_ids', array( 1 ) );
+
+		if ( isset( $args['cat_id'] ) && '' !== $args['cat_id'] && ! in_array( (int) $args['cat_id'], array_map( 'intval', $protected ), true ) ) {
 			\BetterLinks\Helper::delete_term_and_update_term_relationships( $args['cat_id'] );
 		}
-		if ( isset( $args['tag_id'] ) && '' !== $args['tag_id'] && $args['tag_id'] != 1 ) {
+		if ( isset( $args['tag_id'] ) && '' !== $args['tag_id'] && ! in_array( (int) $args['tag_id'], array_map( 'intval', $protected ), true ) ) {
 			\BetterLinks\Helper::delete_term_and_update_term_relationships( $args['tag_id'] );
 		}
 	}
