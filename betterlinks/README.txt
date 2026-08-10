@@ -1,197 +1,248 @@
-=== BetterLinks – URL Shortener, Link Tracking, Analytics & Affiliate Link Manager ===
+=== BetterLinks – Link Shortener, Link Cloaking, Redirects & Affiliate Link Manager ===
 Contributors: wpdevteam, re_enter_rupok, asif2bd, priyomukul, hasandev
 Donate link: https://wpdeveloper.com
-Tags: affiliate links, cloaking, link shortener, short links, redirects
-Requires at least: 5.0
-Tested up to: 7.0.2
+Tags: link shortener, affiliate links, redirects, link cloaking, url shortener
+Requires at least: 5.3
+Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 3.0.0
+Stable tag: 3.0.1
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
-Ultimate plugin to create, shorten, track and manage any URL. Gather analytics reports and run successful marketing campaigns easily.
-
+Shorten, cloak, redirect & track every link in WordPress. Branded short URLs, click analytics, broken link scanner & affiliate link management.
 
 == Description ==
 
-Want to make your brand stand out? [BetterLinks](https://betterlinks.io/) brings you the chance to easily create, shorten and manage any URL to help you cross-promote your brands & products. With its intuitive & easy to understand user interface, you can - short any links, do split tests with dynamic redirects, check broken links, monitor campaigns with UTM builder, manage user roles, examine click-through rates, create links without admin access, track analytics, and much more without breaking any sweat to make each marketing campaigns successful.
+**BetterLinks is the complete link management plugin for WordPress.** Turn long, ugly URLs into short, branded, memorable links — then cloak them, redirect them, organize them and track every single click, all from one dashboard inside WordPress.
 
-## WHY YOU NEED BETTERLINKS 🔥
+No third-party URL shortener. No monthly subscription for basic link tracking. Your links live on your own domain, and your click data stays in your own database.
 
-- Easy-to-use WordPress link shortener
-- Create attractive looking links instantly
-- Create Short Link on the fly with just one click even without admin access.
-- Add multiple link redirect types (301, 302, 307)
-- Analyze & track your marketing campaigns
-- Enhance your affiliate marketing strategies
-- Manage your links directly in Gutenberg & Elementor
-- Manage your tags and check the performance of your links associated to each tag
-- Manage your Categories and check the performance of your links associated to each Category
-- Reduce link load time with optimized queries
-- Monitor marketing campaigns with UTM Builder
-- Prevent bot traffic and clicks with Bot Blocker
-- Check broken links right from the dashboard
-- Easily manage & share your Fluent Boards task
+[youtube https://www.youtube.com/watch?v=ZJqBrFhQC1A]
 
-https://www.youtube.com/watch?v=ZJqBrFhQC1A
+👉 [See All Features](https://betterlinks.io/features/) | [Documentation](https://betterlinks.io/docs/) | [Live Demo](https://betterlinks.io/) | [Upgrade to PRO](https://betterlinks.io/#pricing)
 
-## SIMPLE & FAST LINK MANAGEMENT PLUGIN 🎉
+## 🔗 Create Short Links In Seconds
 
+Paste a long URL, pick a slug, hit publish. BetterLinks generates clean short links like `yoursite.com/go/deal` that are easy to share, easy to remember and impossible to mistype.
 
-**✨ Aesthetic Drag & Drop UI:** Create & manage any links with just a couple of clicks. From creating, editing to configuring - everything in one place
+* **Instant URL shortener** — shorten any internal or external URL in a couple of clicks
+* **Custom slugs** — write your own, or auto-generate from the title, target URL, or a random string
+* **One-click copy & share** — grab any short link straight from the dashboard
+* **Duplicate & bulk actions** — clone links, bulk delete with undo, drag-and-drop to reorder
+* **Quick Link Creation** — create short links from outside the WordPress admin using an API key
+* **Custom fields** — attach your own metadata to any link
 
-**🧲 Quick Link Shortening:** Make your long URL links into short ones and create pretty links within minutes
+## ↪️ Powerful Redirects & Link Cloaking
 
-**💫 One-Click Share:** Copy your shortened URL right from the dashboard and share it instantly
+Send visitors exactly where you want, with the redirect type that fits the job.
 
-**⚙️ Easy Configuration:** Easily setup your Link Redirects (301, 302, 307 and Cloaked) and all your Link options
+* **301, 302 & 307 redirects** — permanent, temporary and method-preserving
+* **Link cloaking (PRO)** — keep your branded short URL in the address bar the whole visit
+* **Wildcard redirects** — match a whole path pattern with `/folder/*`
+* **Parameter forwarding** — pass query strings straight through to the destination
+* **Case-sensitive slugs** — treat `/Deal` and `/deal` as separate links when you need to
+* **Nofollow & sponsored tags** — mark affiliate links correctly for search engines
+* **Force HTTPS (PRO)** — every redirect goes out secure, whatever is stored on the link
 
-**💪 Fast Response:** Less Database queries result in faster response time
+## 📊 Real-Time Click Tracking & Link Analytics
 
-**🔃 Simple Migration:** Migrate from Third-party Plugins such as PrettyLinks, ThirstyAffiliates with one-click
+Know which links actually work. BetterLinks records every click and turns it into reports you can act on — no external analytics account required.
 
-## POWERFUL LINK TRACKING & ANALYTICS FEATURES 🚀
+* **Total & unique clicks** for every link
+* **Real-time analytics dashboard** with an interactive date-range calendar
+* **Traffic sources** — top referrers, social clicks, campaign performance
+* **Geographic reports** — see which countries your clicks come from
+* **Browser, OS & device breakdown (PRO)**
+* **Per-link analytics (PRO)** — a full report for any single link
+* **Top & worst performers (PRO)** — find your winners and your dead weight
+* **Bot filtering** — automated traffic is detected and kept out of your numbers
+* **Exclude your own IP (PRO)** — stop your team's clicks from skewing the data
+* **Google Analytics 4 & Facebook Pixel (PRO)** — push click events server-side
 
-**📈 Real-time Analytics:** Generate real-time analytics data and easily evaluate the performance of your shortened links with just a glance
+## 💰 Built For Affiliate Marketers
 
-**🔎 Examine Click-Through Rate:** Examine the performance of your click-through rates of your shortened URLs right from one place
+BetterLinks is a full affiliate link manager, not just a shortener.
 
-**📊 Generate Reports:** Gather analytics reports (e.g., top referer clicks, top social media clicks, top OS clicks, top browser clicks and more) to evaluate and run successful marketing campaigns
+* **Cloak affiliate links (PRO)** so long tracking URLs never appear in your content
+* **Auto-Link Keywords (PRO)** — turn chosen keywords into affiliate links across your whole site automatically
+* **Affiliate link disclosure (PRO)** — FTC-friendly notices via block, shortcode, or site-wide rule
+* **Uncloak per link or category (PRO)** — stay compliant with Amazon Associates and similar programs
+* **Sponsored & nofollow attributes** built into every link
+* **Broken link scanner (PRO)** — catch dead affiliate links before they cost you commission
 
-**📅 Interactive Calendar to Filter Clicks:** Easily filter your shortened links based on certain dates from the interactive calendar
+## 🗂️ Organize Hundreds Of Links Without The Mess
 
-**🔗 UTM Builder to Track Campaigns:** Add parameters to URLs to monitor your marketing campaigns
+* **Categories & tags** with bulk assignment and per-term click stats
+* **List view & board view** — pick the layout that suits how you work
+* **Compact mode** — a dense, single-line list when you want to scan everything at a glance
+* **Search, filter & sort** by category, tag, date, clicks or favorites
+* **Favorites** — pin the links you touch every day
+* **Role-based permissions (PRO)** — decide exactly who can create, edit, or view links and analytics
 
-**🚀 Instant Gutenberg & Elementor Redirects:** Redirect your URLs and manage your links directly from Elementor & Gutenberg Editor
+## 🚀 Marketing & Campaign Tools
 
-## More Advanced Features with BetterLinks PRO:
+* **UTM Builder** — attach campaign parameters to any link
+* **Global UTM templates (PRO)** — save presets and apply them in bulk
+* **Dynamic redirects (PRO)** — A/B split testing, geo-targeting, device targeting and time-based rules on a single short URL
+* **Link scheduling & expiration (PRO)** — publish later, expire by date or click count, with a fallback URL
+* **Password-protected links (PRO)** — gate a short link behind a password
+* **Custom link previews (PRO)** — control the title, description and image when your link is shared on social
+* **Custom domain (PRO)** — serve short links from your own branded domain
+* **AI Bulk Link Generator (PRO)** — generate short links across many posts at once
 
-- Get better insights with Individual Analytics [PRO]
-- Control and manage user roles & permissions [PRO]
-- Set link scheduler, expiration dates & number of click limits [PRO]
-- Integrate seamlessly with Google Analytics [PRO]
-- Facebook Pixel Tracking [PRO]
-- Carry out split tests with Dynamic Redirects [PRO]
-- Force enable secure HTTPS Redirection [PRO]
-- Broken Link Checker with Email Notification [PRO]
-- Auto-Link Keywords [PRO]
-- Auto-Create Links [PRO]
-- Affiliate Link Disclosure [PRO]
-- Password Protected Redirect [PRO]
-- Customize Link Preview [PRO]
-- Custom Scripts [PRO]
-- Custom Domain [PRO]
-- Full Site Link Scanner [PRO]
-- Global UTM Builder [PRO]
-- Auto Post Link Generator [PRO]
-- AI Bulk Link Generator [PRO]
-- Promo Cards [PRO]
-- Bio Links [PRO]
+## ⚡ Fast, Lightweight & Developer-Friendly
 
-[ALL FEATURES](https://betterlinks.io/features/) | [DOCUMENTATION](https://betterlinks.io/docs/) | [PRICING](https://betterlinks.io/#pricing)
+BetterLinks is engineered for speed. Redirects resolve from an optimized cache instead of hammering your database, so short links stay fast even with tens of thousands of them.
 
+* Optimized queries and a JSON-backed redirect cache
+* Works with any theme
+* **Gutenberg block** and **Elementor** integration for inserting links while you write
+* **Fluent Boards integration** — manage short links directly from your project tasks
+* Full REST API for developers
+* Translation-ready and WPML-compatible
 
-## 🔥 WHAT’S NEXT
-If you like BetterLinks, then consider checking out our other WordPress Plugins for FREE:
+## 🔄 Switching From Another Plugin?
 
-🔝 [Essential Addons For Elementor](https://wordpress.org/plugins/essential-addons-for-elementor-lite/) – Popular Elementor extensions with 2 million+ active users in the WordPress repository.
+Move your existing links across in one click — no CSV wrangling, no lost redirects.
 
-👉 [Essential Blocks For Gutenberg](https://wordpress.org/plugins/essential-blocks/) - Advanced blocks library to enhance your Gutenberg web-building experience.
+* **Pretty Links** → BetterLinks
+* **ThirstyAffiliates** → BetterLinks
+* **Simple 301 Redirects** → BetterLinks
+* Plus CSV import/export for links and click history
 
-🔔 [NotificationX](https://wordpress.org/plugins/notificationx/) – Social Proof & FOMO Marketing Solution to increase conversion rates.
+## 🏆 Why Choose BetterLinks
 
-📄 [EmbedPress](https://wordpress.org/plugins/embedpress/): Easiest WordPress embedding plugin to add content from 250+ sources with one click. Works in Gutenberg, Elementor, and more.
+* **Your data stays yours** — links and analytics live in your own WordPress database
+* **No per-click pricing** — unlike hosted URL shorteners
+* **Built for scale** — thousands of links without slowing your site down
+* **Actively maintained** by [WPDeveloper](https://wpdeveloper.com/), trusted by millions of WordPress users
+* **Free forever core** — shortening, redirects, categories, analytics and migration are all in the free plugin
 
-📝 [BetterDocs](https://wordpress.org/plugins/betterdocs)– Documentation & Knowledge Base Solution for WordPress, which also reduces your manual support requests.
+## 🔥 Upgrade To BetterLinks PRO
 
-⏰ [SchedulePress](https://wordpress.org/plugins/wp-scheduled-posts/) – Complete solution for scheduling WordPress posts through an editorial calendar & social share.
+Unlock the full toolkit: link cloaking, dynamic redirects with A/B split testing, geo & device targeting, individual link analytics, Google Analytics and Facebook Pixel integration, auto-link keywords, affiliate disclosures, password protection, link scheduling & expiry, the broken link and full-site scanners, custom domains, role management, email reporting and the AI Bulk Link Generator.
 
-☁️ [Templately](https://wordpress.org/plugins/templately/) – Free WordPress templates library for Elementor & Gutenberg along with the cloud collaboration with team option.
+[Get BetterLinks PRO →](https://betterlinks.io/#pricing)
 
-🔎 [Easy.Jobs](https://wordpress.org/plugins/easyjobs/) – Smart and easy recruitment and talent sourcing solution for hiring remotely with AI-powered screening system, question sets, remote interviews, and designing branded career pages with Elementor.
+## 💜 More From WPDeveloper
 
-🎨 [Flexia](https://wordpress.org/themes/flexia/): Lightweight, customizable & multi purpose theme for WordPress.
+🔝 [Essential Addons For Elementor](https://wordpress.org/plugins/essential-addons-for-elementor-lite/) – The most popular Elementor extensions library, with 2 million+ active users.
 
-Visit [WPDeveloper](https://wpdeveloper.com/) to learn more about how to do better in WordPress with [Help Tutorial, Tips & Tricks](https://wpdeveloper.com/blog).
+👉 [Essential Blocks For Gutenberg](https://wordpress.org/plugins/essential-blocks/) – Advanced block library to supercharge the WordPress editor.
 
+🔔 [NotificationX](https://wordpress.org/plugins/notificationx/) – Social proof & FOMO marketing solution that increases conversion rates.
 
+📄 [EmbedPress](https://wordpress.org/plugins/embedpress/) – Embed content from 250+ sources with one click, in Gutenberg and Elementor.
 
-## 👨‍💻 DOCUMENTATION AND SUPPORT ##
+📝 [BetterDocs](https://wordpress.org/plugins/betterdocs) – Documentation & knowledge base solution that reduces your support load.
 
-- For documentation and tutorials go to our [Documentation](https://betterlinks.io/docs/)
-- For video tutorials go to our [YouTube Playlist](https://www.youtube.com/watch?v=ZJqBrFhQC1A&list=PLWHp1xKHCfxBtIjolI693SDWtdfKZCc37)
-- If you have any more questions, visit our support on the [Plugin’s Forum](https://wordpress.org/support/plugin/betterlinks/)
-- For more information about features, FAQs and documentation, check out our website at [BetterLinks](https://betterlinks.io/)
+⏰ [SchedulePress](https://wordpress.org/plugins/wp-scheduled-posts/) – Complete WordPress scheduling with an editorial calendar and social sharing.
 
-## 💙 Loved BetterLinks? ##
+☁️ [Templately](https://wordpress.org/plugins/templately/) – 5000+ ready templates for Elementor & Gutenberg with cloud collaboration.
 
-- Join our [Facebook Group](https://www.facebook.com/groups/wpdeveloper.net/)
-- Learn from our tutorials on [Youtube Channel](https://www.youtube.com/channel/UCOjzLEdsnpnFVkm1JKFurPA)
-- Or rate us on [WordPress](https://wordpress.org/support/plugin/betterlinks/reviews/?rate=5#new-post)
+🎨 [Flexia](https://wordpress.org/themes/flexia/) – Lightweight, customizable, multipurpose WordPress theme.
 
+## 👨‍💻 Documentation & Support
+
+* [Documentation & tutorials](https://betterlinks.io/docs/)
+* [YouTube playlist](https://www.youtube.com/watch?v=ZJqBrFhQC1A&list=PLWHp1xKHCfxBtIjolI693SDWtdfKZCc37)
+* [Community support forum](https://wordpress.org/support/plugin/betterlinks/)
+* [Facebook community](https://www.facebook.com/groups/wpdeveloper.net/)
+* Loving BetterLinks? [Leave a ⭐⭐⭐⭐⭐ review](https://wordpress.org/support/plugin/betterlinks/reviews/?rate=5#new-post)
 
 == Installation ==
 
-= Modern Way: =
-1. Go to the WordPress Dashboard "Add New Plugin" section.
-2. Search For "BetterLinks".
-3. Install, then Activate it.
-4. Follow the [Documentation](https://betterlinks.io/docs/)
+= From your WordPress dashboard =
 
-= Old Way: =
-1. Upload `betterlinks` to the `/wp-content/plugins/` directory
-2. Activate the plugin through the 'Plugins' menu in WordPress
-3. Follow the [Documentation](https://betterlinks.io/docs/)
+1. Go to **Plugins → Add New**.
+2. Search for **BetterLinks**.
+3. Click **Install Now**, then **Activate**.
+4. Follow the Quick Setup wizard, or head straight to **BetterLinks → Manage Links** to create your first short link.
 
+= Manual installation =
+
+1. Upload the `betterlinks` folder to `/wp-content/plugins/`.
+2. Activate the plugin through the **Plugins** menu in WordPress.
+3. Open **BetterLinks** in your admin sidebar to get started.
+
+Full setup guide: [betterlinks.io/docs](https://betterlinks.io/docs/)
 
 == Frequently Asked Questions ==
 
 = What is BetterLinks used for? =
 
-BetterLinks is a WordPress link management plugin for creating short links, branded links, affiliate links, redirects, and trackable campaign URLs directly from your WordPress dashboard.
+BetterLinks is a WordPress link management plugin for creating short links, branded links, affiliate links, redirects and trackable campaign URLs directly from your WordPress dashboard.
 
 = Who should use BetterLinks? =
 
-BetterLinks is useful for affiliate marketers, bloggers, SEO professionals, agencies, creators, ecommerce teams, and website owners who need to shorten, cloak, organize, redirect, and track links in WordPress.
+Affiliate marketers, bloggers, SEO professionals, agencies, content creators, ecommerce teams and any site owner who needs to shorten, cloak, organize, redirect and track links in WordPress.
 
-= Can I create branded short links with BetterLinks? =
+= Is BetterLinks free? =
 
-Yes. BetterLinks lets you create clean, branded, short URLs from your WordPress site so your links are easier to share, remember, and manage.
+Yes. The free plugin includes unlimited short links, 301/302/307 redirects, categories and tags, click tracking and analytics, the UTM builder, CSV import/export and one-click migration from other plugins. BetterLinks PRO adds cloaking, dynamic redirects, advanced analytics and more.
+
+= Do I need a third-party URL shortener like Bitly? =
+
+No. BetterLinks creates short links on your own domain, so your branding stays intact and your click data stays in your own database — with no per-click pricing.
+
+= Can I create branded short links? =
+
+Yes. Every short link is served from your own site by default, and BetterLinks PRO adds full custom domain support if you want a separate short domain.
 
 = Does BetterLinks track link clicks and analytics? =
 
-Yes. BetterLinks includes link tracking and analytics so you can monitor clicks, understand campaign performance, and analyze which links are working best.
+Yes. BetterLinks records total and unique clicks, referrers, countries, browsers and devices, with a real-time dashboard and date-range filtering. Bot traffic is filtered out automatically.
 
 = Can I use BetterLinks for affiliate link management? =
 
-Yes. BetterLinks is built for affiliate link management, including shortening, cloaking, organizing, tracking, and managing affiliate URLs from one dashboard.
+Yes — it is built for it. Shorten, cloak, organize and track affiliate URLs, add nofollow/sponsored attributes, automatically link keywords across your content, and display FTC-friendly affiliate disclosures.
+
+= Will BetterLinks slow down my website? =
+
+No. Redirects resolve from an optimized cache rather than repeated database queries, so performance stays consistent even with tens of thousands of links.
+
+= Can I migrate from Pretty Links or ThirstyAffiliates? =
+
+Yes. BetterLinks includes one-click migration for Pretty Links, ThirstyAffiliates and Simple 301 Redirects, plus CSV import. Keep the old plugin active until the migration finishes.
 
 = Does BetterLinks include a UTM builder? =
 
-Yes. BetterLinks includes UTM campaign-building features so you can add campaign parameters to URLs and track marketing performance more consistently.
+Yes. Add UTM campaign parameters to any link. BetterLinks PRO adds saved UTM templates that you can apply across many links at once.
 
-= Can BetterLinks scan my website links? =
+= Can BetterLinks find broken links on my site? =
 
-BetterLinks includes full-site link scanning features that help you review links across your site, detect link status, and manage active or broken links more efficiently.
+Yes. BetterLinks PRO includes a broken link scanner for your short links and a full-site scanner that crawls your published content, both with scheduled scans and email reports.
 
-= Can I migrate from another link shortener plugin to BetterLinks? =
+= Does BetterLinks work with Gutenberg and Elementor? =
 
-Yes. If you previously used another link shortener, redirection, or link management plugin, BetterLinks provides migration options to help you move your links into BetterLinks.
+Yes. There is a Gutenberg block plus instant-redirect controls in both the block editor and Elementor, so you can create and insert short links while you write.
 
-= Does BetterLinks support AI-powered link management? =
+= Is BetterLinks translation ready? =
 
-BetterLinks includes AI-powered link management features such as bulk link generation and categorization workflows that can help you create and organize links faster.
-
-= Can I use a custom domain with BetterLinks? =
-
-Yes. BetterLinks supports custom domain workflows so you can create and manage short, brandable URLs with your own domain setup.
-
-
+Yes. BetterLinks is fully translation-ready and compatible with WPML.
 
 == Screenshots ==
 
+1. Link shortening & custom links — turn any long URL into a short, branded link
+2. Advanced redirects — 301, 302, 307 and cloaked redirects with full control
+3. Auto-Link Keywords — turn chosen keywords into links across your whole site
+4. Link analytics — clicks, unique visitors, referrers and campaign performance
+5. Full Site Link Scanner — find and fix broken links across your content
+6. AI Bulk Link Generator — create short links for many posts at once
 
 == Changelog ==
+
+= 3.0.1 - 10/08/2026 =
+
+- Fixed: Bulk status changes reset a link's category to Uncategorized
+- Fixed: Unique click counts were mismatched between links, or shown as 1
+- Fixed: Link in Bio category showed no links after being enabled
+- Fixed: Category and tag deletion reported success when nothing was deleted
+- Fixed: Renaming a category or tag reported a failure even when it saved
+- Fixed: Quick Setup stayed in the menu on sites that never ran the wizard
+- Improvement: Compact list view now fits more than twice as many links on screen
+- Improvement: Restricted the country lookup endpoint to authorised users
+- Few minor bug fixes & improvements
 
 = 3.0.0 - 03/08/2026 =
 

@@ -3,7 +3,7 @@
  * Plugin Name:		BetterLinks
  * Plugin URI:		https://betterlinks.io/
  * Description:		Ultimate plugin to create, shorten, track and manage any URL. Gather analytics reports and run successfully marketing campaigns easily.
- * Version:			3.0.0
+ * Version:			3.0.1
  * Author:			WPDeveloper
  * Author URI:		https://wpdeveloper.com
  * License:			GPL-3.0+
@@ -40,6 +40,7 @@ if (!class_exists('BetterLinks')) {
             add_action('betterlinks_loaded', [$this, 'init_plugin']);
             add_action('admin_init', [$this, 'run_migrator']);
             add_action('admin_init', [$this, 'do_the_works_if_failed_during_activation'], 100);
+            add_action('admin_init', [$this, 'maybe_complete_legacy_quick_setup'], 9);
             add_action('admin_init', [$this, 'quick_setup']);
             $this->dispatch_hook();
             add_action( 'wp_enqueue_scripts', [$this, 'frontend_scripts'] );
@@ -83,7 +84,7 @@ if (!class_exists('BetterLinks')) {
             /**
              * Defines CONSTANTS for Whole plugins.
              */
-            define('BETTERLINKS_VERSION', '3.0.0');
+            define('BETTERLINKS_VERSION', '3.0.1');
             define('BETTERLINKS_DB_VERSION', '1.6.11');
             define('BETTERLINKS_MENU_NOTICE', '10');
             define('BETTERLINKS_SETTINGS_NAME', 'betterlinks_settings');
@@ -158,6 +159,12 @@ if (!class_exists('BetterLinks')) {
             $btl_version = BetterLinks\Helper::btl_get_option('betterlinks_version');
             $should_insert = $btl_version===false;
             if ($btl_version != BETTERLINKS_VERSION && BetterLinks\Helper::btl_update_option('betterlinks_version', BETTERLINKS_VERSION, $should_insert, !$should_insert)) {
+                // The admin links payload is cached in a transient with no expiry, and
+                // which categories it contains depends on the running code (e.g. the
+                // Link in Bio category exclusion). A payload written by the previous
+                // version can therefore describe categories wrongly forever — drop it
+                // once per upgrade so the first dashboard load rebuilds it fresh.
+                BetterLinks\Helper::clear_query_cache();
                 $this->Installer->data($this->Installer->migration)->save()->dispatch();
                 BetterLinks\Helper::btl_update_option('betterlinks_activation_flag', [
                     "last_activation_timestamp" => time(),
@@ -174,6 +181,29 @@ if (!class_exists('BetterLinks')) {
                 "last_activation_background_processes_firing_timestamp" => false,
             ]);
             add_option('betterlinks_quick_setup', true);
+        }
+
+        /**
+         * Retire the Quick Setup entry on sites that were already set up.
+         *
+         * Only the wizard's final step ever writes 'complete', so any site configured
+         * before the wizard existed — or where an admin skipped it — kept showing
+         * "Quick Setup" forever no matter how configured it was. Runs once per install:
+         * if links already exist, the site is demonstrably past onboarding.
+         */
+        public function maybe_complete_legacy_quick_setup() {
+            if ( get_option( 'betterlinks_quick_setup_backfilled' ) ) return;
+            update_option( 'betterlinks_quick_setup_backfilled', 1, false );
+
+            if ( 'complete' === get_option( 'betterlinks_quick_setup_step' ) ) return;
+
+            global $wpdb;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+            $has_links = (int) $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->prefix}betterlinks" );
+            if ( $has_links > 0 ) {
+                update_option( 'betterlinks_quick_setup_step', 'complete' );
+                delete_option( 'betterlinks_quick_setup' );
+            }
         }
 
         public function quick_setup() {

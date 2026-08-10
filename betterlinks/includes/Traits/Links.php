@@ -155,9 +155,28 @@ trait Links
         $old_short_url = isset($arg['old_short_url']) ? $arg['old_short_url'] : '';
         // update link
         $id = \BetterLinks\Helper::insert_link(apply_filters('betterlinks/api/params', $params), true);
-        $term_data = \BetterLinks\Helper::insert_terms_and_terms_relationship($id, $arg);
+
+        // Only rewrite term relationships when the caller actually sent term data.
+        // insert_terms_and_terms_relationship() falls back to the default category
+        // (Uncategorized) whenever cat_id is empty, so running it for a payload that
+        // never mentioned terms — e.g. the bulk status change, which posts only
+        // {ID, link_status} — silently moved the link out of its category.
+        $has_term_payload = isset($arg['cat_id']) || isset($arg['tags_id']);
+        $term_data        = $has_term_payload
+            ? \BetterLinks\Helper::insert_terms_and_terms_relationship($id, $arg)
+            : array();
 
         $wpdb->query("COMMIT");
+
+        if (!$has_term_payload) {
+            // Nothing was rewritten; carry the link's existing category forward so the
+            // JSON cache below is not rebuilt with the wrong (default) category.
+            $existing_cat = \BetterLinks\Helper::get_terms_by_link_ID_and_term_type($id, 'category');
+            if (!empty($existing_cat) && isset($existing_cat[0]['term_id'])) {
+                $arg['cat_id']   = $existing_cat[0]['term_id'];
+                $arg['cat_data'] = $existing_cat[0];
+            }
+        }
 
         // Initialize category data with default fallback
         $arg['cat_id'] = isset($arg['cat_id']) ? $arg['cat_id'] : 1; // Default to Uncategorized

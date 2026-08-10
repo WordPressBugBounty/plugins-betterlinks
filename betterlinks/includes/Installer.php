@@ -175,6 +175,12 @@ class Installer extends \WP_Background_Process
                 'enable_custom_domain_menu' => true,
                 'enable_promo_cards'    => true,
                 'enable_bio_links'      => true,
+                // The bio pages' own link category is machinery, so it stays off
+                // Manage Links until the admin opts in.
+                'show_bio_links_category' => false,
+                // Site-wide "Made with BetterLinks" credit on bio pages. On by
+                // default; turning it off white-labels every page at once.
+                'show_bio_links_branding' => true,
                 'enable_auto_title_suggestion' => true,
                 'enable_user_agent_tracking' => false,
                 'fbs'        => [
@@ -322,6 +328,14 @@ class Installer extends \WP_Background_Process
     public function clear_cache()
     {
         Helper::clear_query_cache();
+        // Analytics caches too, and a rebuild of `betterlinks_analytics_data`.
+        // Both can hold click totals computed by an older build — the per-link
+        // unique counts used to be paired to the wrong link — and neither is
+        // rewritten until the `betterlinks/analytics` cron next runs, which on a
+        // site with unreliable cron could be a long time. Rebuilding here means
+        // an update fixes the numbers straight away.
+        Helper::clear_analytics_cache();
+        Helper::update_links_analytics();
     }
 
     public function fix_betterlinks_db()

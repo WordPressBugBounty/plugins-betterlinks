@@ -162,6 +162,11 @@ trait Terms {
 		 * "Uncategorized" category (ID 1); extensions (e.g. the Pro "Link in Bio"
 		 * category) add their own protected IDs here.
 		 *
+		 * Checked against BOTH `cat_id` and `tag_id` on purpose. Categories and tags
+		 * share one table so an ID identifies a term regardless of which parameter
+		 * carried it, and the admin UI posts `tag_id` from the Categories tab too —
+		 * dropping the check on that branch would make protected categories deletable.
+		 *
 		 * @param int[] $ids
 		 */
 		$protected = (array) apply_filters( 'betterlinks/protected_term_ids', array( 1 ) );

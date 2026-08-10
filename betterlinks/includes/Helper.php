@@ -690,19 +690,49 @@ class Helper {
 		return $_results;
 	}
 
-	public static function update_links_analytics() {
-		$results      = array();
-		$clicks_count = self::get_clicks_count();
+	/**
+	 * Merges the two result sets returned by get_clicks_count() into a single
+	 * map keyed by link_id.
+	 *
+	 * The totals and the uniques come from two independent GROUP BY queries, so
+	 * their row order is not guaranteed to line up. Pairing them positionally
+	 * attaches one link's unique count to a different link — which is how a link
+	 * with hundreds of clicks from distinct IPs ends up reporting "1 unique".
+	 * Both sides are looked up by link_id instead.
+	 *
+	 * @since 3.0.1
+	 *
+	 * @param array $clicks_count Return value of get_clicks_count().
+	 * @return array Map of link_id => array( 'link_count' => int, 'ip' => int ).
+	 */
+	public static function merge_clicks_count( $clicks_count ) {
+		$results       = array();
+		$total_clicks  = isset( $clicks_count['total_clicks'] ) && is_array( $clicks_count['total_clicks'] ) ? $clicks_count['total_clicks'] : array();
+		$unique_clicks = isset( $clicks_count['unique_clicks'] ) && is_array( $clicks_count['unique_clicks'] ) ? $clicks_count['unique_clicks'] : array();
 
-		$total_clicks  = $clicks_count['total_clicks'];
-		$unique_clicks = $clicks_count['unique_clicks'];
+		$unique_by_link = array();
+		foreach ( $unique_clicks as $unique ) {
+			if ( isset( $unique['link_id'] ) ) {
+				$unique_by_link[ $unique['link_id'] ] = isset( $unique['unique_clicks'] ) ? (int) $unique['unique_clicks'] : 0;
+			}
+		}
 
-		for ( $i = 0; $i < count( $total_clicks ); $i++ ) {
-			$results[ $total_clicks[ $i ]['link_id'] ] = array(
-				'link_count' => $total_clicks[ $i ]['total_clicks'],
-				'ip'         => isset( $unique_clicks[ $i ]['unique_clicks'] ) ? $unique_clicks[ $i ]['unique_clicks'] : 1,
+		foreach ( $total_clicks as $total ) {
+			if ( ! isset( $total['link_id'] ) ) {
+				continue;
+			}
+			$link_id             = $total['link_id'];
+			$results[ $link_id ] = array(
+				'link_count' => isset( $total['total_clicks'] ) ? (int) $total['total_clicks'] : 0,
+				'ip'         => isset( $unique_by_link[ $link_id ] ) ? $unique_by_link[ $link_id ] : 0,
 			);
 		}
+
+		return $results;
+	}
+
+	public static function update_links_analytics() {
+		$results = self::merge_clicks_count( self::get_clicks_count() );
 
 		return update_option( 'betterlinks_analytics_data', wp_json_encode( $results ), false );
 	}

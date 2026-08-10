@@ -157,6 +157,17 @@ trait Query {
 		$wpdb->delete( "{$wpdb->prefix}betterlinks", array( 'ID' => $ID ), array( '%d' ) );
 		$wpdb->delete( "{$wpdb->prefix}betterlinks_clicks", array( 'link_id' => $ID ), array( '%d' ) );
 		$wpdb->delete( "{$wpdb->prefix}betterlinks_terms_relationships", array( 'link_id' => $ID ), array( '%d' ) );
+
+		/**
+		 * Fires after a link and its owned rows are removed.
+		 *
+		 * Extensions that store their own references to a link id clean them up here —
+		 * Pro's Promo Cards use it in place of the FOREIGN KEY constraints its tables
+		 * used to declare.
+		 *
+		 * @param int $ID Deleted link ID.
+		 */
+		do_action( 'betterlinks/link/after_delete', $ID );
 	}
 	public static function remove_terms_relationships_by_link_ID( $ID ) {
 		global $wpdb;
@@ -174,7 +185,23 @@ trait Query {
 
 		$settings = Cache::get_json_settings();
 
+		// Categories a feature owns but does not want on the dashboard (Fluent
+		// Boards' task category, the bio pages' "Link in Bio" category). Each
+		// feature contributes its own term IDs and they are combined into one
+		// exclusion, so adding a second one no longer overwrites the first.
+		$hidden_term_ids = apply_filters( 'betterlinks/dashboard_hidden_term_ids', array(), $settings );
+		$hidden_term_ids = array_unique( array_filter( array_map( 'intval', (array) $hidden_term_ids ) ) );
+
+		// Back-compat: the original Fluent Boards filter returns a whole WHERE
+		// clause rather than IDs. Keep honouring it and AND the ID list onto it.
 		$fbs_category_query = apply_filters( 'betterlinks__intlfbs_filter_category_from_dashboard', '', $settings );
+
+		if ( ! empty( $hidden_term_ids ) ) {
+			$hidden_clause      = sprintf( 'bt.ID NOT IN (%s)', implode( ',', $hidden_term_ids ) );
+			$fbs_category_query = empty( $fbs_category_query )
+				? 'WHERE ' . $hidden_clause
+				: $fbs_category_query . ' AND ' . $hidden_clause;
+		}
 
 		$query = "SELECT
             bt.ID as cat_id,
@@ -820,8 +847,9 @@ trait Query {
 		
 		$where_clause = ! empty( $where_conditions ) ? 'WHERE ' . implode( ' AND ', $where_conditions ) : '';
 
-		// Total clicks query
-		$total_query = "SELECT link_id, count(id) as total_clicks from {$wpdb->prefix}betterlinks_clicks {$where_clause} group by link_id";
+		// Total clicks query. ORDER BY keeps this aligned with the unique query below;
+		// callers must still merge the two sets on link_id, never on row position.
+		$total_query = "SELECT link_id, count(id) as total_clicks from {$wpdb->prefix}betterlinks_clicks {$where_clause} group by link_id ORDER BY link_id";
 		$total_clicks = ! empty( $query_params ) ? $wpdb->get_results( $wpdb->prepare( $total_query, $query_params ), ARRAY_A ) : $wpdb->get_results( $total_query, ARRAY_A );
 
 		// Unique clicks query  

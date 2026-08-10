@@ -95,6 +95,10 @@ class Assets
                 'user_can_manage_options' => current_user_can('manage_options'),
                 // Term IDs that cannot be edited/deleted in the UI (Uncategorized + extensions).
                 'protected_term_ids' => array_values(array_map('intval', (array) apply_filters('betterlinks/protected_term_ids', array(1)))),
+                // Categories a feature owns but keeps off Manage Links. The links query
+                // already excludes them, but the board re-adds empty categories from the
+                // /terms payload, so the SPA needs the same list to stay consistent.
+                'dashboard_hidden_term_ids' => array_values(array_unique(array_filter(array_map('intval', (array) apply_filters('betterlinks/dashboard_hidden_term_ids', array(), (array) $betterlinks_settings))))),
             ]);
 
             $menu_notice = get_option('betterlinks_menu_notice', 0);

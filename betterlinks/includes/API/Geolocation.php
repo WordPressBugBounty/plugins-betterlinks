@@ -25,6 +25,8 @@ class Geolocation {
 	 * Register the routes for geolocation detection
 	 */
 	public function register_routes() {
+		// Public on purpose: this resolves the CURRENT visitor's own IP as a fallback for
+		// the frontend tracker, so it runs for logged-out visitors and takes no IP input.
 		register_rest_route(
 			$this->namespace,
 			'/geolocation/detect',
@@ -37,7 +39,11 @@ class Geolocation {
 			)
 		);
 
-		// Endpoint to fetch country for a specific IP (for backward compatibility)
+		// Endpoint to fetch country for a specific IP (for backward compatibility).
+		// Authenticated only: it takes an ARBITRARY ip, so leaving it open turned every
+		// site into a free IP->country lookup proxy that burned the upstream API quota
+		// and wrote one transient per probed IP. Its only callers are the admin
+		// analytics country backfill paths, which already send a REST nonce.
 		register_rest_route(
 			$this->namespace,
 			'/geolocation/fetch-by-ip',
@@ -45,7 +51,7 @@ class Geolocation {
 				array(
 					'methods'             => \WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'fetch_country_by_ip' ),
-					'permission_callback' => '__return_true',
+					'permission_callback' => array( $this, 'fetch_by_ip_permissions_check' ),
 					'args'                => array(
 						'ip' => array(
 							'required'          => true,
@@ -56,6 +62,18 @@ class Geolocation {
 				),
 			)
 		);
+	}
+
+	/**
+	 * Only users who can see analytics may resolve an arbitrary IP.
+	 *
+	 * Mirrors the permission filter used by the clicks/analytics endpoints so Pro's
+	 * role matrix keeps working for non-admin roles that were granted analytics access.
+	 *
+	 * @return bool
+	 */
+	public function fetch_by_ip_permissions_check() {
+		return (bool) apply_filters( 'betterlinks/api/analytics_items_permissions_check', current_user_can( 'manage_options' ) );
 	}
 
 	/**

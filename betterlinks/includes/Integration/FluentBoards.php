@@ -56,6 +56,10 @@ class FluentBoards {
 
 	/**
 	 * Fluent Boards Category Filter from Dashboard
+	 *
+	 * Keeps the Fluent Boards task category off Manage Links unless the admin
+	 * opts to show it. The IDs are interpolated into the `get_prepare_all_links()`
+	 * query, so they are cast to int here.
 	 */
 	public function filter_category_from_dashboard( $value, $settings ) {
 		if ( ! empty( $settings['fbs']['enable_fbs'] ) && ! empty( $settings['fbs']['show_fbs_category'] ) ) {
@@ -64,17 +68,26 @@ class FluentBoards {
 		$fbs_cat_arr = array();
 		$fbs_cat     = Helper::get_term_by_slug( 'fluent-boards' );
 		if ( ! empty( $fbs_cat[0]['ID'] ) ) {
-			array_push( $fbs_cat_arr, $fbs_cat[0]['ID'] );
+			array_push( $fbs_cat_arr, (int) $fbs_cat[0]['ID'] );
 		}
 
 		if ( ! empty( $settings['fbs']['cat_id'] ) ) {
-			array_push( $fbs_cat_arr, $settings['fbs']['cat_id'] );
+			array_push( $fbs_cat_arr, (int) $settings['fbs']['cat_id'] );
 		}
 
-		$fbs_cat_arr = '(' . implode( ',', $fbs_cat_arr ) . ')';
+		// Never hide a category the dashboard depends on. The Fluent Boards
+		// settings default `cat_id` to "Uncategorized" (ID 1), and that is where
+		// every link without a category of its own lives — excluding it drops
+		// Uncategorized and all of its links off Manage Links entirely.
+		$protected   = array_map( 'intval', (array) apply_filters( 'betterlinks/protected_term_ids', array( 1 ) ) );
+		$fbs_cat_arr = array_diff( array_unique( array_filter( $fbs_cat_arr ) ), $protected );
 
-		$fbs_category_query = sprintf( 'WHERE bt.ID not in %1$s', $fbs_cat_arr );
+		// `NOT IN ()` is a syntax error that would take the whole links query
+		// down, so with nothing left to hide leave the query untouched.
+		if ( empty( $fbs_cat_arr ) ) {
+			return $value;
+		}
 
-		return $fbs_category_query;
+		return sprintf( 'WHERE bt.ID NOT IN (%1$s)', implode( ',', $fbs_cat_arr ) );
 	}
 }

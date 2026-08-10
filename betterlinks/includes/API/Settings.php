@@ -146,10 +146,20 @@ class Settings extends Controller {
 		// regenerate links for wildcards option update
 		$helper::clear_query_cache();
 		$helper::write_links_inside_json();
+
+		// Recompute which categories the dashboard hides under the settings that
+		// were JUST saved. The SPA received this list at page load (via
+		// wp_localize_script) and toggling "show the Link in Bio category" changes
+		// it — without the fresh list in the response, the app keeps filtering the
+		// category out until a hard reload, which read as "bio links never show".
+		$hidden_term_ids = apply_filters( 'betterlinks/dashboard_hidden_term_ids', array(), (array) json_decode( $response, true ) );
+		$hidden_term_ids = array_values( array_unique( array_filter( array_map( 'intval', (array) $hidden_term_ids ) ) ) );
+
 		return new \WP_REST_Response(
 			array(
-				'success' => true,
-				'data'    => $response ? $response : array(),
+				'success'         => true,
+				'data'            => $response ? $response : array(),
+				'hidden_term_ids' => $hidden_term_ids,
 			),
 			200
 		);

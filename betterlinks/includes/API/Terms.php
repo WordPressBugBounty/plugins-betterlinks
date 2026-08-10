@@ -260,9 +260,14 @@ class Terms extends Controller
 		}
 
 		$this->update_term($args);
+
+		// `success` must report the outcome of the rename. This used to be
+		// is_bool($request['params']['ID']) — ID is an integer, so every successful
+		// rename answered success:false and clients showed a failure toast.
 		return new \WP_REST_Response(
 			array(
-				'success' => is_bool($request['params']['ID']),
+				'success' => true,
+				'update'  => true,
 				'data'    => $request['params'],
 			),
 			200
@@ -289,6 +294,21 @@ class Terms extends Controller
 			$term_id_to_delete = $request['tag_id'];
 		}
 
+		// No term id means nothing can be deleted. Answering 200/success:true here let a
+		// client that sent an undefined id show "Deleted" toasts while the row stayed put,
+		// which is how a stale admin bundle looked like a broken delete feature.
+		if (!$term_id_to_delete) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'data'    => array(
+						'message' => __('No category or tag ID was supplied.', 'betterlinks'),
+					),
+				),
+				400
+			);
+		}
+
 		$protected = array_map('intval', (array) apply_filters('betterlinks/protected_term_ids', array(1)));
 		if ($term_id_to_delete && in_array((int) $term_id_to_delete, $protected, true)) {
 			return new \WP_REST_Response(
@@ -308,7 +328,7 @@ class Terms extends Controller
 			array(
 				'success' => true,
 				'data'    => array(
-					'cat_id' => isset($request['cat_id']) ? $request['cat_id'] : $request['tag_id'],
+					'cat_id' => $term_id_to_delete,
 				),
 			),
 			200

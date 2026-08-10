@@ -1071,11 +1071,26 @@ class Ajax {
 		$response = json_encode( $response );
 		if ( $response ) {
 			update_option( BETTERLINKS_LINKS_OPTION_NAME, $response );
+			// The REST handler refreshes both of these on save; this fallback did
+			// neither, so a save that landed here kept serving the old settings file
+			// AND the pre-save links payload (visibility of the Fluent Boards / Link
+			// in Bio categories is baked into that cached payload).
+			\BetterLinks\Admin\Cache::write_json_settings();
+			$helper::clear_query_cache();
 		}
 		// regenerate links for wildcards option update
 		$helper::write_links_inside_json(); // it's better to write the links instantly here than scheduling/corning it
+
+		// Same contract as the REST handler: return the hidden-category list under
+		// the settings just saved, so the SPA can refresh its page-load copy.
+		$hidden_term_ids = apply_filters( 'betterlinks/dashboard_hidden_term_ids', array(), (array) json_decode( (string) $response, true ) );
+		$hidden_term_ids = array_values( array_unique( array_filter( array_map( 'intval', (array) $hidden_term_ids ) ) ) );
+
 		wp_send_json_success(
-			$response,
+			array(
+				'data'            => $response,
+				'hidden_term_ids' => $hidden_term_ids,
+			),
 			200
 		);
 	}

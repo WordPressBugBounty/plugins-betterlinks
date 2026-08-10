@@ -586,18 +586,7 @@ trait Clicks {
 			return $results;
 		}
 		
-		$results      = array();
-		$clicks_count = Helper::get_clicks_count($from, $to);
-
-		$total_clicks  = $clicks_count['total_clicks'];
-		$unique_clicks = $clicks_count['unique_clicks'];
-
-		for ( $i = 0; $i < count( $total_clicks ); $i++ ) {
-			$results[ $total_clicks[ $i ]['link_id'] ] = array(
-				'link_count' => $total_clicks[ $i ]['total_clicks'],
-				'ip'         => isset( $unique_clicks[ $i ]['unique_clicks'] ) ? $unique_clicks[ $i ]['unique_clicks'] : 1,
-			);
-		}
+		$results = Helper::merge_clicks_count( Helper::get_clicks_count( $from, $to ) );
 		$results = wp_json_encode( $results );
 		set_transient( $transient_key, $results, self::$transient_timeout );
 		return $results;
