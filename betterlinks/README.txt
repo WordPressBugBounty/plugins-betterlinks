@@ -1,15 +1,15 @@
-=== BetterLinks – Link Shortener, Link Cloaking, Redirects & Affiliate Link Manager ===
+=== BetterLinks – Link Shortener, Link Cloaking, Redirects, Affiliate Link Manager & MCP ===
 Contributors: wpdevteam, re_enter_rupok, asif2bd, priyomukul, hasandev
 Donate link: https://wpdeveloper.com
 Tags: link shortener, affiliate links, redirects, link cloaking, url shortener
 Requires at least: 5.3
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 3.0.1
+Stable tag: 3.1.0
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
-Shorten, cloak, redirect & track every link in WordPress. Branded short URLs, click analytics, broken link scanner & affiliate link management.
+Shorten, cloak, redirect & track every link in WordPress. Branded short URLs, click analytics, affiliate links & MCP access for AI assistants.
 
 == Description ==
 
@@ -20,6 +20,23 @@ No third-party URL shortener. No monthly subscription for basic link tracking. Y
 [youtube https://www.youtube.com/watch?v=ZJqBrFhQC1A]
 
 👉 [See All Features](https://betterlinks.io/features/) | [Documentation](https://betterlinks.io/docs/) | [Live Demo](https://betterlinks.io/) | [Upgrade to PRO](https://betterlinks.io/#pricing)
+
+## 🤖 NEW: Manage Your Links With AI (MCP Connector)
+
+BetterLinks now ships a built-in **MCP (Model Context Protocol) server**, so AI assistants like **Claude**, **ChatGPT**, **Claude Code**, **Cursor** and **VS Code** can work with your links directly — in plain English.
+
+Ask your assistant to *"create a short link for this affiliate offer"*, *"which links got the most clicks last month?"* or *"put every Black Friday link in its own category"*, and it does the work inside your own dashboard.
+
+* **Runs on your own site** — no hosted broker and no third-party service; your links and click data never leave your server
+* **14 built-in tools** — create, update and delete links, manage categories and tags, read click analytics, and read or update settings
+* **Two ways to connect** — a one-time OAuth approval for Claude and ChatGPT, or a copy-paste command for Claude Code, Cursor and VS Code
+* **Off by default** — nothing is exposed to anyone until you switch it on in **BetterLinks → MCP**
+* **Scope-aware** — apps that ask for read-only access are enforced as read-only and clearly labelled in your dashboard
+* **Revocable any time** — reset the connection token, or revoke a single connected app, with one click
+* **Admin-scoped** — every action runs as the administrator who approved it and respects that account's permissions
+* **Built-in health check** — a live "Test connection" round trip tells you exactly which step failed if a client can't connect
+
+Built on the WordPress **Abilities API**, bundled with the plugin — there are no companion plugins to install.
 
 ## 🔗 Create Short Links In Seconds
 
@@ -99,6 +116,7 @@ BetterLinks is engineered for speed. Redirects resolve from an optimized cache i
 * **Gutenberg block** and **Elementor** integration for inserting links while you write
 * **Fluent Boards integration** — manage short links directly from your project tasks
 * Full REST API for developers
+* **MCP server & WordPress Abilities API support** — expose your links to AI agents and automations
 * Translation-ready and WPML-compatible
 
 ## 🔄 Switching From Another Plugin?
@@ -221,6 +239,22 @@ Yes. There is a Gutenberg block plus instant-redirect controls in both the block
 
 Yes. BetterLinks is fully translation-ready and compatible with WPML.
 
+= What is the MCP connector? =
+
+MCP (Model Context Protocol) is the open standard AI assistants use to work with outside tools. BetterLinks includes its own MCP server, so assistants like Claude, ChatGPT, Claude Code, Cursor and VS Code can create links, organise them and read your click analytics for you, in plain English.
+
+= Do I need another plugin or a paid service to use MCP? =
+
+No. The MCP server and the WordPress Abilities API runtime are bundled with BetterLinks and run on your own site. There is no companion plugin to install, no hosted broker in the middle, and no extra subscription.
+
+= Is the MCP connector safe to turn on? =
+
+It is off by default and nothing is exposed until you enable it in BetterLinks → MCP. Clients connect either through a one-time OAuth approval or a connection token, every request runs as the administrator who approved it and respects that account's permissions, and you can reset the token or revoke any connected app at any time.
+
+= Which AI assistants can connect to BetterLinks? =
+
+Any MCP-capable client. The setup screen has ready-made instructions for Claude and ChatGPT (via OAuth) and for Claude Code, Cursor and VS Code (via a copy-paste command). Other MCP clients can connect using the endpoint URL shown on the same screen.
+
 == Screenshots ==
 
 1. Link shortening & custom links — turn any long URL into a short, branded link
@@ -231,6 +265,15 @@ Yes. BetterLinks is fully translation-ready and compatible with WPML.
 6. AI Bulk Link Generator — create short links for many posts at once
 
 == Changelog ==
+
+= 3.1.0 - 11/08/2026 =
+
+- Added: MCP connector — connect Claude, ChatGPT, Claude Code, Cursor or VS Code and manage your links in plain English
+- Added: Built-in MCP server with 14 tools covering links, categories, tags, click analytics and settings, powered by a bundled WordPress Abilities API runtime
+- Added: New BetterLinks → MCP screen with OAuth and copy-paste setup, connected app management, one-click revoke and a live connection test
+- Improvement: MCP access is off by default, scoped to the administrator who approves it, and revocable at any time
+- Fixed: Creating a link could add a junk category when the default category setting held an invalid or deleted value
+- Few minor bug fixes & improvements
 
 = 3.0.1 - 10/08/2026 =
 
@@ -461,3 +504,6 @@ Yes. BetterLinks is fully translation-ready and compatible with WPML.
 [See changelog for all versions](https://betterlinks.io/changelog/).
 
 == Upgrade Notice ==
+
+= 3.1.0 =
+Adds the BetterLinks MCP connector, so Claude, ChatGPT, Cursor and other AI assistants can manage your links for you. It is off by default — enable it under BetterLinks → MCP. Also fixes a junk category being created when the default category setting held an invalid value.

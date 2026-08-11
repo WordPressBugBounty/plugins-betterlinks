@@ -99,6 +99,13 @@ class Assets
                 // already excludes them, but the board re-adds empty categories from the
                 // /terms payload, so the SPA needs the same list to stay consistent.
                 'dashboard_hidden_term_ids' => array_values(array_unique(array_filter(array_map('intval', (array) apply_filters('betterlinks/dashboard_hidden_term_ids', array(), (array) $betterlinks_settings))))),
+                // MCP connector bootstrap. `abilities_api_available` is what tells
+                // the MCP page whether the bundled runtime actually loaded — with
+                // it missing, a client connects and is offered no tools at all.
+                'mcp' => [
+                    'abilities_api_available' => function_exists('wp_register_ability'),
+                    'endpoint'                => home_url('/betterlinks/mcp'),
+                ],
             ]);
 
             $menu_notice = get_option('betterlinks_menu_notice', 0);

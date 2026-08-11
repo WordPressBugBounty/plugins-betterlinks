@@ -486,11 +486,19 @@ trait Query {
 		$term_data   = array();
 		$newTermList = array();
 		
-		// If no category is provided, check for default category setting
+		// If no category is provided, check for default category setting.
+		//
+		// The stored value must be a real term ID. A non-numeric value falls
+		// through to the "new category" branch below, which treats cat_id as a
+		// NAME and creates a term called after it — so a boolean `true` in
+		// settings (which is what some saves write) minted a junk category
+		// literally named "1" on every link created without a category.
 		if ( empty( $request['cat_id'] ) ) {
 			$settings = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
-			if ( ! empty( $settings['default_category'] ) ) {
-				$request['cat_id'] = $settings['default_category'];
+			$default  = isset( $settings['default_category'] ) ? $settings['default_category'] : null;
+
+			if ( is_numeric( $default ) && (int) $default > 0 ) {
+				$request['cat_id'] = (int) $default;
 			} else {
 				// Fallback to Uncategorized category (ID 1)
 				$request['cat_id'] = 1;
@@ -513,6 +521,25 @@ trait Query {
 						'link_id'   => $link_id,
 						'term_slug' => $result['term_slug'],
 						'term_name' => $result['term_name'],
+						'term_type' => 'category',
+					);
+				}
+			}
+			// A NUMERIC cat_id is an ID, never a name. If it did not resolve above
+			// the term is gone (a stale default_category, say) — fall back to
+			// Uncategorized rather than minting a category literally named "42".
+			// Non-numeric values are genuine "user typed a new category" input and
+			// still create a term.
+			if ( $is_new_cat && is_numeric( $request['cat_id'] ) ) {
+				$is_new_cat = false;
+				$fallback   = self::get_term_by_slug( 'uncategorized' );
+				if ( count( $fallback ) > 0 ) {
+					$fallback    = current( $fallback );
+					$term_data[] = array(
+						'term_id'   => $fallback['ID'],
+						'link_id'   => $link_id,
+						'term_slug' => $fallback['term_slug'],
+						'term_name' => $fallback['term_name'],
 						'term_type' => 'category',
 					);
 				}

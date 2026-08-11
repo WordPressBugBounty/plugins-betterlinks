@@ -2,8 +2,8 @@
 /*
  * Plugin Name:		BetterLinks
  * Plugin URI:		https://betterlinks.io/
- * Description:		Ultimate plugin to create, shorten, track and manage any URL. Gather analytics reports and run successfully marketing campaigns easily.
- * Version:			3.0.1
+ * Description:		Create, shorten, cloak, track and manage any URL. Gather click analytics, run marketing campaigns, and connect AI assistants over MCP.
+ * Version:			3.1.0
  * Author:			WPDeveloper
  * Author URI:		https://wpdeveloper.com
  * License:			GPL-3.0+
@@ -22,6 +22,21 @@ if (!defined('ABSPATH')) {
 if (file_exists(dirname(__FILE__) . '/vendor/autoload.php')) {
     require_once dirname(__FILE__) . '/vendor/autoload.php';
 }
+
+/**
+ * Bundled MCP runtime (WordPress Abilities API).
+ *
+ * Loaded through the Jetpack Autoloader so that if the same library is also
+ * shipped by another plugin — or lands in WordPress core — the newest copy
+ * wins and loads once, with no fatal class collisions. This lets BetterLinks
+ * serve its MCP connector out of the box, without the standalone Abilities API
+ * plugin. See docs/mcp-server.md for the update procedure.
+ */
+$betterlinks_mcp_runtime = dirname(__FILE__) . '/dependencies/vendor/autoload_packages.php';
+if (is_readable($betterlinks_mcp_runtime)) {
+    require_once $betterlinks_mcp_runtime;
+}
+unset($betterlinks_mcp_runtime);
 
 if (!class_exists('BetterLinks')) {
     final class BetterLinks
@@ -84,7 +99,7 @@ if (!class_exists('BetterLinks')) {
             /**
              * Defines CONSTANTS for Whole plugins.
              */
-            define('BETTERLINKS_VERSION', '3.0.1');
+            define('BETTERLINKS_VERSION', '3.1.0');
             define('BETTERLINKS_DB_VERSION', '1.6.11');
             define('BETTERLINKS_MENU_NOTICE', '10');
             define('BETTERLINKS_SETTINGS_NAME', 'betterlinks_settings');
@@ -133,6 +148,13 @@ if (!class_exists('BetterLinks')) {
             new BetterLinks\Tools();
             new BetterLinks\Frontend;
             new BetterLinks\Elementor();
+
+            // MCP connector: register abilities (always, so generic Abilities
+            // clients can discover BetterLinks) and the MCP server surface (which
+            // gates serving on the enable_mcp setting). Guarded so a build without
+            // the bundled Abilities runtime still boots.
+            ( new BetterLinks\Abilities\Abilities_Registrar() )->init();
+            ( new BetterLinks\Mcp\Mcp_Manager() )->init();
         }
 
         public function dispatch_hook()

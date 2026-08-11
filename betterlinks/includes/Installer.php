@@ -175,6 +175,10 @@ class Installer extends \WP_Background_Process
                 'enable_custom_domain_menu' => true,
                 'enable_promo_cards'    => true,
                 'enable_bio_links'      => true,
+                // MCP connector master switch. Off by default: turning it on
+                // exposes the OAuth-capable MCP endpoint and is an explicit
+                // admin decision.
+                'enable_mcp'            => false,
                 // The bio pages' own link category is machinery, so it stays off
                 // Manage Links until the admin opts in.
                 'show_bio_links_category' => false,

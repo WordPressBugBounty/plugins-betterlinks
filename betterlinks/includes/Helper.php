@@ -216,6 +216,10 @@ class Helper {
 			'title'      => __( 'Link Scanner', 'betterlinks' ),
 			'capability' => 'manage_options',
 		);
+		$menu_items[ BETTERLINKS_PLUGIN_SLUG . '-mcp' ]          = array(
+			'title'      => __( 'MCP', 'betterlinks' ),
+			'capability' => 'manage_options',
+		);
 		$menu_items[ BETTERLINKS_PLUGIN_SLUG . '-settings' ]     = array(
 			'title'      => __( 'Settings', 'betterlinks' ),
 			'capability' => 'manage_options',
