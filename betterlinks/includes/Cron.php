@@ -54,6 +54,8 @@ class Cron
 
     public function write_json_links()
     {
+        // Self-heal the uploads deny rule for installs that predate it.
+        \BetterLinks\Installer::ensure_uploads_protected();
         $formattedArray = \BetterLinks\Helper::get_links_for_json();
         return file_put_contents(BETTERLINKS_UPLOAD_DIR_PATH . '/links.json', json_encode($formattedArray));
     }

@@ -9,9 +9,24 @@ use BetterLinks\Traits\Links;
 class FluentBoards {
 	use Links;
 
+	/**
+	 * Task IDs already handled this request, so registering both archive hook
+	 * names below can never delete twice for one archive.
+	 *
+	 * @var array<int,bool>
+	 */
+	private $handled_archives = array();
+
 	public static function init() {
 		$self = new self();
 		add_action( 'fluent_boards/task_deleted', array( $self, 'fbs_task_deleted' ), 10, 1 );
+		// Fluent Boards renamed this hook. 2.0+ fires `fluent_boards/task_archived`
+		// (TaskService::archive() and StageService), and `board_task_archived`
+		// survives only as an activity-log string — nothing does_action()s it, so
+		// listening to that name alone meant auto-delete-on-archive silently
+		// stopped firing. Both names stay registered so the integration keeps
+		// working against older builds; `handled_archives` makes the overlap safe.
+		add_action( 'fluent_boards/task_archived', array( $self, 'fbs_task_archive' ), 10, 1 );
 		add_action( 'fluent_boards/board_task_archived', array( $self, 'fbs_task_archive' ), 10, 1 );
 		add_filter( 'betterlinks__intlfbs_filter_category_from_dashboard', array( $self, 'filter_category_from_dashboard' ), 10, 2 );
 	}
@@ -35,6 +50,14 @@ class FluentBoards {
 		$settings = Cache::get_json_settings();
 		if ( ! isset( $settings['fbs']['delete_on'] ) || 'task_archive' !== $settings['fbs']['delete_on'] ) {
 			return;
+		}
+
+		$task_id = isset( $task->id ) ? (int) $task->id : 0;
+		if ( $task_id ) {
+			if ( isset( $this->handled_archives[ $task_id ] ) ) {
+				return;
+			}
+			$this->handled_archives[ $task_id ] = true;
 		}
 
 		$this->fbs_shorten_link_delete( $task );

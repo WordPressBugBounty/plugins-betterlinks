@@ -21,7 +21,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class AIClient {
 
+	// The WordPress AI Client (`wp_ai_client_prompt()`) landed in WordPress 7.0;
+	// BetterLinks still supports WordPress 5.3+ (see readme.txt "Requires at least"),
+	// so these endpoints stay as the direct path. Revisit once the supported floor
+	// reaches 7.0, at which point this class can delegate instead of calling out.
+	// phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- see above; WP 7.0-only API cannot be the sole path at a 5.3 minimum.
 	const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
+	// phpcs:ignore PluginCheck.CodeAnalysis.AIProvider.DirectIntegration -- see above; WP 7.0-only API cannot be the sole path at a 5.3 minimum.
 	const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
 	/**

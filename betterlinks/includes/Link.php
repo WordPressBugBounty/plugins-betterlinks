@@ -56,28 +56,119 @@ class Link extends Utils {
 		$this->dispatch_redirect( $data, next( $param ) );
 	}
 
+	/**
+	 * Legacy Quick Link Creation transport: `?action=btl_cle&api_key=…` on any
+	 * front-end URL.
+	 *
+	 * Kept for the Chrome extension and bookmarklets that predate the REST
+	 * endpoint, but the credential itself has been replaced. The old key was
+	 * `md5( AUTH_KEY )`: not bound to a user, never expiring, and only revocable
+	 * by rotating a wp-config secret (which logs everyone out). It is now a
+	 * plugin-issued token — see {@see \BetterLinks\CLEToken}.
+	 *
+	 * Prefer `POST /wp-json/betterlinks/v1/quick-link` with an
+	 * `Authorization: Bearer` header, which keeps the credential out of the URL
+	 * entirely (browser history, referrers, proxy and access logs).
+	 *
+	 * @return void
+	 */
 	public function quick_link_creation() {
 		global $betterlinks_settings;
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- authenticated via md5(AUTH_KEY) api_key check below.
-		if ( isset( $_GET['action'], $_GET['api_key'] ) && sanitize_text_field( wp_unslash( $_GET['action'] ) ) === 'btl_cle' && sanitize_text_field( wp_unslash( $_GET['api_key'] ) ) === md5( AUTH_KEY ) ) {
-			$target_url = isset( $_GET['target_url'] ) ? sanitize_url( wp_unslash( $_GET['target_url'] ) ) : '';
 
-			do_action( 'betterlinks_prevent_unwanted_cle' );
-			$title = isset( $_GET['title'] ) ?  sanitize_text_field( wp_unslash( $_GET['title'] ) ) : ''; // geting title from document obj, instead of fetching
-			// phpcs:enable WordPress.Security.NonceVerification.Recommended
-			if ( empty( $betterlinks_settings['cle']['enable_cle'] ) ) {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- authenticated via the API token check below.
+		if ( ! isset( $_GET['action'], $_GET['api_key'] ) ) {
+			return;
+		}
+
+		if ( sanitize_text_field( wp_unslash( $_GET['action'] ) ) !== 'btl_cle' ) {
+			return;
+		}
+
+		$presented = sanitize_text_field( wp_unslash( $_GET['api_key'] ) );
+		$acting_user = $this->resolve_cle_user( $presented );
+
+		if ( ! $acting_user ) {
+			return;
+		}
+
+		$target_url = isset( $_GET['target_url'] ) ? sanitize_url( wp_unslash( $_GET['target_url'] ) ) : '';
+
+		do_action( 'betterlinks_prevent_unwanted_cle' );
+		$title = isset( $_GET['title'] ) ?  sanitize_text_field( wp_unslash( $_GET['title'] ) ) : ''; // geting title from document obj, instead of fetching
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		if ( empty( $betterlinks_settings['cle']['enable_cle'] ) ) {
+			return;
+		}
+
+		if ( empty( $title ) ) {
+			$title = ( new Helper() )->fetch_target_url( $target_url );
+		}
+
+		if ( ! empty( $title ) ) {
+			// Only assume the token owner's identity at the point of the write, and
+			// only on a path that exits straight afterwards — never leave the rest
+			// of an ordinary front-end request running as that user.
+			$previous_user = get_current_user_id();
+			wp_set_current_user( $acting_user );
+
+			// Capability is resolved after the switch: Pro answers its delegated
+			// role filter from the current user, so it cannot be evaluated for an
+			// arbitrary id beforehand.
+			if ( ! CLEToken::current_user_can_create() ) {
+				wp_set_current_user( $previous_user );
+
 				return;
 			}
 
-			if ( empty( $title ) ) {
-				$title = ( new Helper() )->fetch_target_url( $target_url );
-			}
-			
-			if ( ! empty( $title ) ) {
-				$this->create_new_link( $title, $target_url, $betterlinks_settings );
-			}
-
-			return;
+			$this->create_new_link( $title, $target_url, $betterlinks_settings );
 		}
+	}
+
+	/**
+	 * Resolve the user a legacy CLE request acts as.
+	 *
+	 * Accepts a plugin-issued token first. The deprecated `md5( AUTH_KEY )` value
+	 * is only honoured while {@see CLEToken::legacy_key_allowed()} is true, which
+	 * covers existing sites for one release and is off for everyone else.
+	 *
+	 * Returns the identity only — the capability check happens after the user
+	 * switch, immediately before the write.
+	 *
+	 * @param string $presented Key from the query string.
+	 * @return int User id, or 0 when the request is not authenticated.
+	 */
+	private function resolve_cle_user( $presented ) {
+		if ( '' === $presented ) {
+			return 0;
+		}
+
+		$record = CLEToken::verify( $presented );
+
+		if ( $record ) {
+			return (int) $record['user_id'];
+		}
+
+		if ( ! CLEToken::legacy_key_allowed() || ! defined( 'AUTH_KEY' ) ) {
+			return 0;
+		}
+
+		if ( ! hash_equals( md5( AUTH_KEY ), $presented ) ) {
+			return 0;
+		}
+
+		// The legacy key carries no user identity. Attribute the insert to the
+		// site's oldest administrator rather than running with no user at all.
+		$admins = get_users(
+			array(
+				'role'    => 'administrator',
+				'orderby' => 'ID',
+				'order'   => 'ASC',
+				'number'  => 1,
+				'fields'  => 'ID',
+			)
+		);
+
+		return ! empty( $admins ) ? (int) $admins[0] : 0;
 	}
 }

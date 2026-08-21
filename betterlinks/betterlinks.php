@@ -3,7 +3,7 @@
  * Plugin Name:		BetterLinks
  * Plugin URI:		https://betterlinks.io/
  * Description:		Create, shorten, cloak, track and manage any URL. Gather click analytics, run marketing campaigns, and connect AI assistants over MCP.
- * Version:			3.1.0
+ * Version:			3.1.1
  * Author:			WPDeveloper
  * Author URI:		https://wpdeveloper.com
  * License:			GPL-3.0+
@@ -54,6 +54,7 @@ if (!class_exists('BetterLinks')) {
             add_action('plugins_loaded', [$this, 'on_plugins_loaded']);
             add_action('betterlinks_loaded', [$this, 'init_plugin']);
             add_action('admin_init', [$this, 'run_migrator']);
+            add_action('admin_init', [$this->Installer, 'heal_missing_tables'], 5);
             add_action('admin_init', [$this, 'do_the_works_if_failed_during_activation'], 100);
             add_action('admin_init', [$this, 'maybe_complete_legacy_quick_setup'], 9);
             add_action('admin_init', [$this, 'quick_setup']);
@@ -99,7 +100,7 @@ if (!class_exists('BetterLinks')) {
             /**
              * Defines CONSTANTS for Whole plugins.
              */
-            define('BETTERLINKS_VERSION', '3.1.0');
+            define('BETTERLINKS_VERSION', '3.1.1');
             define('BETTERLINKS_DB_VERSION', '1.6.11');
             define('BETTERLINKS_MENU_NOTICE', '10');
             define('BETTERLINKS_SETTINGS_NAME', 'betterlinks_settings');
@@ -250,8 +251,13 @@ if (!class_exists('BetterLinks')) {
 			// Enqueue main app script (geolocation logic is bundled inside)
 			wp_enqueue_script( 'betterlinks-app', BETTERLINKS_ASSETS_URI . 'js/betterlinks.app.core.min.js', [ 'jquery' ], $dependencies['version'], true );
 
+            // Deliberately no `betterlinks_admin_nonce` here. This runs on every
+            // public page, and a nonce is bound to the session rather than to a
+            // capability — localizing it handed any logged-in visitor, down to a
+            // Subscriber, a valid admin-AJAX nonce. The only consumer of this
+            // bundle is the click-tracking beacon, which is a nopriv handler and
+            // verifies no nonce at all, so nothing needs it.
             wp_localize_script('betterlinks-app', 'betterLinksApp', [
-                'betterlinks_nonce' => wp_create_nonce('betterlinks_admin_nonce'),
                 'ajaxurl' => admin_url('admin-ajax.php'),
                 'site_url' => apply_filters('betterlinks/site_url', site_url()),
                 'rest_url' => rest_url(),

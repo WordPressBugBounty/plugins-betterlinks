@@ -116,6 +116,145 @@ class Ajax {
 		add_action( 'wp_ajax_betterlinks/admin/get_utm_status_counts', array( $this, 'get_utm_status_counts' ) );
 	}
 
+	/**
+	 * Authorize a FluentBoards short-link request.
+	 *
+	 * `defined( 'FLUENT_BOARDS' )` proves the plugin is active, not that this
+	 * user may use it, and a nonce proves session origin, not permission — so
+	 * neither gate authorizes anything on its own. Board membership lives in
+	 * FluentBoards' own relations table and is orthogonal to the WP role, which
+	 * is why gating on `manage_options` would lock out the low-role board
+	 * members this feature exists for. Defer to FluentBoards' PermissionManager
+	 * instead, scoped to the board that owns the task in play.
+	 *
+	 * @param int|string $task_id FluentBoards task the request targets.
+	 * @return bool
+	 */
+	private function current_user_can_manage_fbs_link( $task_id ) {
+		$can = false;
+
+		if ( is_user_logged_in() && defined( 'FLUENT_BOARDS' ) ) {
+			if ( current_user_can( 'manage_options' ) ) {
+				$can = true;
+			} elseif ( class_exists( 'FluentBoards\App\Services\PermissionManager' ) ) {
+				$board_id = $this->get_fbs_board_id_by_task( $task_id );
+				// No resolvable board means there is nothing to authorize
+				// against, so fail closed instead of falling back to a check
+				// that any logged-in user would pass.
+				$can = $board_id > 0 && (bool) \FluentBoards\App\Services\PermissionManager::userHasPermission( $board_id );
+			}
+		}
+
+		return (bool) apply_filters( 'betterlinks/fbs/current_user_can_manage_link', $can, absint( $task_id ) );
+	}
+
+	/**
+	 * Resolve the board a FluentBoards task belongs to.
+	 *
+	 * @param int|string $task_id FluentBoards task id.
+	 * @return int Board id, or 0 when the task does not exist.
+	 */
+	private function get_fbs_board_id_by_task( $task_id ) {
+		$task_id = absint( $task_id );
+		if ( ! $task_id ) {
+			return 0;
+		}
+
+		global $wpdb;
+
+		return (int) $wpdb->get_var(
+			$wpdb->prepare( "SELECT `board_id` FROM {$wpdb->prefix}fbs_tasks WHERE `id` = %d", $task_id )
+		);
+	}
+
+	/**
+	 * Resolve the FluentBoards task a BetterLinks row was created for.
+	 *
+	 * Only links this integration created carry the `fbs-<task id>` slug, so a
+	 * row without one is out of scope for the FluentBoards handlers entirely
+	 * and must not be reachable through them.
+	 *
+	 * @param int|string $link_id BetterLinks link id.
+	 * @return int Task id, or 0 when the link is not a FluentBoards link.
+	 */
+	private function get_fbs_task_id_by_link( $link_id ) {
+		$link_id = absint( $link_id );
+		if ( ! $link_id ) {
+			return 0;
+		}
+
+		global $wpdb;
+
+		$row = $wpdb->get_row(
+			$wpdb->prepare( "SELECT `link_slug`, `target_url` FROM {$wpdb->prefix}betterlinks WHERE `ID` = %d", $link_id ),
+			ARRAY_A
+		);
+
+		if ( empty( $row ) ) {
+			return 0;
+		}
+
+		// Primary key: the `fbs-<task id>` slug this integration stamps on create.
+		$link_slug = isset( $row['link_slug'] ) ? (string) $row['link_slug'] : '';
+		if ( '' !== $link_slug && 0 === strpos( $link_slug, 'fbs-' ) ) {
+			$task_id = absint( substr( $link_slug, 4 ) );
+			if ( $task_id ) {
+				return $task_id;
+			}
+		}
+
+		// Fall back to the target URL, because `link_slug` is NOT immutable:
+		// saving the same link from the main BetterLinks screen rewrites it (the
+		// editor posts link_slug on every save and derives it from the title when
+		// empty), so a genuine board link can drift out of the `fbs-` shape. On
+		// the slug check alone that link would then be refused to its own board
+		// members — the quiet half of an authorization change, a legitimate user
+		// locked out rather than an attacker let in.
+		return $this->get_fbs_task_id_by_target_url( isset( $row['target_url'] ) ? $row['target_url'] : '' );
+	}
+
+	/**
+	 * Resolve a FluentBoards task id from a BetterLinks row's stored target URL.
+	 *
+	 * This widens nothing: the URL is a stored property of the row being edited,
+	 * not caller input, and it must sit under THIS site's FluentBoards page URL —
+	 * so an arbitrary external link that merely happens to contain `tasks/<n>`
+	 * cannot mint a task id. Whatever id comes back is still handed to the board
+	 * membership check, which is what actually authorizes the request.
+	 *
+	 * @param string $target_url Stored target URL of a BetterLinks row.
+	 * @return int Task id, or 0 when this is not a FluentBoards task URL on this site.
+	 */
+	private function get_fbs_task_id_by_target_url( $target_url ) {
+		$target_url = (string) $target_url;
+
+		if ( '' === $target_url || ! function_exists( 'fluent_boards_page_url' ) ) {
+			return 0;
+		}
+
+		$page_url = (string) fluent_boards_page_url();
+		if ( '' === $page_url || 0 !== strpos( $target_url, $page_url ) ) {
+			return 0;
+		}
+
+		return preg_match( '#/tasks/(\d+)#', $target_url, $matches ) ? absint( $matches[1] ) : 0;
+	}
+
+	/**
+	 * Deny a FluentBoards short-link request and stop.
+	 *
+	 * @return void
+	 */
+	private function send_fbs_permission_error() {
+		wp_send_json_error(
+			array(
+				'result'  => false,
+				'message' => __( 'Insufficient permissions', 'betterlinks' ),
+			),
+			403
+		);
+	}
+
 	public function update_fbs_link() {
 		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
 		if ( ! defined( 'FLUENT_BOARDS' ) ) {
@@ -123,9 +262,18 @@ class Ajax {
 		}
 
 		$helper        = new Helper();
-		$id            = isset( $_POST['id'] ) ? sanitize_text_field( wp_unslash( $_POST['id'] ) ) : null;
+		$id            = isset( $_POST['id'] ) ? absint( wp_unslash( $_POST['id'] ) ) : 0;
 		$short_url     = isset( $_POST['short_url'] ) ? sanitize_text_field( wp_unslash( $_POST['short_url'] ) ) : null;
 		$old_short_url = isset( $_POST['old_short_url'] ) ? sanitize_text_field( wp_unslash( $_POST['old_short_url'] ) ) : null;
+
+		// `id` was an unscoped pointer into the links table — any row, any
+		// owner. Resolve it back to the FluentBoards task this integration
+		// created it for, then authorize against that task's board; a link that
+		// did not come from this integration is never editable here.
+		$task_id = $this->get_fbs_task_id_by_link( $id );
+		if ( ! $task_id || ! $this->current_user_can_manage_fbs_link( $task_id ) ) {
+			$this->send_fbs_permission_error();
+		}
 
 		if ( $helper::is_exists_short_url( $short_url ) ) {
 			wp_send_json_error(
@@ -168,7 +316,11 @@ class Ajax {
 			}
 		}
 
-		wp_send_json_error(
+		// A successful update answered with `wp_send_json_error()`, i.e. an
+		// error envelope carrying a success message. The popover happened to
+		// survive it by reading `data.result` regardless of the envelope, but
+		// anything checking `success` saw every update as a failure.
+		wp_send_json_success(
 			array(
 				'result'  => array(
 					'short_url' => $short_url,
@@ -195,6 +347,13 @@ class Ajax {
 				)
 			);
 		}
+
+		// Authorize against the board that owns this task before minting a
+		// redirect on the site's own domain from attacker-supplied input.
+		if ( ! $this->current_user_can_manage_fbs_link( $taskId ) ) {
+			$this->send_fbs_permission_error();
+		}
+
 		$slug             = "fbs-{$taskId}";
 		$target_url       = isset( $_POST['target_url'] ) ? sanitize_url( wp_unslash( $_POST['target_url'] ) ) : null;
 		$short_url        = isset( $_POST['short_url'] ) ? sanitize_text_field( wp_unslash( $_POST['short_url'] ) ) : null;
@@ -254,10 +413,14 @@ class Ajax {
 		if ( empty( $results ) ) {
 			wp_send_json_error(
 				array(
-					'result' => array(
+					'result'  => array(
 						'short_url' => $short_url,
 					),
-					'status' => false,
+					'status'  => false,
+					// The client shows whatever message comes back, so name the
+					// actual reason here instead of letting it assume this is
+					// the only way creating a link can fail.
+					'message' => __( 'Link already exists', 'betterlinks' ),
 				)
 			);
 		}
@@ -278,6 +441,12 @@ class Ajax {
 
 		$boardUrl = isset( $_POST['boardUrl'] ) ? sanitize_text_field( wp_unslash( $_POST['boardUrl'] ) ) : null;
 		$taskId   = isset( $_POST['taskId'] ) ? (int) sanitize_text_field( wp_unslash( $_POST['taskId'] ) ) : null;
+
+		// Reads a task's title/slug and its existing short URL by id, so it
+		// needs the same board-scoped authorization as the write handlers.
+		if ( ! $this->current_user_can_manage_fbs_link( $taskId ) ) {
+			$this->send_fbs_permission_error();
+		}
 
 		$target_url = null;
 
@@ -1323,7 +1492,28 @@ class Ajax {
 		);
 	}
 
+	/**
+	 * These three feed the auto-link keyword UI and shipped with no nonce and
+	 * no capability check at all — any logged-in user could enumerate them. The
+	 * admin bundle already sends `betterlinks_admin_nonce` on every AJAX call,
+	 * so adding the standard gate costs the caller nothing.
+	 *
+	 * @return void
+	 */
+	private function verify_settings_read_access() {
+		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+		if ( ! apply_filters( 'betterlinks/api/settings_get_items_permissions_check', current_user_can( 'manage_options' ) ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Insufficient permissions', 'betterlinks' ),
+				),
+				403
+			);
+		}
+	}
+
 	public function get_post_types() {
+		$this->verify_settings_read_access();
 		$post_types = get_post_types(['public' => true]);
 		wp_send_json_success(
 			$post_types,
@@ -1331,6 +1521,7 @@ class Ajax {
 		);
 	}
 	public function get_post_tags() {
+		$this->verify_settings_read_access();
 		$tags = get_tags( array( 'get' => 'all' ) );
 		$tags = wp_list_pluck( $tags, 'name', 'slug' );
 		wp_send_json_success(
@@ -1339,6 +1530,7 @@ class Ajax {
 		);
 	}
 	public function get_post_categories() {
+		$this->verify_settings_read_access();
 		$categories = get_categories(
 			array(
 				'orderby' => 'name',
@@ -1490,15 +1682,46 @@ class Ajax {
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- public click-tracking beacon called from any frontend page; nonce is not feasible.
 		global $wpdb;
 
-		$searchKey = ! empty( $_POST['target_url'] ) ? 'target_url' : 'ID';
-		$searchValue = ( isset( $_POST['target_url'] ) ? sanitize_url( wp_unslash( $_POST['target_url'] ) ) : '' );
-		$searchValue = ( empty( $searchValue ) && isset( $_POST['linkId'] ) ? sanitize_text_field( wp_unslash( $_POST['linkId'] ) ) : '' );
-		$location    = isset( $_POST['location'] ) ? esc_url_raw( wp_unslash( $_POST['location'] ) ) : '';
-		$query = $wpdb->prepare( "select short_url from {$wpdb->prefix}betterlinks where {$searchKey}=%s", $searchValue );
-		$short_url = $wpdb->get_row( $query, ARRAY_A );
-		$short_url = current( $short_url );
+		// Resolve the lookup column and its value independently. The previous
+		// chained ternary made the target_url branch dead code: its own guard was
+		// empty( $searchValue ), which is already false once target_url has been
+		// assigned, so every target_url beacon fell through to '' and matched no
+		// row. Keyword auto-links (which post target_url, not linkId) therefore
+		// recorded no clicks at all.
+		// is_scalar() before the sanitizers, not after: esc_url_raw()/sanitize_url()
+		// pass their argument to ltrim(), which is a TypeError on an array, so a
+		// POST of target_url[]=x or location[]=x was its own anonymous HTTP 500 —
+		// a separate seam from the row-shape bug guarded below. absint() is milder
+		// (intval( array ) is 1) but would silently bill the click to link 1.
+		$target_url = ( isset( $_POST['target_url'] ) && is_scalar( $_POST['target_url'] ) ) ? sanitize_url( wp_unslash( $_POST['target_url'] ) ) : '';
+		$link_id    = ( isset( $_POST['linkId'] ) && is_scalar( $_POST['linkId'] ) ) ? absint( wp_unslash( $_POST['linkId'] ) ) : 0;
+		$location   = ( isset( $_POST['location'] ) && is_scalar( $_POST['location'] ) ) ? esc_url_raw( wp_unslash( $_POST['location'] ) ) : '';
+
+		if ( '' !== $target_url ) {
+			$query = $wpdb->prepare( "SELECT short_url FROM {$wpdb->prefix}betterlinks WHERE target_url = %s LIMIT 1", $target_url );
+		} elseif ( $link_id > 0 ) {
+			$query = $wpdb->prepare( "SELECT short_url FROM {$wpdb->prefix}betterlinks WHERE ID = %d LIMIT 1", $link_id );
+		} else {
+			wp_send_json( array( 'data' => false ) );
+		}
+
+		// This handler is reachable without a session (wp_ajax_nopriv_), so an
+		// unresolvable link is an ordinary outcome — a deleted link, a stale
+		// cached page, a hand-crafted request — not an error. Bail on the row
+		// shape before reaching into it: current( null ) is a TypeError on PHP 8
+		// and turned any anonymous POST with an unknown id into an HTTP 500.
+		$row = $wpdb->get_row( $query, ARRAY_A );
+		if ( ! is_array( $row ) || empty( $row['short_url'] ) ) {
+			wp_send_json( array( 'data' => false ) );
+		}
+
 		$utils = new Utils();
-		$data = $utils->get_slug_raw($short_url);
+		$data  = $utils->get_slug_raw( $row['short_url'] );
+		// get_slug_raw() returns null when neither an exact slug nor a wildcard
+		// matches; without this the array writes below would build a bogus click.
+		if ( ! is_array( $data ) ) {
+			wp_send_json( array( 'data' => false ) );
+		}
 		$data['skip_password_protection'] = true;
 		$data['location'] = $location;
 
@@ -1525,6 +1748,18 @@ class Ajax {
 	 */
 	public function update_click_country() {
 		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+
+		// Writes to the clicks table by arbitrary click id. Admin-facing
+		// analytics repair, so it takes the same gate as the rest of the
+		// analytics surface rather than running on a nonce alone.
+		if ( ! apply_filters( 'betterlinks/api/analytics_items_permissions_check', current_user_can( 'manage_options' ) ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Insufficient permissions', 'betterlinks' ),
+				),
+				403
+			);
+		}
 
 		// Check if BetterLinks Pro v2.5.0 or newer is installed
 		if ( ! defined( 'BETTERLINKS_PRO_VERSION' ) || version_compare( BETTERLINKS_PRO_VERSION, '2.5.0', '<' ) ) {
@@ -1589,6 +1824,17 @@ class Ajax {
 	 */
 	public function update_clicks_country_by_ip() {
 		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
+
+		// Bulk-writes the clicks table by attacker-chosen link_id + ip and
+		// flushes that link's analytics caches — same analytics gate as above.
+		if ( ! apply_filters( 'betterlinks/api/analytics_items_permissions_check', current_user_can( 'manage_options' ) ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Insufficient permissions', 'betterlinks' ),
+				),
+				403
+			);
+		}
 
 		// Check if BetterLinks Pro v2.5.0 or newer is installed and has country tracking feature
 		if ( ! defined( 'BETTERLINKS_PRO_VERSION' ) || version_compare( BETTERLINKS_PRO_VERSION, '2.5.0', '<' ) ) {

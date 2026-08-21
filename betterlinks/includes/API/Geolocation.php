@@ -77,6 +77,32 @@ class Geolocation {
 	}
 
 	/**
+	 * Per-peer throttle for the public detect endpoint.
+	 *
+	 * Keyed on REMOTE_ADDR only — never on a forwarding header, which the caller
+	 * controls and could vary to get a fresh bucket per request.
+	 *
+	 * @return bool True when the request is within budget.
+	 */
+	private function within_rate_limit() {
+		$limit = (int) apply_filters( 'betterlinks/geolocation/detect_rate_limit', 30 );
+
+		if ( $limit <= 0 ) {
+			return true;
+		}
+
+		$peer = isset( $_SERVER['REMOTE_ADDR'] )
+			? trim( sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) )
+			: 'unknown';
+
+		return CountryDetectionService::consume_bucket(
+			'btl_geo_rl_' . md5( $peer ),
+			$limit,
+			MINUTE_IN_SECONDS
+		);
+	}
+
+	/**
 	 * Detect country for current user's IP
 	 *
 	 * This is a fallback endpoint when frontend geolocation fails
@@ -85,6 +111,24 @@ class Geolocation {
 	 * @return \WP_REST_Response
 	 */
 	public function detect_country( $request ) {
+		// Unauthenticated endpoint: throttle per calling peer before doing any
+		// work. The client IP is now taken from REMOTE_ADDR (see
+		// CountryDetectionService::get_current_client_ip), so a single caller can
+		// no longer spoof a fresh IP per request to force cache misses — this
+		// bucket bounds what one peer can still cost us, and the service-level
+		// hourly budget bounds outbound lookups site-wide.
+		if ( ! $this->within_rate_limit() ) {
+			return new \WP_REST_Response(
+				array(
+					'success' => false,
+					'message' => 'Too many requests',
+					'code'    => 'rate_limited',
+					'data'    => null,
+				),
+				429
+			);
+		}
+
 		// Check if BetterLinks Pro v2.5.0 or newer is installed
 		if ( ! defined( 'BETTERLINKS_PRO_VERSION' ) || version_compare( BETTERLINKS_PRO_VERSION, '2.5.0', '<' ) ) {
 			return new \WP_REST_Response(

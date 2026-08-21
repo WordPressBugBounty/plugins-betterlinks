@@ -216,7 +216,9 @@ trait ArgumentSchema
                     'type' => 'boolean'
                 ],
                 'custom_tracking_scripts' => [
-                    'type' => 'string'
+                    'type' => 'string',
+                    // Raw JS echoed on the cloak page — unfiltered_html only.
+                    'sanitize_callback' => array( '\\BetterLinks\\Helper', 'sanitize_custom_tracking_scripts' ),
                 ],
             ],
             $this->terms_schema()

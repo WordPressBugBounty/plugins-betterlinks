@@ -128,6 +128,72 @@ class Installer extends \WP_Background_Process
         }
     }
 
+    /**
+     * Recreate any of our tables that are missing from the database.
+     *
+     * create_db_tables() only runs on activation and on a version bump, so an
+     * install where a CREATE TABLE failed - for instance the invalid
+     * `longtext NOT NULL default ''`, which MySQL 8 rejects outright under
+     * STRICT_TRANS_TABLES - stays broken until the next upgrade, with every read
+     * of the absent table raising a DB error. Check once per install and only
+     * record the repair as done when the tables are actually present afterwards.
+     *
+     * @return void
+     */
+    public function heal_missing_tables()
+    {
+        if (Helper::btl_get_option('betterlinks_tables_healed')) {
+            return;
+        }
+
+        $tables = [
+            'betterlinks'                   => 'createBetterLinksTable',
+            'betterlinks_terms'             => 'createBetterTermsTable',
+            'betterlinks_terms_relationships' => 'createBetterTermsRelationshipsTable',
+            'betterlinks_countries'         => 'createBetterLinksCountriesTable',
+            'betterlinks_clicks'            => 'createBetterClicksTable',
+            'betterlinkmeta'                => 'createBetterLinkMetaTable',
+            'betterlinks_password'          => 'createBetterLinkPasswordTable',
+            'betterlinks_user_agents'       => 'createBetterUserAgentsTable',
+        ];
+
+        $missing = [];
+        foreach ($tables as $suffix => $creator) {
+            if (!$this->table_exists($this->wpdb->prefix . $suffix)) {
+                $missing[$suffix] = $creator;
+            }
+        }
+
+        if (empty($missing)) {
+            Helper::btl_update_option('betterlinks_tables_healed', BETTERLINKS_VERSION, true);
+            return;
+        }
+
+        require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+        $healed = true;
+        foreach ($missing as $suffix => $creator) {
+            $this->$creator();
+            if (!$this->table_exists($this->wpdb->prefix . $suffix)) {
+                $healed = false;
+            }
+        }
+
+        // Leave the flag unset when a table still could not be created, so the
+        // next request retries instead of locking in a broken schema.
+        if ($healed) {
+            Helper::btl_update_option('betterlinks_tables_healed', BETTERLINKS_VERSION, true);
+        }
+    }
+
+    /**
+     * @param string $table Fully prefixed table name.
+     * @return bool
+     */
+    protected function table_exists($table)
+    {
+        return $this->wpdb->get_var($this->wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table;
+    }
+
     public function insert_terms_data()
     {
         try {
@@ -237,6 +303,62 @@ class Installer extends \WP_Background_Process
             if (wp_mkdir_p($file['base']) && ! file_exists( $target )) {
                 $wp_filesystem->put_contents( $target, $file['content'], FS_CHMOD_FILE );
             }
+        }
+
+        self::ensure_uploads_protected();
+    }
+
+    /**
+     * Drop a deny rule into the BetterLinks uploads directory so the generated
+     * links.json / clicks.json / settings.json files cannot be fetched over HTTP.
+     * Every consumer of those files reads them from disk, so denying web access
+     * costs nothing. Called on install and, for installs that predate the rule,
+     * from Cron::write_json_links() as a self-heal.
+     *
+     * @return void
+     */
+    public static function ensure_uploads_protected()
+    {
+        if ( ! defined( 'BETTERLINKS_UPLOAD_DIR_PATH' ) ) {
+            return;
+        }
+
+        $base     = trailingslashit( BETTERLINKS_UPLOAD_DIR_PATH );
+        $htaccess = $base . '.htaccess';
+        $index    = $base . 'index.html';
+
+        // Already hardened - keep this cheap, it runs on every JSON rewrite.
+        if ( file_exists( $htaccess ) && file_exists( $index ) ) {
+            return;
+        }
+
+        if ( ! wp_mkdir_p( BETTERLINKS_UPLOAD_DIR_PATH ) ) {
+            return;
+        }
+
+        global $wp_filesystem;
+        if ( empty( $wp_filesystem ) ) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+        if ( empty( $wp_filesystem ) ) {
+            return;
+        }
+
+        if ( ! file_exists( $htaccess ) ) {
+            $rules = "# BetterLinks - deny direct web access to generated data files.\n"
+                . "<IfModule mod_authz_core.c>\n"
+                . "\tRequire all denied\n"
+                . "</IfModule>\n"
+                . "<IfModule !mod_authz_core.c>\n"
+                . "\tOrder allow,deny\n"
+                . "\tDeny from all\n"
+                . "</IfModule>\n";
+            $wp_filesystem->put_contents( $htaccess, $rules, FS_CHMOD_FILE );
+        }
+
+        if ( ! file_exists( $index ) ) {
+            $wp_filesystem->put_contents( $index, '', FS_CHMOD_FILE );
         }
     }
 

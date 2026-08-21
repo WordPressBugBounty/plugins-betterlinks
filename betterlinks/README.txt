@@ -5,7 +5,7 @@ Tags: link shortener, affiliate links, redirects, link cloaking, url shortener
 Requires at least: 5.3
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 3.1.0
+Stable tag: 3.1.1
 License: GPLv3 or later
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -265,6 +265,11 @@ Any MCP-capable client. The setup screen has ready-made instructions for Claude 
 6. AI Bulk Link Generator — create short links for many posts at once
 
 == Changelog ==
+
+= 3.1.1 - 21/08/2026 =
+
+- Security: Improved plugin security enhancements
+- Few minor bug fixes & improvements
 
 = 3.1.0 - 11/08/2026 =
 

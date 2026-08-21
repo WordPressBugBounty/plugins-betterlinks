@@ -259,24 +259,47 @@ class Utils {
 		}
 	}
 
+	/**
+	 * Resolve the visitor IP recorded against a click.
+	 *
+	 * This used to walk HTTP_CLIENT_IP / X-Forwarded / X-Forwarded-For /
+	 * Forwarded ahead of REMOTE_ADDR and take whichever was set. Every one of
+	 * those is a request header, so on a site that is not actually behind a
+	 * reverse proxy any visitor could name their own IP on the public redirect
+	 * path — the busiest unauthenticated entry point the plugin has. That let a
+	 * caller inflate COUNT(DISTINCT ip) unique-click figures at will, walk
+	 * straight past the `excluded_ips` analytics filter, and hand a fresh value
+	 * to the per-IP country lookup on every single hit.
+	 *
+	 * The same walk was already replaced in
+	 * CountryDetectionService::get_current_client_ip() and in
+	 * BetterLinksPro\Helper::get_current_client_ip(); this path was missed.
+	 * Delegate to the same resolver so all three agree: REMOTE_ADDR by default,
+	 * a forwarding header only when the peer is inside an operator-configured
+	 * trusted-proxy range.
+	 *
+	 * The service returns null for private/reserved space because it will not
+	 * geolocate it. Click tracking still wants that value — a LAN visitor is a
+	 * real visitor — so fall back to REMOTE_ADDR rather than storing nothing.
+	 *
+	 * @return string Client IP, or '' when none can be established.
+	 */
 	public function get_current_client_IP() {
-		$address = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-		if ( isset( $_SERVER['HTTP_CLIENT_IP'] ) && $_SERVER['HTTP_CLIENT_IP'] != '127.0.0.1' ) {
-			$address = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CLIENT_IP'] ) );
-		} elseif ( isset( $_SERVER['HTTP_X_FORWARDED'] ) && $_SERVER['HTTP_X_FORWARDED'] != '127.0.0.1' ) {
-			$address = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED'] ) );
-		} elseif ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) && $_SERVER['HTTP_X_FORWARDED_FOR'] != '127.0.0.1' ) {
-			$address = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
-		} elseif ( isset( $_SERVER['HTTP_FORWARDED'] ) && $_SERVER['HTTP_FORWARDED'] != '127.0.0.1' ) {
-			$address = sanitize_text_field( wp_unslash( $_SERVER['HTTP_FORWARDED'] ) );
-		} elseif ( isset( $_SERVER['HTTP_FORWARDED_FOR'] ) && $_SERVER['HTTP_FORWARDED_FOR'] !== '127.0.0.1' ) {
-			$address = sanitize_text_field( wp_unslash( $_SERVER['HTTP_FORWARDED_FOR'] ) );
+		if ( class_exists( '\\BetterLinks\\Services\\CountryDetectionService' ) ) {
+			$resolved = \BetterLinks\Services\CountryDetectionService::get_current_client_ip();
+
+			if ( ! empty( $resolved ) ) {
+				return $resolved;
+			}
 		}
-		$IPS = explode( ',', $address );
-		if ( isset( $IPS[1] ) ) {
-			$address = $IPS[0];
-		}
-		return $address;
+
+		$address = isset( $_SERVER['REMOTE_ADDR'] )
+			? trim( sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) )
+			: '';
+
+		// Never store something that is not an address: the column is read back
+		// as an identity for unique-visitor counting and IP exclusion.
+		return filter_var( $address, FILTER_VALIDATE_IP ) ? $address : '';
 	}
 	public function addScheme( $url, $scheme = 'http://' ) {
 		if ( strpos( $url, '/' ) === 0 ) {
@@ -293,7 +316,19 @@ class Utils {
 	}
 
 
-	public function create_new_link( $title, $target_url, $settings ) {
+	/**
+	 * Create a Quick Link.
+	 *
+	 * @param string $title      Link title.
+	 * @param string $target_url Destination.
+	 * @param array  $settings   BetterLinks settings.
+	 * @param bool   $render     When true (default) render the confirmation page
+	 *                           and exit, preserving the legacy front-end
+	 *                           behaviour. When false, return the created row so
+	 *                           the REST endpoint can answer with JSON.
+	 * @return array|false|void
+	 */
+	public function create_new_link( $title, $target_url, $settings, $render = true ) {
 		$date             = wp_date( 'Y-m-d H:i:s' );
 		$helper           = new Helper();
 		$slug             = $helper->generate_random_slug();
@@ -327,6 +362,21 @@ class Utils {
 		$helper->clear_query_cache();
 		$args    = $this->sanitize_links_data( $initial_values );
 		$results = $this->insert_link( $args );
+
+		if ( ! $render ) {
+			if ( empty( $results ) ) {
+				return false;
+			}
+
+			$created_short_url = ! empty( $results['short_url'] ) ? $results['short_url'] : $short_url;
+
+			return array(
+				'id'        => isset( $results['ID'] ) ? (int) $results['ID'] : 0,
+				'short_url' => $created_short_url,
+				'permalink' => site_url( $created_short_url ),
+				'results'   => $results,
+			);
+		}
 
 		if ( ! empty( $results ) ) {
 			require_once BETTERLINKS_ROOT_DIR_PATH . '/includes/Views/create-link-externally.php';

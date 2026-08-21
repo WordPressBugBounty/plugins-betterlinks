@@ -698,7 +698,7 @@ final class Mcp_Manager {
 	 * @return void
 	 */
 	public function handle_authorize_page(): void {
-		$is_post = isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === strtoupper( (string) wp_unslash( $_SERVER['REQUEST_METHOD'] ) );
+		$is_post = isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) );
 		// Params come from GET on the consent link and POST on the form submit.
 		// Nonce is verified below before any POST value is acted on.
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
@@ -878,7 +878,7 @@ final class Mcp_Manager {
 			. '.rows{border:1px solid #263149;border-radius:14px;overflow:hidden;margin-bottom:16px}'
 			. '.row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:13px 16px;font-size:13.5px}'
 			. '.row+.row,.access{border-top:1px solid #263149}'
-			. '.row .k{color:#9aa6be}.row .v{font-weight:600;text-align:right;word-break:break-word}'
+			. '.row .k{color:#9aa6be}.row .v{font-weight:600;text-align:right;word-break:break-word}.row .v.warn{color:#fcd9a1}'
 			. '.access{padding:14px 16px;background:rgba(99,102,241,.07)}'
 			. '.access .k{color:#9aa6be;font-size:13px;margin-bottom:8px}'
 			. '.badge{display:inline-flex;align-items:center;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(99,102,241,.18);color:#c7cbff;border:1px solid rgba(99,102,241,.4)}'
@@ -900,9 +900,23 @@ final class Mcp_Manager {
 		);
 		echo '<p class="sub">' . $sub . '</p>'; // phpcs:ignore WordPress.Security.EscapeOutput -- static translation; client name esc_html'd.
 
+		// Where the authorization code is about to be sent. Client registration is
+		// public (RFC 7591) and `client_name` is whatever the registrant typed, so
+		// the name alone tells the admin nothing — anyone can register "Claude"
+		// pointing at their own callback and phish an approval. The callback host
+		// is the one field an attacker cannot fake, so it belongs on the screen the
+		// admin is being asked to approve.
+		$callback_host = (string) wp_parse_url( $req['redirect_uri'], PHP_URL_HOST );
+		if ( '' === $callback_host ) {
+			// Native clients register a custom scheme with no host (myapp://cb).
+			$callback_host = $req['redirect_uri'];
+		}
+		$offsite = '' !== $callback_host && strtolower( $callback_host ) !== strtolower( $host );
+
 		echo '<div class="rows">';
 		echo '<div class="row"><span class="k">' . esc_html__( 'Site', 'betterlinks' ) . '</span><span class="v">' . esc_html( $host ) . '</span></div>';
 		echo '<div class="row"><span class="k">' . esc_html__( 'Signed in as', 'betterlinks' ) . '</span><span class="v">' . esc_html( $user->user_login ) . '</span></div>';
+		echo '<div class="row"><span class="k">' . esc_html__( 'Sends access to', 'betterlinks' ) . '</span><span class="v' . ( $offsite ? ' warn' : '' ) . '">' . esc_html( $callback_host ) . '</span></div>';
 		echo '<div class="access"><div class="k">' . esc_html__( 'Access', 'betterlinks' ) . '</div>';
 		echo '<span class="badge ' . ( $read_only ? 'ro' : '' ) . '">' . esc_html( $access_label ) . '</span>';
 		echo '<div class="d">' . esc_html( $access_desc ) . '</div></div>';

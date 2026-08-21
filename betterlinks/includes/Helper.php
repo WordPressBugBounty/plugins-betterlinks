@@ -395,12 +395,12 @@ class Helper {
 					$item->analytic = $analytic[ $item->ID ];
 				}
 				if ( ! empty( $item->param_struct ) ) {
-					$item->param_struct = unserialize( $item->param_struct );
+					$item->param_struct = unserialize( $item->param_struct, array( 'allowed_classes' => false ) );
 				}
 				if ( class_exists( '\BetterLinksPro' ) ) {
 					$custom_tracking_scripts = self::get_link_meta( $item->ID, 'btl_custom_tracking_scripts' );
 					if ( ! empty( $custom_tracking_scripts ) ) {
-						$custom_tracking_scripts       = unserialize( $custom_tracking_scripts );
+						$custom_tracking_scripts       = unserialize( $custom_tracking_scripts, array( 'allowed_classes' => false ) );
 						$item->enable_custom_scripts   = isset( $custom_tracking_scripts['enable'] ) ? $custom_tracking_scripts['enable'] : false;
 						$item->custom_tracking_scripts = isset( $custom_tracking_scripts['script'] ) ? $custom_tracking_scripts['script'] : '';
 					}
@@ -894,15 +894,76 @@ class Helper {
 		return $prefix;
 	}
 
+	/**
+	 * The current user's Quick Link Creation token, for rendering the bookmarklet.
+	 *
+	 * Issued lazily and only for users who are actually allowed to create links,
+	 * so a delegated role browsing the settings screen never receives one.
+	 *
+	 * @return string|null
+	 */
+	public static function get_cle_token_for_display() {
+		$user_id = get_current_user_id();
+
+		if ( ! $user_id || ! CLEToken::current_user_can_create() ) {
+			return null;
+		}
+
+		$record = CLEToken::get_or_issue_for_user( $user_id );
+
+		return ( is_array( $record ) && ! empty( $record['token'] ) ) ? $record['token'] : null;
+	}
+
+	/**
+	 * Sanitize callback for the `custom_tracking_scripts` REST field.
+	 *
+	 * The field holds raw JavaScript that is echoed verbatim on the cloaked
+	 * redirect page, so storing it is an `unfiltered_html` action. The write path
+	 * (`BetterLinksPro\Helper::update_custom_script_data`) already refuses the
+	 * field for callers without that capability; this drops it one layer earlier
+	 * so a delegated `writelinks` / `editlinks` role can never get raw markup as
+	 * far as the storage layer.
+	 *
+	 * @param mixed $value Incoming value.
+	 * @return string
+	 */
+	public static function sanitize_custom_tracking_scripts( $value ) {
+		if ( ! is_string( $value ) ) {
+			return '';
+		}
+
+		if ( ! current_user_can( 'unfiltered_html' ) ) {
+			return '';
+		}
+
+		return $value;
+	}
+
 	public function fetch_target_url( $target_url ) {
 		if ( empty( $target_url ) ) {
 			return false;
 		}
 
-		$http   = new WP_Http();
-		$result = $http->get( $target_url, array( 'sslverify' => false ) );
+		// SSRF guard: this fetches a caller-supplied URL server-side, so it must
+		// not be able to reach internal hosts. wp_safe_remote_get() runs
+		// wp_http_validate_url() (rejects loopback, RFC1918, link-local
+		// 169.254/16, CGNAT, reserved ranges and non-http(s) schemes) and keeps
+		// TLS verification on. Replaces WP_Http::get() with sslverify => false.
+		$result = wp_safe_remote_get(
+			$target_url,
+			array(
+				'timeout'     => 5,
+				'redirection' => 3,
+				// Preserve the original WP_Http::get() behavior (no cert enforcement)
+				// so this title fetch still works for targets with invalid certs;
+				// wp_safe_remote_get only adds the SSRF host/redirect validation.
+				'sslverify'   => false,
+				'limit_response_size' => 512 * 1024,
+			)
+		);
 		$title  = '';
-		if ( ! is_wp_error( $result ) && ! empty( $result['body'] ) && preg_match( '/<title>(.*)<\/title>/siU', $result['body'], $title_matches ) ) {
+		$body   = is_wp_error( $result ) ? '' : wp_remote_retrieve_body( $result );
+		if ( ! empty( $body ) && preg_match( '/<title>(.*)<\/title>/siU', $body, $title_matches ) ) {
 			$title = html_entity_decode( $title_matches[1] );
 		}
 		return $title;

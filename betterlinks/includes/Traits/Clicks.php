@@ -329,10 +329,9 @@ trait Clicks {
 		}
 
 		global $wpdb;
-		$prefix = $wpdb->prefix;
 
 		$query = $wpdb->prepare(
-			"SELECT id as link_id, link_title, short_url, target_url from {$prefix}betterlinks as links right join (select distinct link_id from {$prefix}betterlinks_clicks where created_at between %s and %s) as clicks on clicks.link_id=links.id right join (select tr.link_id from {$prefix}betterlinks_terms t left join {$prefix}betterlinks_terms_relationships tr on t.ID=tr.term_id where t.term_type='tags' and t.ID=%s) tl on links.id=tl.link_id where id!=''",
+			"SELECT id as link_id, link_title, short_url, target_url from {$wpdb->prefix}betterlinks as links right join (select distinct link_id from {$wpdb->prefix}betterlinks_clicks where created_at between %s and %s) as clicks on clicks.link_id=links.id right join (select tr.link_id from {$wpdb->prefix}betterlinks_terms t left join {$wpdb->prefix}betterlinks_terms_relationships tr on t.ID=tr.term_id where t.term_type='tags' and t.ID=%s) tl on links.id=tl.link_id where id!=''",
 			$from . ' 00:00:00',
 			$to . ' 23:59:59',
 			$id
@@ -354,10 +353,9 @@ trait Clicks {
 			return $results;
 		}
 		global $wpdb;
-		$prefix = $wpdb->prefix;
 
-		$query = $wpdb->prepare( 
-			"SELECT id as link_id, link_title, short_url, target_url from {$prefix}betterlinks as links right join (select distinct link_id from {$prefix}betterlinks_clicks where created_at between %s and %s) as clicks on clicks.link_id=links.id order by links.id desc",
+		$query = $wpdb->prepare(
+			"SELECT id as link_id, link_title, short_url, target_url from {$wpdb->prefix}betterlinks as links right join (select distinct link_id from {$wpdb->prefix}betterlinks_clicks where created_at between %s and %s) as clicks on clicks.link_id=links.id order by links.id desc",
 			$from . ' 00:00:00',
 			$to . ' 23:59:59',
 		 );
@@ -575,7 +573,10 @@ trait Clicks {
 		$query_sql = "SELECT COUNT( DISTINCT ip ) AS count FROM {$wpdb->prefix}betterlinks_clicks {$where_clause}";
 		$query = $wpdb->prepare( $query_sql, $query_params );
 		$results = $wpdb->get_row( $query, ARRAY_A );
-		$results = current( $results );
+		// COUNT() normally always yields a row, but get_row() returns null on a
+		// query error (and on an empty result set), and current( null ) is a
+		// TypeError on PHP 8 — fatal behind the unique-clicks analytics card.
+		$results = is_array( $results ) ? current( $results ) : 0;
 		set_transient( $transient_key, $results, self::$transient_timeout );
 		return $results;
 	}

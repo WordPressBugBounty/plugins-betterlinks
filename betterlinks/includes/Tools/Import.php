@@ -64,7 +64,21 @@ class Import
 
     public function get_import_info()
     {
-        check_ajax_referer('wp_rest', 'security');
+        // This reads *and deletes* the admin's import-status transient, so it
+        // needs the same capability as the importer that writes it. The generic
+        // `wp_rest` nonce it shipped with is held by every logged-in user and
+        // authorized nobody. The admin bundle still sends that nonce, so accept
+        // either action rather than break the Tools screen on upgrade.
+        $nonce = isset($_REQUEST['security']) ? sanitize_text_field( wp_unslash( $_REQUEST['security'] ) ) : '';
+        if ( ! wp_verify_nonce($nonce, 'betterlinks_admin_nonce') && ! wp_verify_nonce($nonce, 'wp_rest') ) {
+            wp_send_json_error(['message' => __('Invalid nonce', 'betterlinks')], 403);
+        }
+
+        $can_access_settings = apply_filters("betterlinks/admin/" . BETTERLINKS_PLUGIN_SLUG . "-settings_menu_capability", 'manage_options');
+        if ( ! current_user_can($can_access_settings) ) {
+            wp_send_json_error(['message' => __('Insufficient permissions', 'betterlinks')], 403);
+        }
+
         $results = json_encode([]);
         if (get_transient('betterlinks_import_info')) {
             \BetterLinks\Helper::clear_query_cache();

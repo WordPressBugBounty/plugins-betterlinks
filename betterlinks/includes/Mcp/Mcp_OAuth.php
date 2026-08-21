@@ -196,6 +196,20 @@ final class Mcp_OAuth {
 			? array_values( array_filter( array_map( 'strval', $body['redirect_uris'] ), [ self::class, 'is_valid_redirect_uri' ] ) )
 			: [];
 
+		// Bound the size of a single persisted client record. Registration is
+		// public (RFC 7591), so without these caps one anonymous caller could
+		// retain up to the client limit of very large records — each redirect URI
+		// and the client name are attacker-controlled and rewrite the whole option
+		// on every registration/prune. Cap URI length, URI count, and name length,
+		// and de-duplicate.
+		$redirect_uris = array_values( array_unique( array_filter(
+			$redirect_uris,
+			static function ( $uri ) {
+				return strlen( $uri ) <= 2048;
+			}
+		) ) );
+		$redirect_uris = array_slice( $redirect_uris, 0, 5 );
+
 		if ( empty( $redirect_uris ) ) {
 			return new \WP_Error(
 				'invalid_redirect_uri',
@@ -205,6 +219,9 @@ final class Mcp_OAuth {
 		}
 
 		$name      = isset( $body['client_name'] ) ? sanitize_text_field( (string) $body['client_name'] ) : 'MCP Client';
+		if ( strlen( $name ) > 128 ) {
+			$name = substr( $name, 0, 128 );
+		}
 		$client_id = 'trk_' . bin2hex( random_bytes( 16 ) );
 
 		$state                          = self::state();
@@ -781,7 +798,19 @@ final class Mcp_OAuth {
 		if ( '' === $uri ) {
 			return false;
 		}
-		return (bool) preg_match( '#^[a-zA-Z][a-zA-Z0-9+.\-]*://#', $uri );
+		if ( ! preg_match( '#^([a-zA-Z][a-zA-Z0-9+.\-]*)://#', $uri, $m ) ) {
+			return false;
+		}
+
+		// Registration is unauthenticated, so the scheme is attacker-chosen.
+		// `javascript://…`, `data://…` and `vbscript://…` all satisfy the shape
+		// above, and this value is later handed to wp_redirect() and rendered on
+		// the consent screen. Browsers refuse to navigate a Location: header to
+		// those schemes, so this is not the last line of defence — but a
+		// credential callback has no business being one of them either.
+		$scheme = strtolower( $m[1] );
+
+		return ! in_array( $scheme, array( 'javascript', 'data', 'vbscript', 'file' ), true );
 	}
 
 	/**

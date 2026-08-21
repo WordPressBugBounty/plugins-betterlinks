@@ -86,7 +86,12 @@ class Assets
                 'menu_notice' => defined('BETTERLINKS_MENU_NOTICE') ? BETTERLINKS_MENU_NOTICE : null,
                 'betterlinks_custom_domain_menu' => get_option( BETTERLINKS_CUSTOM_DOMAIN_MENU, 0 ),
                 'betterlinks_settings' => $betterlinks_settings,
-                'betterlinks_auth' => defined('AUTH_KEY') ? md5(\AUTH_KEY) : null,
+                // Quick Link Creation credential. No longer md5(AUTH_KEY): that was a
+                // site-wide secret with no user binding, no expiry and no way to
+                // revoke it from the plugin. This is a per-user, expiring,
+                // revocable token issued by \BetterLinks\CLEToken.
+                'betterlinks_auth' => \BetterLinks\Helper::get_cle_token_for_display(),
+                'betterlinks_cle_endpoint' => rest_url(BETTERLINKS_PLUGIN_SLUG . '/v1/quick-link'),
                 'betterlinks_date_format' => get_option( 'date_format' ),
                 'is_fbs_enabled' => defined('FLUENT_BOARDS'),
                 'betterlinks_quick_setup_step' => get_option( 'betterlinks_quick_setup_step', false ),

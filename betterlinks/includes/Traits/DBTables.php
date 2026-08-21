@@ -117,7 +117,7 @@ trait DBTables
             meta_id bigint(20) unsigned NOT NULL auto_increment,
             link_id bigint(20) unsigned NOT NULL default '0',
             meta_key varchar(255) NOT NULL default '',
-            meta_value longtext NOT NULL default '',
+            meta_value longtext NOT NULL,
             PRIMARY KEY  (meta_id),
             KEY link_id (link_id),
             KEY meta_key (meta_key)

@@ -60,7 +60,7 @@ class BLImportCSV extends BaseCSV implements ImportCsvInterface {
 		if ( ! empty( $item['link_title'] ) && ! empty( $item['short_url'] ) ) {
 			$link_id = $this->insert_link( $item );
 			if ( ! ( empty( $link_id ) || empty( $item['auto_link_keywords'] ) ) ) {
-				$auto_link_keywords = unserialize( $item['auto_link_keywords'] );
+				$auto_link_keywords = unserialize( $item['auto_link_keywords'], array( 'allowed_classes' => false ) );
 
 				foreach ( $auto_link_keywords as $keyword ) {
 					['meta_key' => $meta_key, 'meta_value' => $meta_value] = $keyword;  // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key, WordPress.DB.SlowDBQuery.slow_db_query_meta_value

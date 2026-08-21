@@ -137,7 +137,7 @@ trait Links
             }
             
             if( !empty( $response['param_struct'] ) ){
-                $response['param_struct'] = unserialize($response['param_struct']);
+                $response['param_struct'] = unserialize($response['param_struct'], array('allowed_classes' => false));
             }
             return $response;
         }
@@ -206,7 +206,7 @@ trait Links
         do_action( 'betterlinkspro/admin/update_link', $id, $arg );
 
         if( !empty( $arg['param_struct'] ) ){
-            $arg['param_struct'] = unserialize($arg['param_struct']);
+            $arg['param_struct'] = unserialize($arg['param_struct'], array('allowed_classes' => false));
         }
         return $arg;
     }

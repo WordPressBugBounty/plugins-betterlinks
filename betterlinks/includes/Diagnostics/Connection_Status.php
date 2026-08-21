@@ -137,6 +137,7 @@ class Connection_Status {
 		$tables = [];
 		foreach ( [ 'betterlinks', 'betterlinks_terms', 'betterlinks_terms_relationships', 'betterlinks_clicks' ] as $table ) {
 			$name            = $wpdb->prefix . $table;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- schema probe on our own custom tables; no core API reports their existence, and a cached answer would hide the very drift this diagnostic exists to catch.
 			$tables[ $table ] = ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $name ) ) === $name );
 		}
 
@@ -158,11 +159,13 @@ class Connection_Status {
 	private static function links_info(): array {
 		global $wpdb;
 
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- inventory counts over our own custom tables; no core API counts them, and a cached count would misreport an empty site as populated (or vice versa) to the connector.
 		return [
 			'links'      => (int) $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->prefix}betterlinks" ),
 			'categories' => (int) $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->prefix}betterlinks_terms WHERE term_type = 'category'" ),
 			'tags'       => (int) $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->prefix}betterlinks_terms WHERE term_type = 'tags'" ),
 		];
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 	}
 
 	/**
