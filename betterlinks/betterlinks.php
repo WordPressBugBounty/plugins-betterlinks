@@ -3,7 +3,7 @@
  * Plugin Name:		BetterLinks
  * Plugin URI:		https://betterlinks.io/
  * Description:		Create, shorten, cloak, track and manage any URL. Gather click analytics, run marketing campaigns, and connect AI assistants over MCP.
- * Version:			3.1.1
+ * Version:			3.1.2
  * Author:			WPDeveloper
  * Author URI:		https://wpdeveloper.com
  * License:			GPL-3.0+
@@ -100,7 +100,7 @@ if (!class_exists('BetterLinks')) {
             /**
              * Defines CONSTANTS for Whole plugins.
              */
-            define('BETTERLINKS_VERSION', '3.1.1');
+            define('BETTERLINKS_VERSION', '3.1.2');
             define('BETTERLINKS_DB_VERSION', '1.6.11');
             define('BETTERLINKS_MENU_NOTICE', '10');
             define('BETTERLINKS_SETTINGS_NAME', 'betterlinks_settings');
