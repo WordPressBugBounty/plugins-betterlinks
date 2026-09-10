@@ -69,11 +69,33 @@ class Create_Link extends Ability_Base {
 			return new \WP_Error( 'betterlinks_missing_target', __( 'A target_url is required to create a link.', 'betterlinks' ), [ 'status' => 400 ] );
 		}
 		$title = isset( $input['link_title'] ) ? (string) $input['link_title'] : '';
-		$slug  = isset( $input['link_slug'] ) && '' !== $input['link_slug'] ? sanitize_title( (string) $input['link_slug'] ) : sanitize_title( '' !== $title ? $title : 'link-' . substr( md5( uniqid( '', true ) ), 0, 8 ) );
+		// Use the slash-preserving sanitizer so multi-segment slugs like "go/deal"
+		// survive intact (WP core's sanitize_title() would convert '/' to '-').
+		$raw   = isset( $input['link_slug'] ) && '' !== $input['link_slug']
+			? (string) $input['link_slug']
+			: ( '' !== $title ? $title : 'link-' . substr( md5( uniqid( '', true ) ), 0, 8 ) );
+		$slug  = self::sanitize_slug_preserving_slashes( $raw );
+		if ( '' === $slug ) {
+			return new \WP_Error( 'betterlinks_invalid_slug', __( 'link_slug produced an empty value after sanitization.', 'betterlinks' ), [ 'status' => 400 ] );
+		}
+		// Apply the configured link prefix (matches the admin UI behaviour).
+		// build_short_url() is idempotent — if the caller already included the
+		// prefix, no double-prepending happens.
+		$short_url = self::build_short_url( $slug );
+
+		// Reject collisions with existing WordPress URLs before creation,
+		// otherwise BetterLinks' init:0 redirect handler would silently shadow
+		// the WP content. Sites that want the old behaviour can filter
+		// betterlinks/skip_wp_url_collision_check to true.
+		$collision = \BetterLinks\Helper::check_wp_url_collision( $short_url );
+		if ( is_wp_error( $collision ) ) {
+			return $collision;
+		}
+
 		$params = [
 			'link_title'    => '' !== $title ? $title : $slug,
 			'link_slug'     => $slug,
-			'short_url'     => $slug,
+			'short_url'     => $short_url,
 			'target_url'    => $target,
 			'redirect_type' => isset( $input['redirect_type'] ) ? (string) $input['redirect_type'] : '307',
 			'link_status'   => isset( $input['link_status'] ) ? (string) $input['link_status'] : 'publish',

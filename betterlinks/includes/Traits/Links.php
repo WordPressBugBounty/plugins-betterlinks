@@ -74,6 +74,94 @@ trait Links
         }
         return $data;
     }
+    /**
+     * Gate a create/update payload before it reaches the database.
+     *
+     * Both the REST controller and the admin-ajax fallback that the React app
+     * falls back to when REST is unavailable go through here, so a short_url is
+     * validated the same way whichever transport carried it.
+     *
+     * Returns a WP_Error describing the rejection, or null when the payload is
+     * safe to write.
+     *
+     * @param array $args            Sanitized link payload.
+     * @param bool  $is_update       Whether this is an update of an existing row.
+     * @param int   $allowed_post_id Post whose own permalink this write is allowed
+     *                               to shadow (Instant Redirect). 0 for none.
+     * @return \WP_Error|null
+     */
+    public function validate_link_payload($args, $is_update = false, $allowed_post_id = 0)
+    {
+        if (!isset($args['short_url']) || '' === (string) $args['short_url']) {
+            return null;
+        }
+        $short_url = (string) $args['short_url'];
+        $id        = isset($args['ID']) ? absint($args['ID']) : 0;
+
+        if ($is_update && $id > 0) {
+            $current_row = \BetterLinks\Helper::get_link_by_ID($id);
+            $current     = is_array($current_row) && !empty($current_row) ? current($current_row) : null;
+            $current_url = is_array($current) && isset($current['short_url']) ? (string) $current['short_url'] : '';
+            // A no-op edit (title, target, category…) resubmits the stored
+            // short_url untouched. Nothing is changing, so nothing to validate —
+            // and validating anyway would reject links that predate this check.
+            if ($short_url === $current_url) {
+                return null;
+            }
+            // insert_link() refuses a duplicate short_url on create, but the
+            // update branch never did, so two rows could end up owning the same
+            // path and one would silently win the links.json entry.
+            $owner = \BetterLinks\Helper::get_link_by_short_url($short_url);
+            foreach ((array) $owner as $row) {
+                if (isset($row['ID']) && absint($row['ID']) !== $id) {
+                    return new \WP_Error(
+                        'betterlinks_duplicate_short_url',
+                        sprintf(
+                            /* translators: %s: the short URL that is already taken */
+                            __('Another link already uses the short URL "%s". Short URLs have to be unique.', 'betterlinks'),
+                            $short_url
+                        ),
+                        ['status' => 409]
+                    );
+                }
+            }
+        }
+
+        $collision = \BetterLinks\Helper::check_wp_url_collision($short_url, $allowed_post_id);
+        if (is_wp_error($collision)) {
+            return $collision;
+        }
+        return null;
+    }
+
+    /**
+     * The post an Instant Redirect write claims to belong to, or 0.
+     *
+     * The block editor sends `instant_redirect_post_id` alongside the link
+     * payload when the Instant Redirect sidebar saves, because that panel
+     * deliberately registers the post's own permalink as a short URL and would
+     * otherwise be refused by the WP URL collision check.
+     *
+     * It is caller-supplied, and all it does is relax that check for one
+     * specific path, so it only counts when the current user may actually edit
+     * the post in question — otherwise it is a way to shadow someone else's
+     * page.
+     *
+     * @param array $source Raw (unsanitized) request payload.
+     * @return int
+     */
+    public function resolve_instant_redirect_post_id($source)
+    {
+        if (!is_array($source) || !isset($source['instant_redirect_post_id'])) {
+            return 0;
+        }
+        $post_id = absint($source['instant_redirect_post_id']);
+        if ($post_id < 1 || !get_post($post_id)) {
+            return 0;
+        }
+        return current_user_can('edit_post', $post_id) ? $post_id : 0;
+    }
+
     public function insert_link($arg)
     {
         if (isset($arg['short_url']) && ! \BetterLinks\Helper::is_exists_short_url($arg['short_url'])) {
@@ -139,6 +227,13 @@ trait Links
             if( !empty( $response['param_struct'] ) ){
                 $response['param_struct'] = unserialize($response['param_struct'], array('allowed_classes' => false));
             }
+            // Invalidate the dashboard cache *after* the row exists. Callers also
+            // clear it before writing, but that alone leaves a window: the
+            // transient is stored without a TTL, so any read landing between the
+            // pre-write clear and this insert would repopulate it from a table
+            // that does not have the new link yet and keep serving that snapshot
+            // forever — a link that saved fine but never appears in Manage Links.
+            delete_transient(BETTERLINKS_CACHE_LINKS_NAME);
             return $response;
         }
         return false;
@@ -208,6 +303,9 @@ trait Links
         if( !empty( $arg['param_struct'] ) ){
             $arg['param_struct'] = unserialize($arg['param_struct'], array('allowed_classes' => false));
         }
+        // See insert_link(): clear once more now the write is committed, so a
+        // concurrent read cannot leave a permanent pre-write snapshot behind.
+        delete_transient(BETTERLINKS_CACHE_LINKS_NAME);
         return $arg;
     }
     public function update_link_favorite($args)
@@ -238,6 +336,9 @@ trait Links
         if (BETTERLINKS_EXISTS_LINKS_JSON && isset($args['short_url'])) {
             \BetterLinks\Helper::delete_json_into_file(trailingslashit(BETTERLINKS_UPLOAD_DIR_PATH) . 'links.json', $args['short_url']);
         }
+        // See insert_link(): clear again now the row is gone, so a read racing
+        // the delete cannot pin a snapshot that still contains it.
+        delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
         return true;
     }
 

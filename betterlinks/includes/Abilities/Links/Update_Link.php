@@ -72,7 +72,32 @@ class Update_Link extends Ability_Base {
 		$params = [ 'ID' => $id ];
 		if ( isset( $input['link_title'] ) )    { $params['link_title'] = (string) $input['link_title']; }
 		if ( isset( $input['target_url'] ) )     { $params['target_url'] = esc_url_raw( (string) $input['target_url'] ); }
-		if ( isset( $input['link_slug'] ) )      { $params['link_slug'] = sanitize_title( (string) $input['link_slug'] ); $params['short_url'] = $params['link_slug']; }
+		if ( isset( $input['link_slug'] ) ) {
+			// Sanitize with slashes preserved (mirrors admin JS + Create_Link).
+			$slug = self::sanitize_slug_preserving_slashes( (string) $input['link_slug'] );
+			if ( '' === $slug ) {
+				return new \WP_Error( 'betterlinks_invalid_slug', __( 'link_slug produced an empty value after sanitization.', 'betterlinks' ), [ 'status' => 400 ] );
+			}
+			// Apply configured prefix; idempotent if the caller already included it.
+			$short_url = self::build_short_url( $slug );
+
+			// Checked here as well as in the REST controller this dispatches to,
+			// so an MCP client gets a real WP_Error 409 rather than the
+			// `success: false` envelope the admin app expects. Skipped when the
+			// update keeps the same short_url (no-op edits).
+			$existing_row = \BetterLinks\Helper::get_link_by_ID( $id );
+			$existing     = is_array( $existing_row ) && ! empty( $existing_row ) ? current( $existing_row ) : null;
+			$current_url  = is_array( $existing ) && isset( $existing['short_url'] ) ? (string) $existing['short_url'] : '';
+			if ( $short_url !== $current_url ) {
+				$collision = \BetterLinks\Helper::check_wp_url_collision( $short_url );
+				if ( is_wp_error( $collision ) ) {
+					return $collision;
+				}
+			}
+
+			$params['link_slug'] = $slug;
+			$params['short_url'] = $short_url;
+		}
 		if ( isset( $input['redirect_type'] ) )  { $params['redirect_type'] = (string) $input['redirect_type']; }
 		if ( isset( $input['link_status'] ) )    { $params['link_status'] = (string) $input['link_status']; }
 		if ( array_key_exists( 'nofollow', $input ) )  { $params['nofollow'] = ! empty( $input['nofollow'] ) ? '1' : ''; }

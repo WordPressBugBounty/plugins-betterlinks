@@ -13,11 +13,18 @@ trait Query {
 	public static function insert_link( $item, $is_update = false ) {
 		global $wpdb;
 		if ( $is_update ) {
+			// An update without an ID cannot do anything — bail before we
+			// generate PHP warnings by reading a missing 'ID' key four times.
+			$id = isset( $item['ID'] ) ? $item['ID'] : null;
+			if ( null === $id || '' === $id ) {
+				return;
+			}
+			$item['ID'] = $id;
 			// get_link_by_ID() returns an empty array for an ID that is no longer
 			// in the table (migrations, stale caches), and current( array() ) is
 			// false — wp_parse_args( $item, false ) is deprecated on PHP 8.1+ and
 			// becomes a TypeError later. Fall back to the incoming item instead.
-			$defaults              = self::get_link_by_ID( $item['ID'] );
+			$defaults              = self::get_link_by_ID( $id );
 			$defaults              = is_array( $defaults ) && ! empty( $defaults ) ? current( $defaults ) : array();
 			$item                  = is_array( $defaults ) ? wp_parse_args( $item, $defaults ) : $item;
 			$link_data_array       = array(

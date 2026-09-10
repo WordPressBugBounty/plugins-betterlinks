@@ -451,12 +451,12 @@ class Helper {
 	}
 	public static function json_link_formatter( $data ) {
 		$res = array(
-			'ID'               => $data['ID'],
-			'link_slug'        => $data['link_slug'],
+			'ID'               => $data['ID'] ?? null,
+			'link_slug'        => $data['link_slug'] ?? '',
 			'link_status'      => ( isset( $data['link_status'] ) ? $data['link_status'] : 'publish' ),
-			'short_url'        => $data['short_url'],
+			'short_url'        => $data['short_url'] ?? '',
 			'redirect_type'    => ( isset( $data['redirect_type'] ) ? $data['redirect_type'] : '307' ),
-			'target_url'       => $data['target_url'],
+			'target_url'       => $data['target_url'] ?? '',
 			'nofollow'         => ( isset( $data['nofollow'] ) ? $data['nofollow'] : false ),
 			'sponsored'        => ( isset( $data['sponsored'] ) ? $data['sponsored'] : false ),
 			'param_forwarding' => ( isset( $data['param_forwarding'] ) ? $data['param_forwarding'] : false ),
@@ -620,6 +620,311 @@ class Helper {
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Return a WP_Error when a proposed BetterLinks short_url would shadow a URL
+	 * WordPress already serves. Returns null when the path is free.
+	 *
+	 * BetterLinks' redirect handler runs at `init` priority 0 — before WP
+	 * resolves the request — so a short_url that matches a real URL silently
+	 * hijacks it. This check surfaces the conflict at write time.
+	 *
+	 * Sites that need the historical "always accept" behaviour can opt out via
+	 * the `betterlinks/skip_wp_url_collision_check` filter.
+	 *
+	 * @param string $short_url       Proposed short_url (prefix included).
+	 * @param int    $allowed_post_id Post whose own permalink may be shadowed on
+	 *                                purpose — see the exemption below. 0 for none.
+	 * @return \WP_Error|null
+	 */
+	public static function check_wp_url_collision( $short_url, $allowed_post_id = 0 ) {
+		$short = trim( (string) $short_url, "/ \t\n\r\0\x0B" );
+		if ( '' === $short ) {
+			return null;
+		}
+		/**
+		 * Filter — return true to skip the WP URL collision check entirely.
+		 * Provided as an escape hatch for existing installs whose data already
+		 * contains intentional collisions.
+		 *
+		 * @param bool   $skip  Whether to skip the check. Default false.
+		 * @param string $short Proposed short URL.
+		 */
+		if ( apply_filters( 'betterlinks/skip_wp_url_collision_check', false, $short ) ) {
+			return null;
+		}
+		$allowed_post_id = absint( $allowed_post_id );
+		$conflict        = null;
+		foreach ( self::short_url_match_candidates( $short ) as $candidate ) {
+			// Instant Redirect binds a post to its *own* permalink on purpose —
+			// "make this page redirect somewhere else" is the entire feature. The
+			// content being shadowed is the post the author is editing, so this is
+			// a deliberate override, not the silent hijack this check exists to
+			// catch. Only that one post's canonical path is exempted; a slug
+			// aimed at any other page or archive is still rejected.
+			if ( $allowed_post_id > 0 && self::is_canonical_post_path( $allowed_post_id, $candidate ) ) {
+				return null;
+			}
+			$conflict = self::resolve_wp_url_conflict( $candidate );
+			if ( null !== $conflict ) {
+				break;
+			}
+		}
+		if ( null === $conflict ) {
+			return null;
+		}
+		return new \WP_Error(
+			'betterlinks_wp_url_collision',
+			sprintf(
+				/* translators: 1: proposed short URL, 2: what WordPress already serves there, e.g. "page" or "category archive" */
+				__( 'Cannot save short URL "%1$s" because WordPress already serves a %2$s at that path, and the link would make it unreachable. Pick a different slug, or remove the conflicting content.', 'betterlinks' ),
+				$short,
+				$conflict['label']
+			),
+			array(
+				'status'              => 409,
+				'conflict_type'       => $conflict['type'],
+				'conflict_label'      => $conflict['label'],
+				'conflicting_post_id' => $conflict['post_id'],
+				// Short enough to sit under the slug field in the link form; the
+				// full message above is for toasts and API consumers.
+				'short_message'       => sprintf(
+					/* translators: %s: what WordPress already serves there, e.g. "page" or "Category archive" */
+					__( 'A WordPress %s already lives at this path', 'betterlinks' ),
+					$conflict['label']
+				),
+			)
+		);
+	}
+
+	/**
+	 * Every path a stored short_url will actually answer on.
+	 *
+	 * Unless an install opts into case-sensitive matching, the redirect handler
+	 * lowercases the incoming request before looking it up, so a link saved as
+	 * "Pricing" captures "/pricing" as well — and checking only the literal
+	 * spelling would let that straight past the collision check.
+	 *
+	 * @param string $short Proposed short_url, already trimmed of slashes.
+	 * @return string[]
+	 */
+	protected static function short_url_match_candidates( $short ) {
+		$candidates = array( $short );
+		$options    = json_decode( (string) get_option( BETTERLINKS_LINKS_OPTION_NAME, '{}' ), true );
+		$sensitive  = is_array( $options ) && ! empty( $options['is_case_sensitive'] );
+		if ( ! $sensitive ) {
+			$lowered = strtolower( $short );
+			if ( $lowered !== $short ) {
+				$candidates[] = $lowered;
+			}
+		}
+		return $candidates;
+	}
+
+	/**
+	 * Describe whatever WordPress would serve at `$path`, or null when nothing
+	 * is there.
+	 *
+	 * `url_to_postid()` only ever answers for singular content, so it misses the
+	 * archives the original report explicitly called out — a category-based
+	 * permalink whose base collides with the link prefix, a custom post type
+	 * archive, an author or date archive. Those are resolved below by running
+	 * the path through the same rewrite rules WordPress itself routes with.
+	 *
+	 * @param string $path Path relative to the site root, no leading slash.
+	 * @return array{type:string,label:string,post_id:int}|null
+	 */
+	protected static function resolve_wp_url_conflict( $path ) {
+		$post_id = url_to_postid( trailingslashit( home_url() ) . $path );
+		if ( $post_id > 0 && self::is_canonical_post_path( $post_id, $path ) ) {
+			$post = get_post( $post_id );
+			return array(
+				'type'    => 'post',
+				'label'   => $post instanceof \WP_Post ? $post->post_type : 'post',
+				'post_id' => $post_id,
+			);
+		}
+
+		global $wp_rewrite;
+		if ( ! $wp_rewrite instanceof \WP_Rewrite ) {
+			return null;
+		}
+		$rules = $wp_rewrite->wp_rewrite_rules();
+		if ( empty( $rules ) ) {
+			// Plain permalinks: every URL but the front page is a query string,
+			// so no path can be shadowed.
+			return null;
+		}
+
+		$path = ltrim( $path, '/' );
+		foreach ( $rules as $match => $query ) {
+			if ( ! preg_match( "#^$match#", $path, $matches ) ) {
+				continue;
+			}
+			$query = preg_replace( '!^.+\?!', '', $query );
+			$query = addslashes( \WP_MatchesMapRegex::apply( $query, $matches ) );
+			$vars  = array();
+			parse_str( $query, $vars );
+			$conflict = self::describe_query_var_conflict( $vars );
+			if ( null !== $conflict ) {
+				return $conflict;
+			}
+			// The rule matched but resolves to nothing a visitor can reach (a
+			// verbose page rule for a page that is gone, an empty date archive).
+			// WordPress keeps walking the rule table in that case, so do the same.
+		}
+		return null;
+	}
+
+	/**
+	 * Whether `$path` is a post's own permalink rather than a variant of it.
+	 *
+	 * With `%postname%` permalinks `url_to_postid()` answers for paginated forms
+	 * too — `/go/2019/` resolves to the page `/go/` as "page 2019 of it", and
+	 * WordPress serves it as a 301 back to `/go/`. Nothing becomes unreachable
+	 * if a link takes that path over, so treating it as a collision would only
+	 * block slugs that are in practice free (every `<page>/<digits>` under a
+	 * link prefix that happens to also be a page).
+	 *
+	 * @param int    $post_id
+	 * @param string $path Path relative to the site root, no leading slash.
+	 * @return bool
+	 */
+	protected static function is_canonical_post_path( $post_id, $path ) {
+		$permalink = get_permalink( $post_id );
+		if ( ! $permalink ) {
+			return false;
+		}
+		$home_path = trim( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ), '/' );
+		$post_path = trim( (string) wp_parse_url( $permalink, PHP_URL_PATH ), '/' );
+		if ( '' !== $home_path && 0 === strpos( $post_path, $home_path . '/' ) ) {
+			$post_path = substr( $post_path, strlen( $home_path ) + 1 );
+		}
+		return $post_path === trim( (string) $path, '/' );
+	}
+
+	/**
+	 * Turn a set of resolved query vars into a conflict description, but only
+	 * when the thing they point at genuinely exists. A rule that matches and
+	 * then 404s is not a collision, and rejecting it would block slugs that are
+	 * in fact free.
+	 *
+	 * Singular content (`name`, `pagename`, `p`) is deliberately ignored here:
+	 * `resolve_wp_url_conflict()` has already asked `url_to_postid()` about it.
+	 *
+	 * @param array $vars Query vars produced by a matched rewrite rule.
+	 * @return array{type:string,label:string,post_id:int}|null
+	 */
+	protected static function describe_query_var_conflict( $vars ) {
+		$found = static function ( $type, $label ) {
+			return array(
+				'type'    => $type,
+				'label'   => $label,
+				'post_id' => 0,
+			);
+		};
+
+		// Taxonomy archives — category and tag first, then anything else public.
+		$taxonomy_vars = array(
+			'category_name' => 'category',
+			'tag'           => 'post_tag',
+		);
+		foreach ( get_taxonomies( array( 'public' => true ), 'objects' ) as $taxonomy ) {
+			if ( ! empty( $taxonomy->query_var ) ) {
+				$taxonomy_vars[ $taxonomy->query_var ] = $taxonomy->name;
+			}
+		}
+		foreach ( $taxonomy_vars as $var => $taxonomy ) {
+			if ( empty( $vars[ $var ] ) || ! is_string( $vars[ $var ] ) ) {
+				continue;
+			}
+			// Hierarchical taxonomies arrive as "parent/child"; the term itself
+			// is the last segment.
+			$slug = (string) $vars[ $var ];
+			$slug = false === strpos( $slug, '/' ) ? $slug : substr( strrchr( $slug, '/' ), 1 );
+			if ( '' === $slug ) {
+				continue;
+			}
+			$term = get_term_by( 'slug', $slug, $taxonomy );
+			if ( $term instanceof \WP_Term ) {
+				$object = get_taxonomy( $taxonomy );
+				return $found(
+					'term_archive',
+					sprintf(
+						/* translators: %s: taxonomy singular name, e.g. "Category" */
+						__( '%s archive', 'betterlinks' ),
+						$object && isset( $object->labels->singular_name ) ? $object->labels->singular_name : $taxonomy
+					)
+				);
+			}
+		}
+
+		// Post type archives.
+		if ( ! empty( $vars['post_type'] ) && empty( $vars['name'] ) && empty( $vars['pagename'] ) && empty( $vars['p'] ) ) {
+			$post_type = is_array( $vars['post_type'] ) ? reset( $vars['post_type'] ) : $vars['post_type'];
+			$object    = get_post_type_object( (string) $post_type );
+			if ( $object && ! empty( $object->has_archive ) ) {
+				return $found(
+					'post_type_archive',
+					sprintf(
+						/* translators: %s: post type singular name, e.g. "Product" */
+						__( '%s archive', 'betterlinks' ),
+						isset( $object->labels->singular_name ) ? $object->labels->singular_name : $post_type
+					)
+				);
+			}
+		}
+
+		// Author archives.
+		if ( ! empty( $vars['author_name'] ) && is_string( $vars['author_name'] ) ) {
+			if ( get_user_by( 'slug', $vars['author_name'] ) ) {
+				return $found( 'author_archive', __( 'author archive', 'betterlinks' ) );
+			}
+		}
+
+		// Date archives, but only when they actually hold a published post.
+		if ( ! empty( $vars['year'] ) ) {
+			$date = array( 'year' => (int) $vars['year'] );
+			if ( ! empty( $vars['monthnum'] ) ) {
+				$date['month'] = (int) $vars['monthnum'];
+			}
+			if ( ! empty( $vars['day'] ) ) {
+				$date['day'] = (int) $vars['day'];
+			}
+			$dated = new \WP_Query(
+				array(
+					'post_type'              => 'post',
+					'post_status'            => 'publish',
+					'posts_per_page'         => 1,
+					'fields'                 => 'ids',
+					'no_found_rows'          => true,
+					'ignore_sticky_posts'    => true,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
+					'date_query'             => array( $date ),
+				)
+			);
+			if ( ! empty( $dated->posts ) ) {
+				return $found( 'date_archive', __( 'date archive', 'betterlinks' ) );
+			}
+		}
+
+		// Reserved endpoints WordPress answers on every install.
+		if ( ! empty( $vars['feed'] ) ) {
+			return $found( 'feed', __( 'feed', 'betterlinks' ) );
+		}
+		if ( ! empty( $vars['robots'] ) ) {
+			return $found( 'robots', __( 'robots.txt', 'betterlinks' ) );
+		}
+		if ( ! empty( $vars['sitemap'] ) ) {
+			return $found( 'sitemap', __( 'sitemap', 'betterlinks' ) );
+		}
+		if ( isset( $vars['s'] ) ) {
+			return $found( 'search', __( 'search results page', 'betterlinks' ) );
+		}
+
+		return null;
 	}
 
 	public static function sanitize_text_or_array_field( $array_or_string, $key = '' ) {

@@ -161,6 +161,18 @@ class Links extends Controller
         $request = $request->get_params();
         delete_transient(BETTERLINKS_CACHE_LINKS_NAME);
         $args = $this->sanitize_links_data($request['params'] ?? $request);
+
+        // Reject a short_url that would shadow a URL WordPress already serves.
+        // BL's redirect handler at init:0 wins over WP routing, so the content
+        // would silently become unreachable. Sites can opt out via the
+        // `betterlinks/skip_wp_url_collision_check` filter. Instant Redirect
+        // shadows the edited post's own permalink by design and says so with
+        // `instant_redirect_post_id`, which exempts just that one path.
+        $invalid = $this->validate_link_payload($args, false, $this->resolve_instant_redirect_post_id($request));
+        if (is_wp_error($invalid)) {
+            return $this->rejection_response($invalid);
+        }
+
         $results = $this->insert_link($args);
         if ($results) {
             return new \WP_REST_Response(
@@ -191,11 +203,51 @@ class Links extends Controller
         $request = $request->get_params();
         delete_transient(BETTERLINKS_CACHE_LINKS_NAME);
         $args = $this->sanitize_links_data($request['params'] ?? $request);
+
+        // The route carries the id in the URL, but update_link() keys off the
+        // payload; without this an id-less payload silently updates nothing and
+        // skips the checks below.
+        if (!isset($args['ID']) && isset($request['id'])) {
+            $args['ID'] = absint($request['id']);
+        }
+
+        // Same collision gate as create, plus the uniqueness check the update
+        // branch never had. Skipped when short_url is unchanged, so ordinary
+        // edits to existing links keep working.
+        $invalid = $this->validate_link_payload($args, true, $this->resolve_instant_redirect_post_id($request));
+        if (is_wp_error($invalid)) {
+            return $this->rejection_response($invalid);
+        }
+
         $response = $this->update_link($args);
         return new \WP_REST_Response(
             [
-                'success' => true,
+                'success' => !empty($response),
                 'data' => $response,
+            ],
+            200
+        );
+    }
+
+    /**
+     * Render a validation failure in the shape the admin app already handles
+     * for rejected writes: HTTP 200, `success: false`, and a human-readable
+     * `data.message` it can put in a toast.
+     *
+     * @param \WP_Error $error
+     * @return \WP_REST_Response
+     */
+    protected function rejection_response($error)
+    {
+        $data = $error->get_error_data();
+        return new \WP_REST_Response(
+            [
+                'success' => false,
+                'data'    => [
+                    'code'                => $error->get_error_code(),
+                    'message'             => $error->get_error_message(),
+                    'conflicting_post_id' => is_array($data) && isset($data['conflicting_post_id']) ? $data['conflicting_post_id'] : 0,
+                ],
             ],
             200
         );

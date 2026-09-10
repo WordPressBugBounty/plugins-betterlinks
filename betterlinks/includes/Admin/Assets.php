@@ -205,6 +205,12 @@ class Assets
             'betterlinks_settings' => $betterlinks_settings,
             // Add user permission information for free version
             'user_can_manage_options' => current_user_can('manage_options'),
+            // Categories a feature owns but keeps off Manage Links (the bio pages'
+            // "Link in Bio", Fluent Boards' task category). The editor sidebar needs
+            // the same list the dashboard query uses: a link filed under one of these
+            // saves correctly but never appears on Manage Links, so Instant Redirect
+            // must neither offer them nor fall back to one.
+            'dashboard_hidden_term_ids' => array_values(array_unique(array_filter(array_map('intval', (array) apply_filters('betterlinks/dashboard_hidden_term_ids', array(), (array) $betterlinks_settings))))),
         ]);
         wp_set_script_translations('betterlinks-gutenberg', 'betterlinks', BETTERLINKS_ROOT_DIR_PATH . 'languages/');
     }

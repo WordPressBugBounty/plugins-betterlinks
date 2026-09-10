@@ -136,6 +136,63 @@ abstract class Ability_Base {
 	}
 
 	/**
+	 * Sanitize a slug while preserving forward slashes (e.g. "go/deal").
+	 *
+	 * WordPress core's sanitize_title() strips slashes, which breaks the
+	 * multi-segment short URLs BetterLinks supports elsewhere. This mirrors the
+	 * admin JS sanitizer at dev_betterlinks/utils/helper.js so slugs authored
+	 * through MCP round-trip identically to slugs authored in wp-admin.
+	 *
+	 * @param string $raw
+	 * @return string
+	 */
+	protected static function sanitize_slug_preserving_slashes( $raw ) {
+		$s = strtolower( trim( (string) $raw ) );
+		$s = preg_replace( '/\s+/', '-', $s );
+		// Allow lowercase alphanumerics, hyphens, and forward slashes.
+		$s = preg_replace( '#[^a-z0-9\-/]#', '', $s );
+		// Collapse consecutive separators and strip edges.
+		$s = preg_replace( '#/+#', '/', (string) $s );
+		$s = preg_replace( '#-+#', '-', (string) $s );
+		$s = trim( (string) $s, '-/' );
+		return (string) $s;
+	}
+
+	/**
+	 * Read the configured link prefix from the BetterLinks settings option.
+	 * Returns a trimmed prefix (no surrounding slashes) or an empty string.
+	 *
+	 * @return string
+	 */
+	protected static function get_configured_prefix() {
+		$raw = get_option( BETTERLINKS_LINKS_OPTION_NAME );
+		$settings = is_string( $raw ) ? json_decode( $raw, true ) : ( is_array( $raw ) ? $raw : [] );
+		if ( ! is_array( $settings ) ) {
+			return '';
+		}
+		return isset( $settings['prefix'] ) ? trim( (string) $settings['prefix'], '/' ) : '';
+	}
+
+	/**
+	 * Produce a full short_url from a raw slug: prepend the configured prefix
+	 * unless the slug already begins with it. Never double-prefixes.
+	 *
+	 * @param string $slug Sanitized slug (may include additional slashes).
+	 * @return string
+	 */
+	protected static function build_short_url( $slug ) {
+		$slug   = trim( (string) $slug, '/' );
+		$prefix = self::get_configured_prefix();
+		if ( '' === $prefix || '' === $slug ) {
+			return $slug;
+		}
+		if ( $slug === $prefix || 0 === strpos( $slug, $prefix . '/' ) ) {
+			return $slug;
+		}
+		return $prefix . '/' . $slug;
+	}
+
+	/**
 	 * MCP-compatible annotations for this ability. Override per ability.
 	 *
 	 * @return array<string, bool|float|string>

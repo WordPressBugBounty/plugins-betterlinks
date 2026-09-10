@@ -718,6 +718,7 @@ class Ajax {
 			$ID            = isset( $_POST['ID'] ) ? sanitize_text_field( wp_unslash( $_POST['ID'] ) ) : '';
 			$slug          = isset( $_POST['slug'] ) ? sanitize_text_field( wp_unslash( $_POST['slug'] ) ) : '';
 			$alreadyExists = false;
+			$message       = '';
 			$resutls       = array();
 			if ( ! empty( $slug ) ) {
 				$resutls = Helper::get_link_by_short_url( $slug );
@@ -728,8 +729,26 @@ class Ajax {
 						$alreadyExists = false;
 					}
 				}
+				if ( $alreadyExists ) {
+					$message = __( 'Already Exists', 'betterlinks' );
+				} else {
+					// Flag a slug that would shadow real WordPress content while
+					// the form is still open, so the conflict is fixable in place
+					// rather than being rejected after submit.
+					$collision = Helper::check_wp_url_collision( $slug );
+					if ( is_wp_error( $collision ) ) {
+						$data          = $collision->get_error_data();
+						$alreadyExists = true;
+						$message       = isset( $data['short_message'] ) ? $data['short_message'] : $collision->get_error_message();
+					}
+				}
 			}
-			wp_send_json_success( $alreadyExists );
+			wp_send_json_success(
+				array(
+					'exists'  => $alreadyExists,
+					'message' => $message,
+				)
+			);
 		}
 		wp_die( "You don't have permission to do this." );
 	}
@@ -1085,7 +1104,20 @@ class Ajax {
 			wp_die( "You don't have permission to do this." );
 		}
 		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
-		$args    = $this->sanitize_links_data( $_POST );
+		$args = $this->sanitize_links_data( $_POST );
+		// The React app falls back to this handler whenever the REST call
+		// throws, so it has to refuse the same payloads the REST route does —
+		// including the Instant Redirect exemption the REST route honours.
+		$invalid = $this->validate_link_payload( $args, false, $this->resolve_instant_redirect_post_id( $_POST ) );
+		if ( is_wp_error( $invalid ) ) {
+			wp_send_json_error(
+				array(
+					'code'    => $invalid->get_error_code(),
+					'message' => $invalid->get_error_message(),
+				),
+				200
+			);
+		}
 		$results = $this->insert_link( $args );
 		if ( $results ) {
 			wp_send_json_success(
@@ -1105,6 +1137,16 @@ class Ajax {
 		}
 		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
 		$args    = $this->sanitize_links_data( $_POST );
+		$invalid = $this->validate_link_payload( $args, true, $this->resolve_instant_redirect_post_id( $_POST ) );
+		if ( is_wp_error( $invalid ) ) {
+			wp_send_json_error(
+				array(
+					'code'    => $invalid->get_error_code(),
+					'message' => $invalid->get_error_message(),
+				),
+				200
+			);
+		}
 		$results = $this->update_link( $args );
 		if ( $results ) {
 			wp_send_json_success(
