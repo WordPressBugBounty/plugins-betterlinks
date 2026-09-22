@@ -19,6 +19,14 @@ class Import
         $page = isset($_GET['page']) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
         $import = isset($_GET['import']) ? sanitize_text_field( wp_unslash( $_GET['import'] ) ) : false;
         if ($page === 'betterlinks-settings' && $import == true) {
+            // Importing creates and overwrites links (matched by short_url), so reaching
+            // the Settings screen is not enough: require the link create and update
+            // permissions too. Administrators pass both by default.
+            $can_write_links = apply_filters('betterlinks/api/links_create_item_permissions_check', current_user_can('manage_options'))
+                && apply_filters('betterlinks/api/links_update_item_permissions_check', current_user_can('manage_options'));
+            if (! $can_write_links) {
+                wp_die(esc_html__("You don't have permission to import links.", 'betterlinks'), '', array('response' => 403));
+            }
             \BetterLinks\Helper::clear_query_cache();
             if (!empty($_FILES['upload_file']['tmp_name'])) {
                 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- $_FILES sanitization handled per-key below.
@@ -47,6 +55,16 @@ class Import
         if ($type == 'default') {
             $BetterLinks = new  Migration\BLImportCSV();
             $results = $BetterLinks->start_importing($fileContent);
+            /**
+             * Filters the import result messages, with rows extensions claimed through
+             * betterlinks/tools/import_row_bucket and the old => new link ID map.
+             * BetterLinks Pro imports link rotations here.
+             *
+             * @param array $results  Messages by type.
+             * @param array $rows     Claimed rows by bucket.
+             * @param array $link_ids Old link ID => new link ID.
+             */
+            $results = apply_filters('betterlinks/tools/import_process_data', $results, $BetterLinks->get_extra_rows(), $BetterLinks->get_link_id_map());
         } elseif ( $mode == 'prettylinks' ) {
             $PrettyLinks = new Migration\PTLImportCSV();
             $results = $PrettyLinks->start_importing($fileContent);

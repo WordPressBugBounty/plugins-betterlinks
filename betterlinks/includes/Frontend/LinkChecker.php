@@ -46,7 +46,6 @@ class LinkChecker {
                 //     $pattern = '/\s*data-link-id=["\'][^"\']*["\']/i';
                 //     $replace = preg_replace($pattern,  '', $replace);
                 // }
-                // error_log( print_r( $this->link, true ) );
 
                 $match[1] = $match[1] + $next; 
                 $content  = substr_replace( $content , $replace , $match[1] , strlen( $match[0] ) );
@@ -66,21 +65,17 @@ class LinkChecker {
         }
 
         private function check_hrefs($href) {
-            // error_log( print_r( $this->link, true ) );
-            if( !empty( $this->link['uncloaked'] ) ){
-                if( $href !== $this->link['target_url'] ){
-                    $href = $this->link['target_url'];
-                }
-            }else {
-                $short_url = site_url('/');
-                // error_log( print_r( $this->link['short_url'], true ) );
-                // $short_url .= !empty( $this->settings->prefix ) ? $this->settings->prefix . '/' . $this->link['short_url'] : $this->link['short_url'];
-                $short_url .= $this->link['short_url'];
-                if( $href !== $short_url) {
-                    $href = $short_url;
-                }
-            }
-            return $href;
+            $short_url = site_url('/') . $this->link['short_url'];
+            /**
+             * Filters the href used for a BetterLinks-linked text link in post content.
+             * Defaults to the link's short URL; BetterLinks Pro returns the target URL
+             * for uncloaked links.
+             *
+             * @param string $short_url Short URL.
+             * @param array  $link      Link row.
+             * @param string $href      Href currently in the content.
+             */
+            return (string) apply_filters( 'betterlinks/frontend/linked_text_href', $short_url, $this->link, $href );
         }
 
 }

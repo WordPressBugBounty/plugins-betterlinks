@@ -20,12 +20,22 @@ class Notice {
 	 */
 	private $opt_in_tracker;
 
-	/**
-	 * @var bool Flag to prevent duplicate notice display
-	 */
-	private static $black_friday_notice_displayed = false;
-
 	const ASSET_URL = BETTERLINKS_ASSETS_URI;
+
+	/**
+	 * Screens where review, opt-in and promotional notices may appear.
+	 *
+	 * Without a screens list the notice library renders on every admin page, while
+	 * BetterLinks' own screens clear notices for the React app. Keep them to the
+	 * Dashboard and the Plugins screen instead of every wp-admin page.
+	 */
+	const NOTICE_SCREENS = [ 'dashboard', 'plugins' ];
+
+	/**
+	 * Small additions to WordPress's own notice styles for the version notices.
+	 * BetterLinks Pro ships the same rules; whichever plugin prints first wins.
+	 */
+	const UPDATE_NOTICE_CSS = '.betterlinks-update-notice{position:relative;padding-right:38px}.betterlinks-update-notice .notice-dismiss{text-decoration:none}.betterlinks-compat{padding:2px 0 12px}.betterlinks-compat-row .betterlinks-compat{padding:12px 0}.betterlinks-compat__separator{margin:10px -12px 12px;border:0;border-top:1px solid #f0c33c}.betterlinks-compat__head{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600;color:#1d2327}.betterlinks-compat__head .dashicons{color:#e26f2a}.betterlinks-compat__body{max-width:fit-content;margin:6px 0 0 26px}.betterlinks-compat__text{margin:0 0 8px;line-height:1.6}.betterlinks-compat__versions{margin:0 0 8px;line-height:1.8}.betterlinks-compat__versions b{font-weight:600;color:#1d2327}@media (max-width:600px){.betterlinks-compat__body{margin-left:0}}';
 
 	public function __construct() {
 		$this->usage_tracker();
@@ -38,9 +48,304 @@ class Notice {
 		}
 
 		add_action( 'in_admin_header', [ $this, 'remove_admin_notice' ] );
-		add_action( 'btl_compatibity_notices', [ $this, 'btlpro_compatibility_notices' ] );
-		// Use multiple hooks for better compatibility across different WordPress setups
-		add_action( 'admin_footer', [ $this, 'black_friday_pointer_notice' ], 999 );
+		add_action( 'betterlinks_compatibility_notices', [ $this, 'btlpro_compatibility_notices' ] );
+		add_action( 'betterlinks_admin_notices', [ $this, 'cle_legacy_key_notice' ] );
+		add_action( 'betterlinks_compatibility_notices', [ $this, 'pro_update_required_notice' ] );
+		add_action( 'admin_notices', [ $this, 'pro_update_required_notice' ] );
+		add_action( 'admin_init', [ $this, 'dismiss_pro_update_required_notice' ] );
+		add_action( 'admin_init', [ $this, 'dismiss_cle_legacy_key_notice' ] );
+		add_action( 'load-plugins.php', [ $this, 'register_pro_plugin_row_alert' ] );
+	}
+
+	/**
+	 * Tell admins when BetterLinks Pro is too old for this version of BetterLinks.
+	 *
+	 * Pro features used to ship inside the free plugin; they now live in Pro and
+	 * connect through hooks, so an older Pro cannot provide them. Shown on the
+	 * Plugins screen and BetterLinks screens, to users who can update plugins,
+	 * and dismissible per Pro version.
+	 *
+	 * @return void
+	 */
+	public function pro_update_required_notice() {
+		if ( ! \BetterLinks\Helper::pro_needs_update() || ! current_user_can( 'update_plugins' ) ) {
+			return;
+		}
+		if ( 'admin_notices' === current_action() ) {
+			$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+			if ( ! $screen || ! in_array( $screen->id, array( 'plugins', 'dashboard', 'plugins-network', 'dashboard-network' ), true ) ) {
+				return;
+			}
+		}
+		$pro_version = defined( 'BETTERLINKS_PRO_VERSION' ) ? BETTERLINKS_PRO_VERSION : '';
+		if ( get_user_meta( get_current_user_id(), 'betterlinks_dismissed_pro_update_notice', true ) === $pro_version ) {
+			return;
+		}
+		$dismiss_url = wp_nonce_url( add_query_arg( 'betterlinks_dismiss_pro_update', '1' ), 'betterlinks_dismiss_pro_update' );
+		self::print_update_notice_styles();
+		printf(
+			'<div class="notice notice-warning betterlinks-update-notice"><p class="btl-white"><strong>%1$s</strong> %2$s <a href="%3$s">%4$s</a></p><a class="notice-dismiss" href="%5$s"><span class="screen-reader-text">%6$s</span></a></div>',
+			esc_html__( 'BetterLinks Pro needs an update.', 'betterlinks' ),
+			esc_html(
+				sprintf(
+					/* translators: %s: required BetterLinks Pro version, e.g. "3.0.4" */
+					__( 'Please update BetterLinks Pro to v%s or later to ensure compatibility with the current version of BetterLinks.', 'betterlinks' ),
+					BETTERLINKS_MIN_PRO_VERSION
+				)
+			),
+			esc_url( self::plugins_screen_url( 'betterlinks-pro' ) ),
+			esc_html__( 'Update now', 'betterlinks' ),
+			esc_url( $dismiss_url ),
+			esc_html__( 'Dismiss this notice', 'betterlinks' )
+		);
+	}
+
+	/**
+	 * Installed plugin data looked up by text domain, so renamed plugin folders still match.
+	 *
+	 * @param string $text_domain Plugin text domain.
+	 * @return array|null Plugin header data plus `file`, or null when it is not installed.
+	 */
+	private static function find_plugin( $text_domain ) {
+		if ( ! function_exists( 'get_plugins' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+		$match = null;
+		foreach ( get_plugins() as $file => $data ) {
+			if ( isset( $data['TextDomain'] ) && $text_domain === $data['TextDomain'] ) {
+				$data['file'] = $file;
+				// A site can keep a second, inactive copy (for example a backup folder); the active one is what runs.
+				if ( is_plugin_active( $file ) ) {
+					return $data;
+				}
+				if ( null === $match ) {
+					$match = $data;
+				}
+			}
+		}
+		return $match;
+	}
+
+	/**
+	 * Whether WordPress has an update available for a plugin.
+	 *
+	 * @param string $file Plugin file.
+	 * @return bool
+	 */
+	private static function has_update( $file ) {
+		$updates = get_site_transient( 'update_plugins' );
+		return is_object( $updates ) && isset( $updates->response[ $file ] );
+	}
+
+	/**
+	 * Plugins screen URL, filtered to available updates when the plugin has one.
+	 *
+	 * @param string $text_domain Plugin text domain.
+	 * @return string
+	 */
+	private static function plugins_screen_url( $text_domain ) {
+		$plugin = self::find_plugin( $text_domain );
+		$args   = $plugin && self::has_update( $plugin['file'] ) ? array( 'plugin_status' => 'upgrade' ) : array();
+		return add_query_arg( $args, self_admin_url( 'plugins.php' ) );
+	}
+
+	/**
+	 * Print the version notice styles once per page.
+	 *
+	 * @param string $row_plugin_file Plugin whose row gets a notice row below it.
+	 * @return void
+	 */
+	public static function print_update_notice_styles( $row_plugin_file = '' ) {
+		if ( ! did_action( 'betterlinks_update_notice_styles' ) ) {
+			do_action( 'betterlinks_update_notice_styles' );
+			echo '<style id="betterlinks-update-notice-styles">' . self::UPDATE_NOTICE_CSS . '</style>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static CSS.
+		}
+		if ( '' !== $row_plugin_file ) {
+			printf(
+				'<style>.plugins tr[data-plugin="%1$s"]:not(.plugin-update-tr) th,.plugins tr[data-plugin="%1$s"]:not(.plugin-update-tr) td{box-shadow:none}</style>',
+				esc_attr( $row_plugin_file )
+			);
+		}
+	}
+
+	/**
+	 * On the Plugins screen, flag a BetterLinks Pro older than this version of BetterLinks supports.
+	 *
+	 * The alert sits below WordPress's "new version available" message when Pro
+	 * has an update, or in its own row under Pro otherwise (for example while the
+	 * licence is inactive).
+	 *
+	 * @return void
+	 */
+	public function register_pro_plugin_row_alert() {
+		if ( ! current_user_can( 'update_plugins' ) ) {
+			return;
+		}
+		$pro = self::find_plugin( 'betterlinks-pro' );
+		if ( ! $pro || empty( $pro['Version'] ) || version_compare( $pro['Version'], BETTERLINKS_MIN_PRO_VERSION, '>=' ) ) {
+			return;
+		}
+		$file = $pro['file'];
+		add_action(
+			'admin_head',
+			function () use ( $file ) {
+				self::print_update_notice_styles( $file );
+			}
+		);
+		add_action(
+			"in_plugin_update_message-{$file}",
+			function () use ( $pro ) {
+				// Core prints this inside an open <p>; close it so the alert can use block markup.
+				echo '</p>';
+				self::render_pro_compat_alert( $pro, false );
+				echo '<p class="hidden">';
+			},
+			20
+		);
+		add_action(
+			"after_plugin_row_{$file}",
+			function ( $plugin_file ) use ( $pro ) {
+				if ( self::has_update( $plugin_file ) ) {
+					return;
+				}
+				global $wp_list_table;
+				$colspan = $wp_list_table instanceof \WP_List_Table ? $wp_list_table->get_column_count() : 4;
+				$active  = is_network_admin() ? is_plugin_active_for_network( $plugin_file ) : is_plugin_active( $plugin_file );
+				printf(
+					'<tr class="plugin-update-tr%1$s betterlinks-compat-row"><td colspan="%2$d" class="plugin-update colspanchange"><div class="update-message notice inline notice-warning notice-alt">',
+					$active ? ' active' : '',
+					(int) $colspan
+				);
+				self::render_pro_compat_alert( $pro, true );
+				echo '</div></td></tr>';
+			},
+			20
+		);
+	}
+
+	/**
+	 * Version mismatch alert for an outdated BetterLinks Pro on the Plugins screen.
+	 *
+	 * @param array $pro        BetterLinks Pro plugin data.
+	 * @param bool  $standalone True when rendered in its own row (no update offered).
+	 * @return void
+	 */
+	private static function render_pro_compat_alert( $pro, $standalone ) {
+		?>
+		<div class="betterlinks-compat">
+			<?php if ( ! $standalone ) : ?>
+				<hr class="betterlinks-compat__separator" />
+			<?php endif; ?>
+			<div class="betterlinks-compat__head">
+				<span class="dashicons dashicons-warning" aria-hidden="true"></span>
+				<?php esc_html_e( 'BetterLinks Pro Compatibility Notice', 'betterlinks' ); ?>
+			</div>
+			<div class="betterlinks-compat__body">
+				<div class="betterlinks-compat__text">
+					<?php
+					printf(
+						/* translators: 1: installed BetterLinks version, 2: required BetterLinks Pro version */
+						esc_html__( 'BetterLinks %1$s requires BetterLinks Pro %2$s or later to ensure all features work seamlessly. We recommend updating BetterLinks Pro to the latest version.', 'betterlinks' ),
+						esc_html( BETTERLINKS_VERSION ),
+						esc_html( BETTERLINKS_MIN_PRO_VERSION )
+					);
+					?>
+				</div>
+				<div class="betterlinks-compat__versions">
+					<div><?php esc_html_e( 'Installed version:', 'betterlinks' ); ?> <b><?php echo esc_html( $pro['Version'] ); ?></b></div>
+					<div>
+						<?php esc_html_e( 'Required version:', 'betterlinks' ); ?> <b>
+						<?php
+						/* translators: %s: plugin version */
+						echo esc_html( sprintf( __( '%s or later', 'betterlinks' ), BETTERLINKS_MIN_PRO_VERSION ) );
+						?>
+						</b>
+					</div>
+				</div>
+				<div class="betterlinks-compat__text"><?php esc_html_e( 'Your existing links, analytics, and settings will remain intact.', 'betterlinks' ); ?></div>
+			</div>
+		</div>
+		<?php
+	}
+
+	/**
+	 * Remember a dismissal of the Pro update notice for the current Pro version.
+	 *
+	 * @return void
+	 */
+	public function dismiss_pro_update_required_notice() {
+		if ( empty( $_GET['betterlinks_dismiss_pro_update'] ) || ! current_user_can( 'update_plugins' ) ) {
+			return;
+		}
+		check_admin_referer( 'betterlinks_dismiss_pro_update' );
+		update_user_meta( get_current_user_id(), 'betterlinks_dismissed_pro_update_notice', defined( 'BETTERLINKS_PRO_VERSION' ) ? BETTERLINKS_PRO_VERSION : '' );
+		wp_safe_redirect( remove_query_arg( array( 'betterlinks_dismiss_pro_update', '_wpnonce' ) ) );
+		exit;
+	}
+
+	/**
+	 * Warn admins before the legacy site-wide Quick Link API key stops working.
+	 *
+	 * Rendered only on BetterLinks screens (betterlinks_admin_notices) and only while the
+	 * legacy key is still accepted.
+	 *
+	 * @return void
+	 */
+	public function cle_legacy_key_notice() {
+		if ( ! current_user_can( 'manage_options' ) || ! class_exists( '\BetterLinks\CLEToken' ) ) {
+			return;
+		}
+		if ( ! \BetterLinks\CLEToken::legacy_key_allowed() ) {
+			return;
+		}
+		$expires_at = \BetterLinks\CLEToken::legacy_key_expires_at();
+		if ( ! $expires_at ) {
+			return;
+		}
+		// Nothing left to warn about once the site has moved on: a personal
+		// token existing means someone has already set Quick Link Creation up
+		// the new way. The notice kept appearing after that, telling people to
+		// do something they had done.
+		if ( ! empty( \BetterLinks\CLEToken::all() ) ) {
+			return;
+		}
+		// Dismissible per user, keyed to the expiry date, so it comes back if
+		// the deadline is ever extended but stays gone for this one.
+		if ( get_user_meta( get_current_user_id(), 'betterlinks_dismissed_cle_notice', true ) === (string) $expires_at ) {
+			return;
+		}
+
+		$dismiss_url = wp_nonce_url( add_query_arg( 'betterlinks_dismiss_cle_notice', '1' ), 'betterlinks_dismiss_cle_notice' );
+		// Styles first: they position the dismiss button inside the notice.
+		self::print_update_notice_styles();
+		printf(
+			'<div class="notice notice-warning betterlinks-update-notice"><p>%1$s</p><a class="notice-dismiss" href="%2$s"><span class="screen-reader-text">%3$s</span></a></div>',
+			esc_html(
+				sprintf(
+					/* translators: %s: date the legacy key stops working, e.g. "December 19, 2026" */
+					__( 'Quick Link Creation: The old API key expires on %s. Update your Quick Link Creation setup from Settings → Feature Module → Quick Link Creation.', 'betterlinks' ),
+					wp_date( get_option( 'date_format' ), $expires_at )
+				)
+			),
+			esc_url( $dismiss_url ),
+			esc_html__( 'Dismiss this notice', 'betterlinks' )
+		);
+	}
+
+	/**
+	 * Remember that this admin closed the Quick Link Creation notice.
+	 *
+	 * @return void
+	 */
+	public function dismiss_cle_legacy_key_notice() {
+		if ( empty( $_GET['betterlinks_dismiss_cle_notice'] ) || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		check_admin_referer( 'betterlinks_dismiss_cle_notice' );
+		$expires_at = class_exists( '\BetterLinks\CLEToken' ) ? \BetterLinks\CLEToken::legacy_key_expires_at() : 0;
+		update_user_meta( get_current_user_id(), 'betterlinks_dismissed_cle_notice', (string) $expires_at );
+		wp_safe_redirect( remove_query_arg( array( 'betterlinks_dismiss_cle_notice', '_wpnonce' ) ) );
+		exit;
 	}
 
 	public function btlpro_compatibility_notices() {
@@ -64,125 +369,6 @@ class Notice {
 		}
 	}
 
-	/**
-	 * Display Black Friday pointer notice
-	 * Shows only once per user with date range validation
-	 * Only displays for free users (without BetterLinks Pro)
-	 * Only shows on BetterLinks pages and WordPress dashboard
-	 *
-	 * @return void
-	 */
-	public function black_friday_pointer_notice() {
-		// Prevent duplicate display when hooked to multiple actions
-		if ( self::$black_friday_notice_displayed ) {
-			return;
-		}
-
-		// Check if notice is dismissed
-		if ( get_transient( 'betterlinks_black_friday_pointer_dismissed' ) ) {
-			return;
-		}
-
-		// Check date range: November 16, 2025 to December 4, 2025
-		$start_date = strtotime( '11:59:59pm 16th November, 2025' );
-		$end_date   = strtotime( '11:59:59pm 4th December, 2025' );
-		$current_time = current_time( 'timestamp' );
-
-		// Only show if within date range
-		if ( $current_time < $start_date || $current_time > $end_date ) {
-			return;
-		}
-
-		// Don't show if Pro is already active or installed
-		if ( defined( 'BETTERLINKS_PRO_VERSION' ) || is_plugin_active( 'betterlinks-pro/betterlinks-pro.php' ) ) {
-			return;
-		}
-
-		// Check plugin pointer priority system
-		// BetterLinks priority is 7
-		$betterlinks_priority = 7;
-		$current_priority = get_option( '_wpdeveloper_plugin_pointer_priority' );
-		// If priority option doesn't exist, create it with BetterLinks priority
-		if ( false === $current_priority || null === $current_priority || '' === $current_priority ) {
-			update_option( '_wpdeveloper_plugin_pointer_priority', $betterlinks_priority );
-		} elseif ( $current_priority > $betterlinks_priority ) {
-			// If current priority is higher than BetterLinks priority, update it
-			update_option( '_wpdeveloper_plugin_pointer_priority', $betterlinks_priority );
-			$current_priority = $betterlinks_priority;
-		}
-
-		if ( $current_priority < $betterlinks_priority  ) {
-			return;
-		}
-
-		// Only show on BetterLinks pages, WordPress dashboard, and plugins directory
-		$current_screen = get_current_screen();
-		$is_betterlinks_page = ( 0 === strpos( $current_screen->id, 'toplevel_page_betterlinks' ) || 0 === strpos( $current_screen->id, 'betterlinks_page_' ) );
-		$is_dashboard = ( 'dashboard' === $current_screen->id );
-		$is_plugins_page = ( 'plugins' === $current_screen->id );
-
-		if ( ! $is_betterlinks_page && ! $is_dashboard && ! $is_plugins_page ) {
-			return;
-		}
-
-		// Enqueue pointer styles and scripts
-		wp_enqueue_style( 'wp-pointer' );
-		wp_enqueue_script( 'wp-pointer' );
-		wp_enqueue_script( 'jquery' );
-
-		// Create nonce for AJAX
-		$nonce = wp_create_nonce( 'betterlinks_dismiss_black_friday_notice' );
-
-		// Mark notice as displayed to prevent duplicates
-		self::$black_friday_notice_displayed = true;
-
-		// Output the notice markup
-		?>
-
-		<script type="text/javascript">
-			(function($) {
-				$(document).ready(function() {
-
-					const target = jQuery("#toplevel_page_betterlinks" || 'body');
-
-					if (target.length === 0) {
-						return;
-					}
-
-					// Prepare content with optional button
-					let content = '<h3><?php esc_html_e( 'BetterLinks Black Friday Sale', 'betterlinks' ); ?></h3><p><?php esc_html_e( 'Shorten and redirect links & analyze website performance efficiently.', 'betterlinks' ); ?> </p>' || '';
-					content += '<p style="margin-top: 15px;"><a href="https://betterlinks.io/bfcm-wp-admin-pointer" class="button button-primary" target="_blank" rel="noopener"><?php esc_html_e( 'Save 40%', 'betterlinks' ); ?></a></p>';
-			
-					// Default pointer options
-					const options = {
-						content: content,
-						position: {
-							edge: "left",
-							align: 'center'
-						},
-						close: function() {
-							// dismissPointer(pointerId);
-							var nonce = '<?php echo esc_js($nonce); ?>';
-								// Send AJAX request to set transient
-								$.ajax({
-									url: '<?php echo esc_url(admin_url( 'admin-ajax.php' )); ?>',
-									type: 'POST',
-									data: {
-										action: 'betterlinks_dismiss_black_friday_notice',
-										nonce: nonce
-									},
-								});
-						}
-					};
-       
-				// Show the pointer
-				target.pointer(options).pointer('open');
-				});
-			})(jQuery);
-		</script>
-		<?php
-	}
-
 	public function remove_admin_notice() {
 		$current_screen   = get_current_screen();
 		$dashboard_notice = get_option( 'betterlinks_dashboard_notice' );
@@ -195,13 +381,18 @@ class Notice {
 
 		if ( 0 === strpos( $current_screen->id, "toplevel_page_betterlinks" ) || 0 === strpos( $current_screen->id, "betterlinks_page_" ) ) {
 			remove_all_actions( 'admin_notices' );
-			if ( BETTERLINKS_MENU_NOTICE !== $dashboard_notice ) {
+			// One notice at a time: while BetterLinks Pro needs an update, that notice replaces the new-feature one.
+			$pro_update_notice_shown = \BetterLinks\Helper::pro_needs_update() && current_user_can( 'update_plugins' );
+			if ( BETTERLINKS_MENU_NOTICE !== $dashboard_notice && ! $pro_update_notice_shown ) {
 				add_action( 'admin_notices', array( $this, 'new_feature_notice' ), - 1 );
 			}
 			// To showing notice in BetterLinks page
 			add_action( 'admin_notices', function () {
-				do_action( 'btl_admin_notices' );  // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
-				do_action( 'btl_compatibity_notices' );  // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+				do_action( 'betterlinks_admin_notices' );
+				do_action( 'betterlinks_compatibility_notices' );
+				// Deprecated aliases, still fired for extensions that listen to the old names.
+				do_action_deprecated( 'btl_admin_notices', array(), '3.1.4', 'betterlinks_admin_notices' );  // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+				do_action_deprecated( 'btl_compatibity_notices', array(), '3.1.4', 'betterlinks_compatibility_notices' );  // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 				Notice\PrettyLinks::init();
 				Notice\Simple301::init();
 				Notice\ThirstyAffiliates::init();
@@ -276,9 +467,9 @@ class Notice {
 		$review_notice = sprintf(
 			'%s, %s! %s',
 			__( 'Howdy', 'betterlinks' ),
-			$current_user->user_login,
+			esc_html( $current_user->user_login ),
 			sprintf(
-				/* translators: %s = placeholder values supplied by WordPress */
+				/* translators: %d: number of short links created */
 				__( '👋 You have created %d Shortened URLs so far 🎉 If you are enjoying using BetterLinks, feel free to leave a 5* Review on the WordPress Forum.', 'betterlinks' ),
 				$total_links
 			)
@@ -331,6 +522,8 @@ class Notice {
 				'recurrence'  => 30,
 				'refresh'     => BETTERLINKS_VERSION,
 				'dismissible' => true,
+				'screens'     => self::NOTICE_SCREENS,
+				'capability'  => 'manage_options',
 			]
 		);
 
@@ -344,7 +537,9 @@ class Notice {
 				'refresh'     => BETTERLINKS_VERSION,
 				'dismissible' => true,
 				'do_action'   => 'wpdeveloper_notice_clicked_for_betterlinks',
-				'display_if'  => ! is_plugin_active( 'betterlinks-pro/betterlinks-pro.php' )
+				'display_if'  => ! \BetterLinks\Helper::is_pro_active(),
+				'screens'     => self::NOTICE_SCREENS,
+				'capability'  => 'manage_options',
 			]
 		);
 
@@ -365,7 +560,9 @@ class Notice {
 				'dismissible' => true,
 				'refresh'     => BETTERLINKS_VERSION,
 				"expire"      => strtotime( '11:59:59pm 10th January, 2025' ),
-				'display_if'  => ! is_plugin_active( 'betterlinks-pro/betterlinks-pro.php' )
+				'display_if'  => ! \BetterLinks\Helper::is_pro_active(),
+				'screens'     => self::NOTICE_SCREENS,
+				'capability'  => 'manage_options',
 			]
 		);
 
@@ -388,8 +585,10 @@ class Notice {
                 'dismissible' => true,
                 'refresh'     => BETTERLINKS_VERSION,
                 "expire"      => strtotime( '12:00:00am 25th June, 2026' ),
-    			'display_if'  => ! is_plugin_active( 'betterlinks-pro/betterlinks-pro.php' ),
-				'priority'    => 7
+    			'display_if'  => ! \BetterLinks\Helper::is_pro_active(),
+				'priority'    => 7,
+				'screens'     => self::NOTICE_SCREENS,
+				'capability'  => 'manage_options',
             ]
         );
 		self::$cache_bank->create_account( $notices );

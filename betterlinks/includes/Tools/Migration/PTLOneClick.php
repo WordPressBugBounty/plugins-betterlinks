@@ -15,7 +15,7 @@ class PTLOneClick extends BaseCSV {
 		);
 
 		if ( empty( $item['name'] ) || $item['name'] == 1 ) {
-			$failed_links = \BetterLinks\Helper::btl_get_option( 'btl_failed_migration_prettylinks_links' );
+			$failed_links = \BetterLinks\Helper::btl_get_option( 'betterlinks_failed_migration_prettylinks_links' );
 			if ( in_array( 'invalid_item_name-' . $item['id'], $failed_links ) ) {
 				return true;
 			}
@@ -68,12 +68,12 @@ class PTLOneClick extends BaseCSV {
 					}
 				}
 			}
-			$current_links_count = \BetterLinks\Helper::btl_get_option( 'btl_migration_prettylinks_current_successful_links_count' );
+			$current_links_count = \BetterLinks\Helper::btl_get_option( 'betterlinks_migration_prettylinks_current_successful_links_count' );
 			$current_links_count = absint( $current_links_count ) + 1;
-			\BetterLinks\Helper::btl_update_option( 'btl_migration_prettylinks_current_successful_links_count', $current_links_count, false, true );
+			\BetterLinks\Helper::btl_update_option( 'betterlinks_migration_prettylinks_current_successful_links_count', $current_links_count, false, true );
 			return true;
 		} else {
-			$failed_links = \BetterLinks\Helper::btl_get_option( 'btl_failed_migration_prettylinks_links' );
+			$failed_links = \BetterLinks\Helper::btl_get_option( 'betterlinks_failed_migration_prettylinks_links' );
 			if ( in_array( 'insert_link_failed-' . $item['id'], $failed_links ) ) {
 				return true;
 			}
@@ -90,7 +90,7 @@ class PTLOneClick extends BaseCSV {
 		);
 
 		if ( empty( $item['uri'] ) ) {
-			$failed_clicks = \BetterLinks\Helper::btl_get_option( 'btl_failed_migration_prettylinks_clicks' );
+			$failed_clicks = \BetterLinks\Helper::btl_get_option( 'betterlinks_failed_migration_prettylinks_clicks' );
 			if ( in_array( 'uri_doesnot_exist-' . $item['id'], $failed_clicks ) ) {
 				return true;
 			}
@@ -123,19 +123,19 @@ class PTLOneClick extends BaseCSV {
 			);
 			$is_insert = \BetterLinks\Helper::insert_click( $click );
 			if ( $is_insert ) {
-				$current_clicks_count = \BetterLinks\Helper::btl_get_option( 'btl_migration_prettylinks_current_successful_clicks_count' );
+				$current_clicks_count = \BetterLinks\Helper::btl_get_option( 'betterlinks_migration_prettylinks_current_successful_clicks_count' );
 				$current_clicks_count = absint( $current_clicks_count ) + 1;
-				\BetterLinks\Helper::btl_update_option( 'btl_migration_prettylinks_current_successful_clicks_count', $current_clicks_count, false, true );
+				\BetterLinks\Helper::btl_update_option( 'betterlinks_migration_prettylinks_current_successful_clicks_count', $current_clicks_count, false, true );
 				return true;
 			} else {
-				$failed_clicks = \BetterLinks\Helper::btl_get_option( 'btl_failed_migration_prettylinks_clicks' );
+				$failed_clicks = \BetterLinks\Helper::btl_get_option( 'betterlinks_failed_migration_prettylinks_clicks' );
 				if ( in_array( 'not_inserted-' . $item['id'], $failed_clicks ) ) {
 					return true;
 				}
 				return $this->log_failed_clicks( $item, 'not_inserted-' );
 			}
 		} else {
-			$failed_clicks = \BetterLinks\Helper::btl_get_option( 'btl_failed_migration_prettylinks_clicks' );
+			$failed_clicks = \BetterLinks\Helper::btl_get_option( 'betterlinks_failed_migration_prettylinks_clicks' );
 			if ( in_array( 'link_not_found-' . $item['id'], $failed_clicks ) ) {
 				return true;
 			}
@@ -166,25 +166,25 @@ class PTLOneClick extends BaseCSV {
 	}
 
 	public function log_failed_links( $item, $prefix = '_-' ) {
-		$failed_links       = \BetterLinks\Helper::btl_get_option( 'btl_failed_migration_prettylinks_links' );
+		$failed_links       = \BetterLinks\Helper::btl_get_option( 'betterlinks_failed_migration_prettylinks_links' );
 		$total_failed_links = count( $failed_links );
 		if ( $total_failed_links > 10000 ) {
 			return true;
 		}
 		$slug = empty( $item['slug'] ) ? '_' : $item['slug'];
 		array_push( $failed_links, $prefix . $item['id'] . '-' . $slug );
-		$result = \BetterLinks\Helper::btl_update_option( 'btl_failed_migration_prettylinks_links', $failed_links, false, true );
+		$result = \BetterLinks\Helper::btl_update_option( 'betterlinks_failed_migration_prettylinks_links', $failed_links, false, true );
 		return ! $result;
 	}
 	public function log_failed_clicks( $item, $prefix = '_-' ) {
-		$failed_clicks       = \BetterLinks\Helper::btl_get_option( 'btl_failed_migration_prettylinks_clicks' );
+		$failed_clicks       = \BetterLinks\Helper::btl_get_option( 'betterlinks_failed_migration_prettylinks_clicks' );
 		$total_failed_clicks = count( $failed_clicks );
 		if ( $total_failed_clicks > 10000 ) {
 			return true;
 		}
 		$uri = empty( $item['uri'] ) ? '_' : $item['uri'];
 		array_push( $failed_clicks, $prefix . $item['id'] . '-' . $uri );
-		$result = \BetterLinks\Helper::btl_update_option( 'btl_failed_migration_prettylinks_clicks', $failed_clicks, false, true );
+		$result = \BetterLinks\Helper::btl_update_option( 'betterlinks_failed_migration_prettylinks_clicks', $failed_clicks, false, true );
 		return ! $result;
 	}
 }

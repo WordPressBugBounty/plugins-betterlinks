@@ -18,7 +18,15 @@ class Export {
 		$page   = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : '';
 		$export = isset( $_GET['export'] ) ? sanitize_text_field( wp_unslash( $_GET['export'] ) ) : false;
 		if ( 'betterlinks-settings' === $page && true == $export ) {
-			$type = isset( $_POST['content'] ) ? sanitize_text_field( wp_unslash( $_POST['content'] ) ) : '';
+			$type = isset( $_POST['content'] ) ? sanitize_key( wp_unslash( $_POST['content'] ) ) : '';
+			// Reaching the Settings screen is not enough to dump data: links need the
+			// link read permission and click history (with visitor IPs) the analytics
+			// permission. Administrators pass both by default.
+			$can_read_links = apply_filters( 'betterlinks/api/links_get_items_permissions_check', current_user_can( 'manage_options' ) );
+			$can_read_data  = 'clicks' === $type ? apply_filters( 'betterlinks/api/analytics_items_permissions_check', current_user_can( 'manage_options' ) ) : $can_read_links;
+			if ( ! $can_read_data ) {
+				wp_die( esc_html__( "You don't have permission to export this data.", 'betterlinks' ), '', array( 'response' => 403 ) );
+			}
 			$this->download_files( $type );
 			exit();
 		}
@@ -34,6 +42,10 @@ class Export {
 			$clicks    = $this->get_clicks();
 			$data      = $this->prepare_csv_file_data( $clicks );
 			$filename .= '-clicks';
+		} elseif ( '' !== $type && ( $extra = apply_filters( 'betterlinks/tools/export_content', array(), $type ) ) && ! empty( $extra[ $type ] ) && is_array( $extra[ $type ] ) ) {
+			// Extension exports (BetterLinks Pro: link rotations), keyed by type.
+			$data      = $this->prepare_csv_file_data( array_values( $extra[ $type ] ) );
+			$filename .= '-' . $type;
 		} else {
 			$filename = 'Sample-file';
 			$data     = $this->simple_file_download();

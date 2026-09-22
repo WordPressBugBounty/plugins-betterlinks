@@ -50,6 +50,25 @@ final class Mcp_Server {
 	private const UNAUTHORIZED     = -32001;
 
 	/**
+	 * Largest request body accepted, in bytes.
+	 *
+	 * Tool arguments are slugs, URLs and short strings; a megabyte is already
+	 * far more than any real call needs. Without a ceiling a single request
+	 * could hand json_decode() an arbitrarily large string and write the result
+	 * straight into a link row — and link rows are read back on every front-end
+	 * request through links.json.
+	 */
+	private const MAX_BODY_BYTES = 1048576;
+
+	/**
+	 * Most JSON-RPC messages accepted in one batched request.
+	 *
+	 * A batch is one HTTP request that runs many tools, so an unbounded batch
+	 * turns a single call into unlimited database writes.
+	 */
+	private const MAX_BATCH_SIZE = 50;
+
+	/**
 	 * Handle a raw MCP HTTP request. Reads the JSON-RPC message from the
 	 * request body, dispatches it, and returns a WP_REST_Response (or a
 	 * 202 with empty body for notifications).
@@ -63,7 +82,7 @@ final class Mcp_Server {
 		// are truncated; credentials are never logged.
 		if ( defined( 'BETTERLINKS_MCP_DEBUG' ) && BETTERLINKS_MCP_DEBUG ) {
 			error_log( sprintf( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- opt-in debug tap.
-				'[TR-MCP] in method=%s auth=%s accept=%s body=%s',
+				'[BL-MCP] in method=%s auth=%s accept=%s body=%s',
 				isset( $_SERVER['REQUEST_METHOD'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : '?',
 				$request->get_header( 'authorization' ) ? 'yes' : 'no',
 				(string) $request->get_header( 'accept' ),
@@ -84,19 +103,21 @@ final class Mcp_Server {
 		// DEFAULT_MAX_FAILS discovery probes.
 		$presented = self::extract_token( $request );
 
-		// Lockout check first: a rate-limited IP never reaches the compare.
-		if ( '' !== $presented && Mcp_Rate_Limiter::is_locked() ) {
-			$response = self::error_response( null, self::UNAUTHORIZED, 'Too many failed attempts. Try again later.', 429 );
-			// Keep the challenge on the 429 too: a client that only ever sees
-			// a bare 429 concludes the server has no OAuth at all.
-			$response->header( 'WWW-Authenticate', self::challenge_header() );
-			$response->header( 'Retry-After', (string) Mcp_Rate_Limiter::retry_after() );
-			return $response;
-		}
-
 		// Authenticate: static pairing token OR an OAuth 2.1 access token
-		// (both Bearer). Either satisfies the gate.
+		// (both Bearer). Either satisfies the gate. Validation runs before the
+		// lockout so a valid connector sharing an egress IP (e.g. an AI vendor's
+		// backend) with a misbehaving client is not locked out; only rejected
+		// credentials are rate limited. Tokens are high-entropy, so letting the
+		// compare run during a lockout does not make guessing practical.
 		if ( true !== self::authorize( $request ) ) {
+			if ( '' !== $presented && Mcp_Rate_Limiter::is_locked() ) {
+				$response = self::error_response( null, self::UNAUTHORIZED, 'Too many failed attempts. Try again later.', 429 );
+				// Keep the challenge on the 429 too: a client that only ever sees
+				// a bare 429 concludes the server has no OAuth at all.
+				$response->header( 'WWW-Authenticate', self::challenge_header() );
+				$response->header( 'Retry-After', (string) Mcp_Rate_Limiter::retry_after() );
+				return $response;
+			}
 			if ( '' !== $presented ) {
 				Mcp_Rate_Limiter::record_failure();
 			}
@@ -109,6 +130,18 @@ final class Mcp_Server {
 		Mcp_Rate_Limiter::clear();
 
 		$raw = $request->get_body();
+
+		// Checked before decoding: json_decode() on a huge body is the expensive
+		// part, and nothing legitimate comes close to the ceiling.
+		if ( strlen( $raw ) > self::MAX_BODY_BYTES ) {
+			return self::error_response(
+				null,
+				self::INVALID_REQUEST,
+				sprintf( 'Request body is too large (limit %d bytes).', self::MAX_BODY_BYTES ),
+				413
+			);
+		}
+
 		$msg = json_decode( $raw, true );
 
 		if ( null === $msg && JSON_ERROR_NONE !== json_last_error() ) {
@@ -118,6 +151,14 @@ final class Mcp_Server {
 		// Batched requests: an array of messages. Handle each; drop
 		// notification (id-less) responses per JSON-RPC.
 		if ( is_array( $msg ) && array_key_exists( 0, $msg ) ) {
+			if ( count( $msg ) > self::MAX_BATCH_SIZE ) {
+				return self::error_response(
+					null,
+					self::INVALID_REQUEST,
+					sprintf( 'Too many messages in one batch (limit %d). Split the batch.', self::MAX_BATCH_SIZE ),
+					400
+				);
+			}
 			$responses = [];
 			foreach ( $msg as $one ) {
 				$r = self::dispatch( is_array( $one ) ? $one : [] );
@@ -184,7 +225,7 @@ final class Mcp_Server {
 				// clean, useless connection. Leave a trail for whoever debugs
 				// it; the admin notice and self-test carry the loud version.
 				if ( empty( $tools ) && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					error_log( '[TR-MCP] tools/list returned 0 tools. ' . \BetterLinks\Abilities\Abilities_Registrar::summary() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WP_DEBUG-gated diagnostic.
+					error_log( '[BL-MCP] tools/list returned 0 tools. ' . \BetterLinks\Abilities\Abilities_Registrar::summary() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- WP_DEBUG-gated diagnostic.
 				}
 				return self::result( $id, [ 'tools' => $tools ] );
 

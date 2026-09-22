@@ -82,11 +82,11 @@ final class Mcp_Pairing {
 	 * @return string
 	 */
 	public static function connect_url(): string {
-		$token = self::site_token();
-		if ( '' === $token ) {
-			return '';
-		}
-		return self::site_endpoint() . '/' . $token;
+		// Intentionally empty. This used to return <endpoint>/<token>, i.e. an
+		// administrator-equivalent credential inside a URL path, which every
+		// access log, proxy and CDN along the way records in the clear. The
+		// endpoint is served header-only; nothing in the UI used this form.
+		return '';
 	}
 
 	/**
@@ -100,7 +100,7 @@ final class Mcp_Pairing {
 			$stored = [];
 		}
 		return [
-			'site_token'   => isset( $stored['site_token'] ) ? (string) $stored['site_token'] : '',
+			'site_token'   => isset( $stored['site_token'] ) ? self::decrypt( (string) $stored['site_token'] ) : '',
 			'connected'    => ! empty( $stored['connected'] ),
 			'connected_at' => isset( $stored['connected_at'] ) ? (int) $stored['connected_at'] : 0,
 			'scopes'       => isset( $stored['scopes'] ) && is_array( $stored['scopes'] )
@@ -176,6 +176,9 @@ final class Mcp_Pairing {
 	 * @return array<string,mixed>
 	 */
 	public static function public_status(): array {
+		// Admin-side read: a convenient moment to re-save a token stored before
+		// this version encrypted them.
+		self::maybe_upgrade_storage();
 		$state = self::state();
 		return [
 			'connected'         => self::is_connected(),
@@ -252,7 +255,6 @@ final class Mcp_Pairing {
 		if ( ! self::is_connected() ) {
 			return '';
 		}
-		$token    = self::site_token();
 		$endpoint = self::site_endpoint();
 		$access   = self::is_read_only()
 			? 'read-only (inspect links, analytics and settings only)'
@@ -265,11 +267,15 @@ final class Mcp_Pairing {
 			'Server URL: ' . $endpoint,
 			'Transport: streamable HTTP',
 			'Authentication: Bearer token (in the Authorization header)',
-			'API key: ' . $token,
+			// Deliberately a placeholder, not the live token: this text is written
+			// to be pasted into a hosted AI chat, and anything pasted there is
+			// retained by that vendor. The token belongs in the client's own
+			// credential field, which config_snippets() below fills in.
+			'API key: <paste the connection token from BetterLinks → MCP>',
 			'Access level: ' . $access,
 			'',
-			'If you use the Claude Code CLI, this is the exact command (name and URL come BEFORE the flags):',
-			'  ' . self::config_snippets()['cli'],
+			'If you use the Claude Code CLI, this is the command (name and URL come BEFORE the flags); put the real token in place of the placeholder:',
+			'  claude mcp add betterlinks ' . $endpoint . ' --transport http --header "Authorization: Bearer <connection token>"',
 			'',
 			'Add it now, confirm it is connected by calling its "list-links" tool, and tell me which short links you can see.',
 		];
@@ -304,7 +310,7 @@ final class Mcp_Pairing {
 		update_option(
 			self::OPTION,
 			[
-				'site_token'   => $token,
+				'site_token'   => self::encrypt( $token ),
 				'connected'    => true,
 				'connected_at' => $existing ? $state['connected_at'] : time(),
 				'scopes'       => $scopes,
@@ -332,7 +338,7 @@ final class Mcp_Pairing {
 		update_option(
 			self::OPTION,
 			[
-				'site_token'   => self::mint_token(),
+				'site_token'   => self::encrypt( self::mint_token() ),
 				'connected'    => true,
 				'connected_at' => time(),
 				'scopes'       => $scopes,
@@ -372,6 +378,111 @@ final class Mcp_Pairing {
 	 *
 	 * @return string
 	 */
+	/**
+	 * Marker prefixing an encrypted token, with its format version.
+	 */
+	private const CIPHER_PREFIX = 'blenc1:';
+
+	/**
+	 * Encrypt the pairing token for storage.
+	 *
+	 * The token authenticates as an administrator across every ability, never
+	 * expires, and sat in wp_options in the clear — so any second-hand read of
+	 * the database (a backup, another plugin's SQL injection, a support session
+	 * with a DB browser) handed over the site. It cannot be hashed like the
+	 * OAuth tokens are, because the MCP screen has to show it again for the
+	 * admin to copy, so it is encrypted with a key derived from the site's
+	 * salts: the database alone is no longer enough.
+	 *
+	 * Falls back to storing the raw value where OpenSSL or AES-256-GCM is
+	 * unavailable, rather than locking those sites out of the feature.
+	 *
+	 * @param string $plain Raw token.
+	 * @return string Stored representation.
+	 */
+	private static function encrypt( string $plain ): string {
+		if ( '' === $plain || ! self::can_encrypt() ) {
+			return $plain;
+		}
+		$key = self::cipher_key();
+		$iv  = random_bytes( 12 );
+		$tag = '';
+		$out = openssl_encrypt( $plain, 'aes-256-gcm', $key, OPENSSL_RAW_DATA, $iv, $tag );
+		if ( false === $out ) {
+			return $plain;
+		}
+		return self::CIPHER_PREFIX . base64_encode( $iv . $tag . $out ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- binary ciphertext, not obfuscation.
+	}
+
+	/**
+	 * Decrypt a stored token. A value without the marker is returned as-is:
+	 * that is a token stored before this change, or one on a site with no
+	 * OpenSSL. An undecryptable value (the site's salts were rotated) returns
+	 * empty, which reads as "not connected" and prompts a reconnect rather than
+	 * throwing.
+	 *
+	 * @param string $stored Stored representation.
+	 * @return string Raw token.
+	 */
+	private static function decrypt( string $stored ): string {
+		if ( '' === $stored || 0 !== strpos( $stored, self::CIPHER_PREFIX ) ) {
+			return $stored;
+		}
+		if ( ! self::can_encrypt() ) {
+			return '';
+		}
+		$raw = base64_decode( substr( $stored, strlen( self::CIPHER_PREFIX ) ), true ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- binary ciphertext.
+		if ( ! is_string( $raw ) || strlen( $raw ) <= 28 ) {
+			return '';
+		}
+		$iv  = substr( $raw, 0, 12 );
+		$tag = substr( $raw, 12, 16 );
+		$out = openssl_decrypt( substr( $raw, 28 ), 'aes-256-gcm', self::cipher_key(), OPENSSL_RAW_DATA, $iv, $tag );
+
+		return is_string( $out ) ? $out : '';
+	}
+
+	/**
+	 * @return bool
+	 */
+	private static function can_encrypt(): bool {
+		return function_exists( 'openssl_encrypt' )
+			&& function_exists( 'openssl_decrypt' )
+			&& in_array( 'aes-256-gcm', openssl_get_cipher_methods(), true );
+	}
+
+	/**
+	 * Key derived from the site's own salts, so it lives in wp-config.php
+	 * rather than in the database beside the ciphertext.
+	 *
+	 * @return string 32 raw bytes.
+	 */
+	private static function cipher_key(): string {
+		return hash( 'sha256', wp_salt( 'auth' ) . '|' . self::OPTION, true );
+	}
+
+	/**
+	 * Re-save a token that predates encryption. Called from the admin status
+	 * read, so it happens the next time someone opens the MCP screen rather
+	 * than on the redirect path.
+	 *
+	 * @return void
+	 */
+	private static function maybe_upgrade_storage(): void {
+		if ( ! self::can_encrypt() ) {
+			return;
+		}
+		$stored = get_option( self::OPTION, [] );
+		if ( ! is_array( $stored ) || empty( $stored['site_token'] ) ) {
+			return;
+		}
+		if ( 0 === strpos( (string) $stored['site_token'], self::CIPHER_PREFIX ) ) {
+			return;
+		}
+		$stored['site_token'] = self::encrypt( (string) $stored['site_token'] );
+		update_option( self::OPTION, $stored, false );
+	}
+
 	private static function mint_token(): string {
 		return bin2hex( random_bytes( 32 ) );
 	}

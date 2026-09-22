@@ -30,7 +30,9 @@ class Ajax {
 		add_action( 'wp_ajax_betterlinks/admin/get_betterlink_categories', array( $this, 'get_betterlink_categories' ) );
 		add_action( 'wp_ajax_betterlinks/admin/get_betterlink_tags', array( $this, 'get_betterlink_tags' ) );
 		add_action( 'wp_ajax_betterlinks/admin/create_betterlink_category', array( $this, 'create_betterlink_category' ) );
-		add_action( 'wp_ajax_betterlinks/admin/get_autolink_create_settings', array( $this, 'get_auto_link_create_settings' ) );
+		if ( \BetterLinks\Helper::pro_needs_update() ) { // Compatibility: BetterLinks Pro before 3.0.4 (newer Pro registers this).
+			add_action( 'wp_ajax_betterlinks/admin/get_autolink_create_settings', array( $this, 'get_auto_link_create_settings' ) );
+		}
 		add_action( 'wp_ajax_betterlinks/admin/write_json_links', array( $this, 'write_json_links' ) );
 		add_action( 'wp_ajax_betterlinks/admin/write_json_clicks', array( $this, 'write_json_clicks' ) );
 		add_action( 'wp_ajax_betterlinks/admin/analytics', array( $this, 'analytics' ) );
@@ -38,8 +40,6 @@ class Ajax {
 		add_action( 'wp_ajax_betterlinks/admin/cat_slug_unique_checker', array( $this, 'cat_slug_unique_checker' ) );
 		add_action( 'wp_ajax_betterlinks/admin/reset_analytics', array( $this, 'reset_analytics' ) );
 		add_action( 'wp_ajax_betterlinks/admin/get_clicks_count', array( $this, 'get_clicks_count' ) );
-		add_action( 'wp_ajax_betterlinks/admin/backfill_country_data', array( $this, 'backfill_country_data' ) );
-		add_action( 'wp_ajax_betterlinks/admin/clear_analytics_cache', array( $this, 'clear_analytics_cache' ) );
 		// prettylinks.
 		add_action( 'wp_ajax_betterlinks/admin/get_prettylinks_data', array( $this, 'get_prettylinks_data' ) );
 		add_action( 'wp_ajax_betterlinks/admin/run_prettylinks_migration', array( $this, 'run_prettylinks_migration' ) );
@@ -80,9 +80,13 @@ class Ajax {
 		add_action( 'wp_ajax_betterlinks/admin/get_affiliate_link_disclosure_text', array( $this, 'get_affiliate_link_disclosure_text' ) );
 
 		// Auto create links settings.
-		add_action( 'wp_ajax_betterlinks/admin/get_auto_create_links_settings', array( $this, 'get_auto_create_links_settings' ) );
+		if ( \BetterLinks\Helper::pro_needs_update() ) { // Compatibility: BetterLinks Pro before 3.0.4 (newer Pro registers this).
+			add_action( 'wp_ajax_betterlinks/admin/get_auto_create_links_settings', array( $this, 'get_auto_create_links_settings' ) );
+		}
 		// External Analytics settings.
-		add_action( 'wp_ajax_betterlinks/admin/get_external_analytics', array( $this, 'get_external_analytics' ) );
+		if ( \BetterLinks\Helper::pro_needs_update() ) { // Compatibility: BetterLinks Pro before 3.0.4 (newer Pro registers this).
+			add_action( 'wp_ajax_betterlinks/admin/get_external_analytics', array( $this, 'get_external_analytics' ) );
+		}
 
 		// Analytics
 		add_action( 'wp_ajax_betterlinks__admin_fetch_analytics_graph', array( $this, 'fetch_analytics_graph' ) );
@@ -90,7 +94,6 @@ class Ajax {
 		// Notices
 		add_action( 'wp_ajax_betterlinks__admin_menu_notice', array( $this, 'admin_menu_notice' ) );
 		add_action( 'wp_ajax_betterlinks__admin_dashboard_notice', array( $this, 'admin_dashboard_notice' ) );
-		add_action( 'wp_ajax_betterlinks_dismiss_black_friday_notice', array( $this, 'dismiss_black_friday_notice' ) );
 
 		add_action( 'wp_ajax_betterlinks__fetch_target_url', array( $this, 'fetch_target_url' ) );
 
@@ -107,13 +110,7 @@ class Ajax {
 		add_action( 'wp_ajax_betterlinks__js_analytics_tracking', array( $this, 'js_analytics_tracking' ) );
 
 		// Update click country data (for backward compatibility)
-		add_action( 'wp_ajax_betterlinks/admin/update_click_country', array( $this, 'update_click_country' ) );
-		add_action( 'wp_ajax_betterlinks/admin/update_clicks_country_by_ip', array( $this, 'update_clicks_country_by_ip' ) );
 
-		// UTM Template Application
-		add_action( 'wp_ajax_betterlinks/admin/apply_utm_template_to_links', array( $this, 'apply_utm_template_to_links' ) );
-		add_action( 'wp_ajax_betterlinks/admin/get_links_by_categories', array( $this, 'get_links_by_categories' ) );
-		add_action( 'wp_ajax_betterlinks/admin/get_utm_status_counts', array( $this, 'get_utm_status_counts' ) );
 	}
 
 	/**
@@ -610,30 +607,34 @@ class Ajax {
 		set_time_limit( 300 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged -- migration job needs extended runtime.
 		$re_run = isset( $_POST['re_run'] ) ? sanitize_text_field( wp_unslash( $_POST['re_run'] ) ) : false;
 
-		if ( empty($re_run) && Helper::btl_get_option( 'btl_prettylink_migration_should_not_start_in_background' ) ) {
+		if ( empty($re_run) && Helper::btl_get_option( 'betterlinks_prettylink_migration_should_not_start_in_background' ) ) {
 			// preventing multiple migration call to prevent duplicate datas from migrating.
 			wp_send_json_error( array( 'duplicate_migration_detected__so_prevented_it_here' => true ) );
 		}
 		$pretty_links_data = null;
 		if( !empty( $re_run ) ){
 			$pretty_links_data = Helper::get_prettylinks_data();
-			delete_option('btl_prettylink_migration_should_not_start_in_background');
+			delete_option('betterlinks_prettylink_migration_should_not_start_in_background');
 		}
 		
-		Helper::btl_update_option( 'btl_prettylink_migration_should_not_start_in_background', true, true );
+		Helper::btl_update_option( 'betterlinks_prettylink_migration_should_not_start_in_background', true, true );
 		global $wpdb;
 		$query = "DELETE FROM {$wpdb->prefix}options WHERE option_name IN(
                 'betterlinks_notice_ptl_migration_running_in_background',
+                'betterlinks_failed_migration_prettylinks_links',
+                'betterlinks_failed_migration_prettylinks_clicks',
+                'betterlinks_migration_prettylinks_current_successful_links_count',
+                'betterlinks_migration_prettylinks_current_successful_clicks_count',
                 'btl_failed_migration_prettylinks_links',
                 'btl_failed_migration_prettylinks_clicks',
                 'btl_migration_prettylinks_current_successful_links_count',
                 'btl_migration_prettylinks_current_successful_clicks_count'
         )";
 		$wpdb->query( $query ); // phpcs:ignore.
-		Helper::btl_update_option( 'btl_failed_migration_prettylinks_links', array(), true );
-		Helper::btl_update_option( 'btl_failed_migration_prettylinks_clicks', array(), true );
-		Helper::btl_update_option( 'btl_migration_prettylinks_current_successful_links_count', 0, true );
-		Helper::btl_update_option( 'btl_migration_prettylinks_current_successful_clicks_count', 0, true );
+		Helper::btl_update_option( 'betterlinks_failed_migration_prettylinks_links', array(), true );
+		Helper::btl_update_option( 'betterlinks_failed_migration_prettylinks_clicks', array(), true );
+		Helper::btl_update_option( 'betterlinks_migration_prettylinks_current_successful_links_count', 0, true );
+		Helper::btl_update_option( 'betterlinks_migration_prettylinks_current_successful_clicks_count', 0, true );
 
 		$type                  = isset( $_POST['type'] ) ? strtolower( sanitize_text_field( wp_unslash( $_POST['type'] ) ) ) : '';
 		$total_links_clicks    = !empty( $pretty_links_data ) ? $pretty_links_data : get_transient( 'betterlinks_migration_data_prettylinks' );
@@ -718,20 +719,25 @@ class Ajax {
 			$ID            = isset( $_POST['ID'] ) ? sanitize_text_field( wp_unslash( $_POST['ID'] ) ) : '';
 			$slug          = isset( $_POST['slug'] ) ? sanitize_text_field( wp_unslash( $_POST['slug'] ) ) : '';
 			$alreadyExists = false;
+			$overridable   = false;
+			$own_slug      = false;
 			$message       = '';
 			$resutls       = array();
 			if ( ! empty( $slug ) ) {
 				$resutls = Helper::get_link_by_short_url( $slug );
 				if ( count( $resutls ) > 0 ) {
-					$alreadyExists = true;
 					$resutls       = current( $resutls );
-					if ( $resutls['ID'] == $ID ) {
-						$alreadyExists = false;
-					}
+					$alreadyExists = $resutls['ID'] != $ID;
+					// The slug is this link's own and is not changing. The save
+					// route skips validation for an unchanged short URL, so the
+					// form must not refuse it either — otherwise a link that already
+					// sits on a WordPress path (every Instant Redirect, and links
+					// saved before the collision check existed) can never be edited.
+					$own_slug = ! $alreadyExists && isset( $resutls['short_url'] ) && (string) $resutls['short_url'] === $slug;
 				}
 				if ( $alreadyExists ) {
 					$message = __( 'Already Exists', 'betterlinks' );
-				} else {
+				} elseif ( ! $own_slug ) {
 					// Flag a slug that would shadow real WordPress content while
 					// the form is still open, so the conflict is fixable in place
 					// rather than being rejected after submit.
@@ -740,13 +746,16 @@ class Ajax {
 						$data          = $collision->get_error_data();
 						$alreadyExists = true;
 						$message       = isset( $data['short_message'] ) ? $data['short_message'] : $collision->get_error_message();
+						$overridable   = $this->can_override_wp_url_collision( $collision );
 					}
 				}
 			}
 			wp_send_json_success(
 				array(
-					'exists'  => $alreadyExists,
-					'message' => $message,
+					'exists'      => $alreadyExists,
+					'message'     => $message,
+					// True when the user may confirm the collision and save anyway.
+					'overridable' => $overridable,
 				)
 			);
 		}
@@ -1108,7 +1117,7 @@ class Ajax {
 		// The React app falls back to this handler whenever the REST call
 		// throws, so it has to refuse the same payloads the REST route does —
 		// including the Instant Redirect exemption the REST route honours.
-		$invalid = $this->validate_link_payload( $args, false, $this->resolve_instant_redirect_post_id( $_POST ) );
+		$invalid = $this->validate_link_payload( $args, false, $this->resolve_instant_redirect_post_id( $_POST ), $this->resolve_wp_url_override( $_POST ) );
 		if ( is_wp_error( $invalid ) ) {
 			wp_send_json_error(
 				array(
@@ -1137,7 +1146,7 @@ class Ajax {
 		}
 		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
 		$args    = $this->sanitize_links_data( $_POST );
-		$invalid = $this->validate_link_payload( $args, true, $this->resolve_instant_redirect_post_id( $_POST ) );
+		$invalid = $this->validate_link_payload( $args, true, $this->resolve_instant_redirect_post_id( $_POST ), $this->resolve_wp_url_override( $_POST ) );
 		if ( is_wp_error( $invalid ) ) {
 			wp_send_json_error(
 				array(
@@ -1238,24 +1247,13 @@ class Ajax {
 		$response                         = $helper::sanitize_text_or_array_field( $response );
 		$response['uncloaked_categories'] = isset( $response['uncloaked_categories'] ) && is_string( $response['uncloaked_categories'] ) ? json_decode( $response['uncloaked_categories'] ) : array();
 		
-		// Validate and sanitize excluded IPs
-		if ( isset( $response['excluded_ips'] ) ) {
-			if ( is_array( $response['excluded_ips'] ) ) {
-				$response['excluded_ips'] = array_values( array_filter( array_map( function( $ip ) {
-					$ip = sanitize_text_field( trim( $ip ) );
-					// Validate IP address (IPv4 or IPv6)
-					return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : null;
-				}, $response['excluded_ips'] ) ) );
-			} else {
-				$response['excluded_ips'] = array();
-			}
-		}
 
 		// Pro Logics
 		$response = apply_filters( 'betterlinkspro/admin/update_settings', $response );
 
-		// Handle custom SVG icon sanitization
-		if ( ! empty( $response['autolink_custom_icon'] ) ) {
+		// Compatibility: BetterLinks Pro before 3.0.4 relies on this to sanitize its
+		// custom auto-link icon. Newer Pro sanitizes it in betterlinkspro/admin/update_settings.
+		if ( ! empty( $response['autolink_custom_icon'] ) && \BetterLinks\Helper::pro_needs_update() ) {
 			// Use the sanitize_custom_svg method if it exists, otherwise use custom wp_kses for SVG
 			if ( class_exists( '\BetterLinksPro\Frontend\AutoLinks' ) && method_exists( '\BetterLinksPro\Frontend\AutoLinks', 'sanitize_custom_svg' ) ) {
 				$response['autolink_custom_icon'] = \BetterLinksPro\Frontend\AutoLinks::sanitize_custom_svg( $response['autolink_custom_icon'] );
@@ -1413,15 +1411,27 @@ class Ajax {
 		$from = isset( $_REQUEST['from'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['from'] ) ) : gmdate( 'Y-m-d', strtotime( ' - 30 days' ) );
 		$to   = isset( $_REQUEST['to'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['to'] ) ) : gmdate( 'Y-m-d' );
 		$ID   = ( isset( $_REQUEST['ID'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['ID'] ) ) : '' );
-		if ( ! empty( $ID ) && class_exists( 'BetterLinksPro' ) ) {
-			$results = \BetterLinksPro\Helper::get_individual_link_analytics(
-				array(
-					'id'   => $ID,
-					'from' => $from,
-					'to'   => $to,
-				)
+		$results = null;
+		if ( ! empty( $ID ) ) {
+			$args = array(
+				'id'   => $ID,
+				'from' => $from,
+				'to'   => $to,
 			);
-		} else {
+			/**
+			 * Filters per-link click analytics (null = not provided).
+			 * BetterLinks Pro supplies them.
+			 *
+			 * @param array|null $results Rows.
+			 * @param array      $args    { id, from, to }.
+			 */
+			$results = apply_filters( 'betterlinks/analytics/individual_link_clicks', null, $args );
+			// Compatibility: BetterLinks Pro before 3.0.4.
+			if ( null === $results && \BetterLinks\Helper::pro_needs_update() && is_callable( array( '\BetterLinksPro\Helper', 'get_individual_link_analytics' ) ) ) {
+				$results = \BetterLinksPro\Helper::get_individual_link_analytics( $args );
+			}
+		}
+		if ( null === $results ) {
 			$results = $this->get_clicks_data( $from, $to );
 		}
 		wp_send_json_success(
@@ -1431,7 +1441,9 @@ class Ajax {
 	}
 	public function reset_analytics() {
 		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
-		if ( ! apply_filters( 'betterlinks/api/analytics_items_permissions_check', current_user_can( 'manage_options' ) ) ) {
+		// Deleting click history is a write. It used the analytics *read* permission, so
+		// a role allowed only to view analytics could erase it. Administrators by default.
+		if ( ! apply_filters( 'betterlinks/api/analytics_delete_permissions_check', current_user_can( 'manage_options' ) ) ) {
 			wp_die( "You don't have permission to do this." );
 		}
 		global $wpdb;
@@ -1669,7 +1681,8 @@ class Ajax {
 	public function get_auto_create_links_settings() {
 		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
 		if ( apply_filters( 'betterlinkspro/admin/current_user_can_edit_settings', current_user_can( 'manage_options' ) ) ) {
-			$data = get_option( BETTERLINKS_PRO_AUTO_LINK_CREATE_OPTION_NAME, array() );
+			// The option name is defined by BetterLinks Pro; without Pro there is nothing to return.
+			$data = defined( 'BETTERLINKS_PRO_AUTO_LINK_CREATE_OPTION_NAME' ) ? get_option( BETTERLINKS_PRO_AUTO_LINK_CREATE_OPTION_NAME, array() ) : array();
 			if ( is_string( $data ) ) {
 				$data = json_decode( $data, true );
 			}
@@ -1701,12 +1714,17 @@ class Ajax {
 			'item_id'      => '720bbe6537bffcb73f37',
 		] );
 
-		$opt_in->opt_in($opt_in_value, 'betterlinks');
-		
-		update_option('betterlinks_quick_setup_step', 1);
-		wp_send_json_success([
-			'result' => $opt_in_value 
-		]);
+		$opt_in_value = 'yes' === $opt_in_value ? 'yes' : 'no';
+		$opt_in->opt_in( $opt_in_value, 'betterlinks' );
+
+		// The Settings switch reuses this endpoint; only the setup wizard advances its step.
+		$context = isset( $_POST['context'] ) ? sanitize_key( wp_unslash( $_POST['context'] ) ) : '';
+		if ( 'settings' !== $context ) {
+			update_option( 'betterlinks_quick_setup_step', 1 );
+		}
+		wp_send_json_success( [
+			'result' => $opt_in_value,
+		] );
 	}
 
 	public function complete_setup() {
@@ -1767,13 +1785,13 @@ class Ajax {
 		$data['skip_password_protection'] = true;
 		$data['location'] = $location;
 
-		// Accept country data from frontend geolocation
-		if ( isset( $_POST['country_code'] ) ) {
-			$data['country_code'] = sanitize_text_field( wp_unslash( $_POST['country_code'] ) );
-		}
-		if ( isset( $_POST['country_name'] ) ) {
-			$data['country_name'] = sanitize_text_field( wp_unslash( $_POST['country_name'] ) );
-		}
+		/**
+		 * Filters link data for a front-end tracker click before it is recorded.
+		 * BetterLinks Pro adds the visitor's country here.
+		 *
+		 * @param array $data Link data.
+		 */
+		$data = apply_filters( 'betterlinks/js_analytics_tracking/data', $data );
 
 		Helper::init_tracking($data, $utils);
 
@@ -1783,601 +1801,7 @@ class Ajax {
 		// phpcs:enable WordPress.Security.NonceVerification.Missing
 	}
 
-	/**
-	 * Update click record with country data
-	 *
-	 * Used for backward compatibility to update existing clicks with country information
-	 */
-	public function update_click_country() {
-		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
-
-		// Writes to the clicks table by arbitrary click id. Admin-facing
-		// analytics repair, so it takes the same gate as the rest of the
-		// analytics surface rather than running on a nonce alone.
-		if ( ! apply_filters( 'betterlinks/api/analytics_items_permissions_check', current_user_can( 'manage_options' ) ) ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'Insufficient permissions', 'betterlinks' ),
-				),
-				403
-			);
-		}
-
-		// Check if BetterLinks Pro v2.5.0 or newer is installed
-		if ( ! defined( 'BETTERLINKS_PRO_VERSION' ) || version_compare( BETTERLINKS_PRO_VERSION, '2.5.0', '<' ) ) {
-			wp_send_json_error( array(
-				'message' => __( 'Country detection requires BetterLinks Pro v2.5.0 or newer', 'betterlinks' )
-			) );
-		}
-
-		global $wpdb;
-
-		$click_id = isset( $_POST['click_id'] ) ? intval( $_POST['click_id'] ) : 0;
-		$country_code = isset( $_POST['country_code'] ) ? sanitize_text_field( wp_unslash( $_POST['country_code'] ) ) : '';
-		$country_name = isset( $_POST['country_name'] ) ? sanitize_text_field( wp_unslash( $_POST['country_name'] ) ) : '';
-
-		if ( ! $click_id || ! $country_code || ! $country_name ) {
-			wp_send_json_error( array(
-				'message' => __( 'Invalid parameters', 'betterlinks' )
-			) );
-		}
-
-		$table_name = $wpdb->prefix . 'betterlinks_clicks';
-
-		// Get or create country record and get its ID
-		$country_id = \BetterLinks\Services\CountryDetectionService::get_or_create_country_id(
-			$country_code,
-			$country_name
-		);
-
-		if ( ! $country_id ) {
-			wp_send_json_error( array(
-				'message' => __( 'Failed to create country record', 'betterlinks' )
-			) );
-		}
-
-		$updated = $wpdb->update(
-			$table_name,
-			array( 'country_id' => $country_id ),
-			array( 'ID' => $click_id ),
-			array( '%d' ),
-			array( '%d' )
-		);
-
-		if ( $updated !== false ) {
-			wp_send_json_success( array(
-				'message' => __( 'Country data updated successfully', 'betterlinks' ),
-				'country_code' => $country_code,
-				'country_name' => $country_name,
-				'country_id' => $country_id,
-			) );
-		} else {
-			wp_send_json_error( array(
-				'message' => __( 'Failed to update country data', 'betterlinks' )
-			) );
-		}
-	}
-
-	/**
-	 * Update all clicks with the same IP within a specific link with country data
-	 *
-	 * This bulk update ensures that when country is fetched for one IP,
-	 * all clicks from the same IP within the same short URL are updated automatically
-	 */
-	public function update_clicks_country_by_ip() {
-		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
-
-		// Bulk-writes the clicks table by attacker-chosen link_id + ip and
-		// flushes that link's analytics caches — same analytics gate as above.
-		if ( ! apply_filters( 'betterlinks/api/analytics_items_permissions_check', current_user_can( 'manage_options' ) ) ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'Insufficient permissions', 'betterlinks' ),
-				),
-				403
-			);
-		}
-
-		// Check if BetterLinks Pro v2.5.0 or newer is installed and has country tracking feature
-		if ( ! defined( 'BETTERLINKS_PRO_VERSION' ) || version_compare( BETTERLINKS_PRO_VERSION, '2.5.0', '<' ) ) {
-			wp_send_json_error( array(
-				'message' => __( 'Country detection requires BetterLinks Pro v2.5.0 or newer', 'betterlinks' ),
-				'code' => 'pro_version_required'
-			) );
-		}
-
-		// Additional check: Verify Pro plugin has the country tracking function (prevents bypass with old Pro files)
-		if ( ! class_exists( 'BetterLinksPro\\Helper' ) || 
-			 ! method_exists( 'BetterLinksPro\\Helper', 'is_country_tracking_enabled' ) ||
-			 ! \BetterLinksPro\Helper::is_country_tracking_enabled() ) {
-			wp_send_json_error( array(
-				'message' => __( 'Please update BetterLinks Pro to v2.5.0 or newer to use this feature', 'betterlinks' ),
-				'code' => 'pro_update_required'
-			) );
-		}
-
-		global $wpdb;
-
-		$link_id = isset( $_POST['link_id'] ) ? intval( $_POST['link_id'] ) : 0;
-		$ip = isset( $_POST['ip'] ) ? sanitize_text_field( wp_unslash( $_POST['ip'] ) ) : '';
-		$country_code = isset( $_POST['country_code'] ) ? sanitize_text_field( wp_unslash( $_POST['country_code'] ) ) : '';
-		$country_name = isset( $_POST['country_name'] ) ? sanitize_text_field( wp_unslash( $_POST['country_name'] ) ) : '';
-
-		if ( ! $link_id || ! $ip || ! $country_code || ! $country_name ) {
-			wp_send_json_error( array(
-				'message' => __( 'Invalid parameters', 'betterlinks' )
-			) );
-		}
-
-		$table_name = $wpdb->prefix . 'betterlinks_clicks';
-
-		// Get or create country record and get its ID
-		$country_id = \BetterLinks\Services\CountryDetectionService::get_or_create_country_id(
-			$country_code,
-			$country_name
-		);
-
-		if ( ! $country_id ) {
-			wp_send_json_error( array(
-				'message' => __( 'Failed to create country record', 'betterlinks' )
-			) );
-		}
-
-		// Update all clicks with the same IP within this link_id
-		// This will update ALL clicks with this IP, regardless of whether they already have country data
-		$updated = $wpdb->update(
-			$table_name,
-			array( 'country_id' => $country_id ),
-			array(
-				'link_id' => $link_id,
-				'ip' => $ip,
-			),
-			array( '%d' ),
-			array( '%d', '%s' )
-		);
-
-		if ( $updated !== false ) {
-			// Clear the transient cache for this link's analytics data
-			// This ensures the API returns fresh data with the updated country information
-			$this->clear_individual_clicks_transient( $link_id );
-
-			wp_send_json_success( array(
-				/* translators: %s = placeholder values supplied by WordPress */
-				'message' => sprintf( __( 'Country data updated for %d clicks', 'betterlinks' ), $updated ),
-				'country_code' => $country_code,
-				'country_name' => $country_name,
-				'country_id' => $country_id,
-				'updated_count' => $updated,
-			) );
-		} else {
-			wp_send_json_error( array(
-				'message' => __( 'Failed to update country data', 'betterlinks' )
-			) );
-		}
-	}
-
-	/**
-	 * Clear transient cache for individual clicks analytics
-	 * This ensures fresh data is fetched from the database
-	 *
-	 * @param int $link_id The link ID
-	 */
-	private function clear_individual_clicks_transient( $link_id ) {
-		global $wpdb;
-
-		// Get all transient keys for this link and delete them
-		// The transient key format is: btl_individual_analytics_clicks_{from}_{to}_{link_id}
-		$transient_prefix = 'btl_individual_analytics_clicks_';
-
-		// Query the options table to find all matching transients
-		$transients = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
-				'%' . $wpdb->esc_like( $transient_prefix ) . '%' . $wpdb->esc_like( (string) $link_id ) . '%'
-			)
-		);
-
-		// Delete each transient
-		if ( $transients ) {
-			foreach ( $transients as $transient ) {
-				// Remove the '_transient_' prefix to get the transient name
-				$transient_name = str_replace( '_transient_', '', $transient->option_name );
-				delete_transient( $transient_name );
-			}
-		}
-	}
-
-	/**
-	 * Get links by categories
-	 */
-	public function get_links_by_categories() {
-		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( __( 'You do not have permission to perform this action.', 'betterlinks' ) );
-		}
-
-		$category_ids = isset( $_POST['category_ids'] ) ? array_map( 'intval', (array) wp_unslash( $_POST['category_ids'] ) ) : array();
-
-		if ( empty( $category_ids ) ) {
-			wp_send_json_error( __( 'No categories provided.', 'betterlinks' ) );
-		}
-
-		global $wpdb;
-
-		// Get links for the specified categories.
-		// $placeholders is built locally as '%d,%d,...' from the count of $category_ids;
-		// $category_ids is an int[] (intval applied above). Table prefix is wpdb-controlled.
-		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$placeholders = implode( ',', array_fill( 0, count( $category_ids ), '%d' ) );
-		$query = $wpdb->prepare(
-			"SELECT DISTINCT l.ID, l.short_url, l.target_url, l.link_title
-			FROM {$wpdb->prefix}betterlinks l
-			INNER JOIN {$wpdb->prefix}betterlinks_terms_relationships tr ON l.ID = tr.link_id
-			WHERE tr.term_id IN ($placeholders)",
-			...$category_ids
-		);
-		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-		$links = $wpdb->get_results( $query, ARRAY_A );
-
-		wp_send_json_success( array(
-			'links' => $links,
-			'total' => count( $links )
-		) );
-	}
-
-	/**
-	 * Apply UTM template to links
-	 */
-	public function apply_utm_template_to_links() {
-		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
-
-		if ( ! apply_filters( 'betterlinks/api/settings_update_items_permissions_check', current_user_can( 'manage_options' ) ) ) {
-			wp_send_json_error( __( 'You do not have permission to perform this action.', 'betterlinks' ) );
-		}
-
-		// Clear cache to ensure fresh data after updates
-		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
-
-		// Parse JSON data that comes from makeRequest. JSON content is validated by json_decode + array shape checks below; sanitize_text_field would corrupt JSON.
-		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$template_data    = isset( $_POST['template_data'] ) ? json_decode( wp_unslash( $_POST['template_data'] ), true ) : array();
-		$category_ids     = isset( $_POST['category_ids'] ) ? json_decode( wp_unslash( $_POST['category_ids'] ), true ) : array();
-		// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$rewrite_existing = isset( $_POST['rewrite_existing'] ) ? filter_var( wp_unslash( $_POST['rewrite_existing'] ), FILTER_VALIDATE_BOOLEAN ) : false;
-		$reset_existing   = isset( $_POST['reset_existing'] ) ? filter_var( wp_unslash( $_POST['reset_existing'] ), FILTER_VALIDATE_BOOLEAN ) : false;
-
-		// Convert to integers if needed
-		if ( is_array( $category_ids ) ) {
-			$category_ids = array_map( 'intval', $category_ids );
-		}
-
-		if ( empty( $template_data ) || empty( $category_ids ) ) {
-			wp_send_json_error( __( 'Invalid template data or categories.', 'betterlinks' ) );
-		}
-
-		// Sanitize template data
-		$utm_source = sanitize_text_field( $template_data['utm_source'] ?? '' );
-		$utm_medium = sanitize_text_field( $template_data['utm_medium'] ?? '' );
-		$utm_campaign = sanitize_text_field( $template_data['utm_campaign'] ?? '' );
-		$utm_term = sanitize_text_field( $template_data['utm_term'] ?? '' );
-		$utm_content = sanitize_text_field( $template_data['utm_content'] ?? '' );
-
-		global $wpdb;
-
-		// Get links for the specified categories.
-		// $placeholders is built locally as '%d,%d,...' from $category_ids (int[]); table prefix is wpdb-controlled.
-		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$placeholders = implode( ',', array_fill( 0, count( $category_ids ), '%d' ) );
-		$query = $wpdb->prepare(
-			"SELECT DISTINCT l.ID, l.target_url
-			FROM {$wpdb->prefix}betterlinks l
-			INNER JOIN {$wpdb->prefix}betterlinks_terms_relationships tr ON l.ID = tr.link_id
-			WHERE tr.term_id IN ($placeholders)",
-			...$category_ids
-		);
-		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-		$links = $wpdb->get_results( $query, ARRAY_A );
-		$updated_count = 0;
-		$skipped_count = 0;
-
-		foreach ( $links as $link ) {
-			$target_url = $link['target_url'];
-			$parsed_url = wp_parse_url( $target_url );
-			
-			// Check if URL already has UTM parameters
-			$existing_query = isset( $parsed_url['query'] ) ? $parsed_url['query'] : '';
-			parse_str( $existing_query, $existing_params );
-			
-			$has_utm = false;
-			$utm_params = array( 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content' );
-			foreach ( $utm_params as $param ) {
-				if ( isset( $existing_params[$param] ) && !empty( $existing_params[$param] ) ) {
-					$has_utm = true;
-					break;
-				}
-			}
-
-			// Handle reset existing UTM functionality
-			if ( $reset_existing ) {
-				// Only process links that have UTM parameters to reset
-				if ( ! $has_utm ) {
-					$skipped_count++;
-					continue;
-				}
-				// Remove all UTM parameters when resetting
-				foreach ( $utm_params as $param ) {
-					unset( $existing_params[$param] );
-				}
-			} else {
-				// Skip if has UTM and rewrite is disabled
-				if ( $has_utm && ! $rewrite_existing ) {
-					$skipped_count++;
-					continue;
-				}
-
-				// Remove existing UTM parameters if rewriting
-				if ( $rewrite_existing ) {
-					foreach ( $utm_params as $param ) {
-						unset( $existing_params[$param] );
-					}
-				}
-
-				// Add new UTM parameters
-				if ( ! empty( $utm_source ) ) {
-					$existing_params['utm_source'] = $utm_source;
-				}
-				if ( ! empty( $utm_medium ) ) {
-					$existing_params['utm_medium'] = $utm_medium;
-				}
-				if ( ! empty( $utm_campaign ) ) {
-					$existing_params['utm_campaign'] = $utm_campaign;
-				}
-				if ( ! empty( $utm_term ) ) {
-					$existing_params['utm_term'] = $utm_term;
-				}
-				if ( ! empty( $utm_content ) ) {
-					$existing_params['utm_content'] = $utm_content;
-				}
-			}
-
-			// Rebuild the URL
-			$new_query = http_build_query( $existing_params );
-			$new_url = $parsed_url['scheme'] . '://' . $parsed_url['host'];
-			
-			if ( isset( $parsed_url['port'] ) ) {
-				$new_url .= ':' . $parsed_url['port'];
-			}
-			
-			if ( isset( $parsed_url['path'] ) ) {
-				$new_url .= $parsed_url['path'];
-			}
-			
-			if ( ! empty( $new_query ) ) {
-				$new_url .= '?' . $new_query;
-			}
-			
-			if ( isset( $parsed_url['fragment'] ) ) {
-				$new_url .= '#' . $parsed_url['fragment'];
-			}
-
-			// Update the link in database
-			$result = $wpdb->update(
-				$wpdb->prefix . 'betterlinks',
-				array( 'target_url' => $new_url ),
-				array( 'ID' => $link['ID'] ),
-				array( '%s' ),
-				array( '%d' )
-			);
-
-			if ( $result !== false ) {
-				$updated_count++;
-			}
-		}
-
-		$message = $reset_existing
-			? sprintf(
-				/* translators: 1: number of links updated, 2: number skipped, 3: total links processed. */
-				__( 'UTM parameters reset successfully. Updated: %1$d, Skipped: %2$d, Total: %3$d', 'betterlinks' ),
-				$updated_count,
-				$skipped_count,
-				count( $links )
-			)
-			: sprintf(
-				/* translators: 1: number of links updated, 2: number skipped, 3: total links processed. */
-				__( 'UTM template applied successfully. Updated: %1$d, Skipped: %2$d, Total: %3$d', 'betterlinks' ),
-				$updated_count,
-				$skipped_count,
-				count( $links )
-			);
-
-		// Clear cache again after all updates to ensure fresh data
-		delete_transient( BETTERLINKS_CACHE_LINKS_NAME );
-
-		// Track UTM Builder usage
-		if ( $updated_count > 0 ) {
-			update_option( 'betterlinks_utm_builder_used', true );
-		}
-
-		// Regenerate JSON file cache if it exists
-		if ( defined( 'BETTERLINKS_EXISTS_LINKS_JSON' ) && BETTERLINKS_EXISTS_LINKS_JSON ) {
-			$cron = new \BetterLinks\Cron();
-			$cron->write_json_links();
-		}
-
-		wp_send_json_success( array(
-			'updated_count' => $updated_count,
-			'skipped_count' => $skipped_count,
-			'total_links' => count( $links ),
-			'message' => $message
-		) );
-	}
-
-	/**
-	 * Get UTM status counts for specified categories
-	 */
-	public function get_utm_status_counts() {
-		check_ajax_referer( 'betterlinks_admin_nonce', 'security' );
-
-		if ( ! apply_filters( 'betterlinks/api/settings_get_items_permissions_check', current_user_can( 'manage_options' ) ) ) {
-			wp_send_json_error( __( 'You do not have permission to perform this action.', 'betterlinks' ) );
-		}
-
-		// JSON content validated by json_decode + intval below; sanitize_text_field would corrupt JSON.
-		// phpcs:disable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-		$category_ids = isset( $_POST['category_ids'] ) ? json_decode( wp_unslash( $_POST['category_ids'] ), true ) : array();
-		// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-
-		// Convert to integers if needed
-		if ( is_array( $category_ids ) ) {
-			$category_ids = array_map( 'intval', $category_ids );
-		}
-
-		if ( empty( $category_ids ) ) {
-			wp_send_json_error( __( 'No categories specified.', 'betterlinks' ) );
-		}
-
-		global $wpdb;
-
-		// Get links for the specified categories.
-		// $placeholders is built locally as '%d,%d,...' from $category_ids (int[]); table prefix is wpdb-controlled.
-		// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$placeholders = implode( ',', array_fill( 0, count( $category_ids ), '%d' ) );
-		$query = $wpdb->prepare(
-			"SELECT DISTINCT l.ID, l.target_url
-			FROM {$wpdb->prefix}betterlinks l
-			INNER JOIN {$wpdb->prefix}betterlinks_terms_relationships tr ON l.ID = tr.link_id
-			WHERE tr.term_id IN ($placeholders)",
-			...$category_ids
-		);
-		// phpcs:enable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-		$links = $wpdb->get_results( $query, ARRAY_A );
-
-		$total_links = count( $links );
-		$links_with_utm = 0;
-		$links_without_utm = 0;
-
-		foreach ( $links as $link ) {
-			$target_url = $link['target_url'];
-			$parsed_url = wp_parse_url( $target_url );
-			
-			// Check if URL already has UTM parameters
-			$existing_query = isset( $parsed_url['query'] ) ? $parsed_url['query'] : '';
-			parse_str( $existing_query, $existing_params );
-			
-			$has_utm = false;
-			$utm_params = array( 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content' );
-			foreach ( $utm_params as $param ) {
-				if ( isset( $existing_params[$param] ) && !empty( $existing_params[$param] ) ) {
-					$has_utm = true;
-					break;
-				}
-			}
-
-			if ( $has_utm ) {
-				$links_with_utm++;
-			} else {
-				$links_without_utm++;
-			}
-		}
-
-		wp_send_json_success( array(
-			'total_links' => $total_links,
-			'links_with_utm' => $links_with_utm,
-			'links_without_utm' => $links_without_utm
-		) );
-	}
-
-	/**
-	 * Dismiss Black Friday notice via AJAX
-	 * Sets a transient so the notice doesn't show again for 30 days
-	 *
-	 * @return void
-	 */
-	public function dismiss_black_friday_notice() {
-		// Verify nonce for security
-		check_ajax_referer( 'betterlinks_dismiss_black_friday_notice', 'nonce' );
-
-		// Check user permissions
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error(
-				array( 'message' => __( "You don't have permission to do this.", 'betterlinks' ) ),
-				403
-			);
-		}
-
-		// Set transient for 30 days (2592000 seconds)
-		$transient_set = set_transient( 'betterlinks_black_friday_pointer_dismissed', true, 2592000 );
-
-		if ( ! $transient_set ) {
-			wp_send_json_error(
-				array( 'message' => __( 'Failed to dismiss notice. Please try again.', 'betterlinks' ) ),
-				500
-			);
-		}
-
-		// Update plugin pointer priority to null when notice is dismissed
-		update_option( '_wpdeveloper_plugin_pointer_priority', null );
-
-		// Dismiss the notice in the Notices library system as well
-		// This ensures the notice doesn't show again even after page refresh
-		// The key format is: {app}_{notice_id}_notice_dismissed
-		update_site_option( 'betterlinks_betterlinks_summer_camp_2026_deal_notice_dismissed', true );
-
-		wp_send_json_success( array( 'message' => __( 'Notice dismissed successfully.', 'betterlinks' ) ) );
-	}
 	
-	/**
-	 * Backfill country data for existing clicks
-	 */
-	public function backfill_country_data() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Insufficient permissions' ) );
-		}
-
-		if ( ! isset( $_POST['security'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['security'] ) ), 'betterlinks_nonce' ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
-		}
-
-		$limit = isset( $_POST['limit'] ) ? intval( $_POST['limit'] ) : 100;
-		$limit = max( 1, min( 500, $limit ) ); // Limit between 1 and 500
-
-		if ( ! class_exists( '\BetterLinks\Services\CountryDetectionService' ) ) {
-			wp_send_json_error( array( 'message' => 'Country detection service not available' ) );
-		}
-
-		$results = \BetterLinks\Services\CountryDetectionService::backfill_country_data( $limit );
-
-		wp_send_json_success( $results );
-	}
-
-	/**
-	 * Clear analytics cache
-	 */
-	public function clear_analytics_cache() {
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => 'Insufficient permissions' ) );
-		}
-
-		if ( ! isset( $_POST['security'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['security'] ) ), 'betterlinks_nonce' ) ) {
-			wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
-		}
-
-		global $wpdb;
-
-		// Clear all BetterLinks transients
-		$deleted = $wpdb->query(
-			"DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_btl_%' OR option_name LIKE '_transient_timeout_btl_%'"
-		);
-
-		wp_send_json_success( array(
-			'message' => 'Analytics cache cleared successfully',
-			'deleted_transients' => $deleted
-		) );
-	}
 
 
 }

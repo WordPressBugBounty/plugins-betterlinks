@@ -379,7 +379,6 @@ class Installer extends \WP_Background_Process
     {
         $result = Helper::sync_all_missing_links_to_json();
         if ( !empty($result['synced']) && $result['synced'] > 0 ) {
-            // PCP-DEBUG-DISABLED: error_log( 'BetterLinks Migration: Synced ' . $result['synced'] . ' missing links to JSON (Total: ' . $result['total'] . ')' );
         }
     }
 

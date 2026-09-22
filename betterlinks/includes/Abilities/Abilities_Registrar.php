@@ -267,6 +267,8 @@ class Abilities_Registrar {
 		$abilities = [
 			// Links.
 			new \BetterLinks\Abilities\Links\List_Links(),
+			new \BetterLinks\Abilities\Links\Get_Link(),
+			new \BetterLinks\Abilities\Links\Check_Short_Url(),
 			new \BetterLinks\Abilities\Links\Create_Link(),
 			new \BetterLinks\Abilities\Links\Update_Link(),
 			new \BetterLinks\Abilities\Links\Delete_Link(),
@@ -280,6 +282,8 @@ class Abilities_Registrar {
 			new \BetterLinks\Abilities\Analytics\Get_Analytics(),
 			new \BetterLinks\Abilities\Analytics\Get_Link_Analytics(),
 			new \BetterLinks\Abilities\Analytics\Get_Analytics_Graph(),
+			new \BetterLinks\Abilities\Analytics\Get_Audience(),
+			new \BetterLinks\Abilities\Analytics\Delete_Analytics(),
 			// Settings.
 			new \BetterLinks\Abilities\Settings\Get_Settings(),
 			new \BetterLinks\Abilities\Settings\Update_Settings(),

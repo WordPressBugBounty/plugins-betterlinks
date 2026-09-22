@@ -42,12 +42,10 @@ class Cron
             
             // Log if links were synced (for debugging)
             if ( !empty($result['synced']) && $result['synced'] > 0 ) {
-                // PCP-DEBUG-DISABLED: error_log( 'BetterLinks CRON: Synced ' . $result['synced'] . ' missing links to JSON (Total: ' . $result['total'] . ')' );
             }
             
             return $result;
         } catch (\Throwable $th) {
-            // PCP-DEBUG-DISABLED: error_log( 'BetterLinks CRON Error (sync_missing_links_to_json): ' . $th->getMessage() );
             return array( 'total' => 0, 'synced' => 0, 'error' => $th->getMessage() );
         }
     }

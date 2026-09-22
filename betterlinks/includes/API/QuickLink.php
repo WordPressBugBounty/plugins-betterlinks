@@ -236,7 +236,7 @@ class QuickLink {
 			? trim( sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) )
 			: 'unknown';
 
-		return \BetterLinks\Services\CountryDetectionService::consume_bucket(
+		return \BetterLinks\Services\RateLimiter::consume_bucket(
 			'btl_cle_rl_' . md5( $peer ),
 			$limit,
 			MINUTE_IN_SECONDS

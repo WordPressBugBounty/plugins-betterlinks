@@ -81,13 +81,11 @@ class Helper {
 					'is_autolink_headings'        => isset( $options['is_autolink_headings'] ) ? $options['is_autolink_headings'] : false,
 					'uncloaked_categories'        => isset( $options['uncloaked_categories'] ) ? $options['uncloaked_categories'] : array(),
 					'is_disable_analytics_ip'     => isset( $options['is_disable_analytics_ip'] ) ? $options['is_disable_analytics_ip'] : false,
-					'excluded_ips'                => isset( $options['excluded_ips'] ) ? $options['excluded_ips'] : array(),
 				)
 				: array(
 					'wildcards_is_active' => false,
 					'disablebotclicks'    => false,
 					'force_https'         => false,
-					'excluded_ips'        => array(),
 				);
 	}
 
@@ -133,7 +131,7 @@ class Helper {
 	 * @return bool
 	 */
 	public static function is_promo_cards_enabled() {
-		if ( ! apply_filters( 'betterlinks/pro_enabled', false ) ) {
+		if ( ! self::is_pro_active() ) {
 			return true;
 		}
 
@@ -153,7 +151,7 @@ class Helper {
 	 * @return bool
 	 */
 	public static function is_bio_links_enabled() {
-		if ( ! apply_filters( 'betterlinks/pro_enabled', false ) ) {
+		if ( ! self::is_pro_active() ) {
 			return true;
 		}
 
@@ -397,7 +395,11 @@ class Helper {
 				if ( ! empty( $item->param_struct ) ) {
 					$item->param_struct = unserialize( $item->param_struct, array( 'allowed_classes' => false ) );
 				}
-				if ( class_exists( '\BetterLinksPro' ) ) {
+				// Compatibility: BetterLinks Pro before 3.0.4 needs custom tracking scripts
+				// and broken-link status filled in here, or saving a link from the
+				// dashboard would clear its stored scripts. Newer Pro uses the
+				// betterlinks/admin/link_item filter below.
+				if ( self::pro_needs_update() ) {
 					$custom_tracking_scripts = self::get_link_meta( $item->ID, 'btl_custom_tracking_scripts' );
 					if ( ! empty( $custom_tracking_scripts ) ) {
 						$custom_tracking_scripts       = unserialize( $custom_tracking_scripts, array( 'allowed_classes' => false ) );
@@ -406,12 +408,19 @@ class Helper {
 					}
 				}
 
-				if ( isset( $broken_links[ $item->ID ] ) && is_array( $broken_links[ $item->ID ] ) && isset( $broken_links[ $item->ID ]['status']['status_code'] ) && in_array( $broken_links[ $item->ID ]['status']['status_code'], $broken_link_status_codes ) && empty( $broken_links[ $item->ID ]['is_log_removed'] ) ) {
+				if ( ! empty( $broken_links ) && isset( $broken_links[ $item->ID ] ) && is_array( $broken_links[ $item->ID ] ) && isset( $broken_links[ $item->ID ]['status']['status_code'] ) && in_array( $broken_links[ $item->ID ]['status']['status_code'], $broken_link_status_codes ) && empty( $broken_links[ $item->ID ]['is_log_removed'] ) ) {
 					$item->link_status = 'broken';
 				} elseif ( 'broken' === $item->link_status && isset( $broken_links[ $item->ID ] ) && is_array( $broken_links[ $item->ID ] ) && isset( $broken_links[ $item->ID ]['old_link_status'] ) && 'broken' !== $broken_links[ $item->ID ]['old_link_status'] ) {
 					// if the link is fixed, but if db is not updated it to fixed link immediately then it will be marked as old status code.
 					$item->link_status = $broken_links[ $item->ID ]['old_link_status'];
 				}
+				/**
+				 * Filters a link item returned to the admin dashboard. BetterLinks Pro
+				 * adds custom tracking scripts and broken-link status.
+				 *
+				 * @param object $item Link item.
+				 */
+				$item = apply_filters( 'betterlinks/admin/link_item', $item );
 				$item->tags_data = array();
 				$item->tags_id = array(); // Initialize tags_id array for form submission
 
@@ -474,10 +483,16 @@ class Helper {
 	public static function insert_json_into_file( $file, $data ) {
 		$existingData              = file_get_contents( $file );
 		$existingData              = json_decode( $existingData, true );
+		// An unreadable or empty links.json decodes to null, and a site that has
+		// never saved a wildcard has no 'wildcards' key at all — reading either
+		// one raised PHP warnings on the first wildcard link saved.
+		if ( ! is_array( $existingData ) ) {
+			$existingData = array();
+		}
 		$case_sensitive_is_enabled = isset( $existingData['is_case_sensitive'] ) ? $existingData['is_case_sensitive'] : false;
 		$short_url                 = $case_sensitive_is_enabled ? $data['short_url'] : strtolower( $data['short_url'] );
 		if ( isset( $data['wildcards'] ) && $data['wildcards'] ) {
-			$tempArray = $existingData['wildcards'];
+			$tempArray = ( isset( $existingData['wildcards'] ) && is_array( $existingData['wildcards'] ) ) ? $existingData['wildcards'] : array();
 			// Remove any existing entry with the same ID to prevent duplicates
 			if ( isset( $data['ID'] ) ) {
 				foreach ( $tempArray as $key => $entry ) {
@@ -490,7 +505,7 @@ class Helper {
 			$tempArray[ $short_url ]   = self::json_link_formatter( $data );
 			$existingData['wildcards'] = $tempArray;
 		} else {
-			$tempArray = ( isset( $existingData['links'] ) ? $existingData['links'] : array() );
+			$tempArray = ( isset( $existingData['links'] ) && is_array( $existingData['links'] ) ) ? $existingData['links'] : array();
 			// Remove any existing entry with the same ID to prevent duplicates
 			if ( isset( $data['ID'] ) ) {
 				foreach ( $tempArray as $key => $entry ) {
@@ -628,10 +643,12 @@ class Helper {
 	 *
 	 * BetterLinks' redirect handler runs at `init` priority 0 — before WP
 	 * resolves the request — so a short_url that matches a real URL silently
-	 * hijacks it. This check surfaces the conflict at write time.
+	 * hijacks it. This check can surface the conflict at write time.
 	 *
-	 * Sites that need the historical "always accept" behaviour can opt out via
-	 * the `betterlinks/skip_wp_url_collision_check` filter.
+	 * Disabled by default for WordPress *content*, so links behave as they
+	 * always have (any path can be redirected); sites wanting the stricter
+	 * behaviour opt in via `betterlinks/enable_wp_url_collision_check`.
+	 * Reserved WordPress system paths are always refused.
 	 *
 	 * @param string $short_url       Proposed short_url (prefix included).
 	 * @param int    $allowed_post_id Post whose own permalink may be shadowed on
@@ -643,10 +660,45 @@ class Helper {
 		if ( '' === $short ) {
 			return null;
 		}
+		// WordPress system paths are never available, even with the escape hatch
+		// below: a short link there would take over login, admin or the REST API.
+		if ( self::is_reserved_wp_path( $short ) ) {
+			return new \WP_Error(
+				'betterlinks_wp_url_collision',
+				sprintf(
+					/* translators: %s: proposed short URL */
+					__( 'Cannot save short URL "%s" because it points at a WordPress system path (such as wp-login.php, wp-admin or the REST API). Pick a different slug.', 'betterlinks' ),
+					$short
+				),
+				array(
+					'status'              => 409,
+					'conflict_type'       => 'reserved',
+					'conflict_label'      => __( 'system path', 'betterlinks' ),
+					'conflicting_post_id' => 0,
+					'overridable'         => false,
+					'short_message'       => __( 'This path is reserved by WordPress', 'betterlinks' ),
+				)
+			);
+		}
+		/**
+		 * Filter — return true to turn the WP-content collision check on.
+		 *
+		 * Off by default. Redirecting a path WordPress already serves is a core
+		 * BetterLinks use case (a retired page to its replacement, a docs or
+		 * knowledge-base archive to its welcome article…), and BetterLinks has
+		 * always accepted those links, so blocking them broke existing sites.
+		 * The reserved-system-path check above still applies either way.
+		 *
+		 * @param bool   $enable Whether to run the check. Default false.
+		 * @param string $short  Proposed short URL.
+		 */
+		if ( ! apply_filters( 'betterlinks/enable_wp_url_collision_check', false, $short ) ) {
+			return null;
+		}
 		/**
 		 * Filter — return true to skip the WP URL collision check entirely.
-		 * Provided as an escape hatch for existing installs whose data already
-		 * contains intentional collisions.
+		 * Kept for sites that already use it; only matters once the check has
+		 * been enabled via `betterlinks/enable_wp_url_collision_check`.
 		 *
 		 * @param bool   $skip  Whether to skip the check. Default false.
 		 * @param string $short Proposed short URL.
@@ -687,6 +739,10 @@ class Helper {
 				'conflict_type'       => $conflict['type'],
 				'conflict_label'      => $conflict['label'],
 				'conflicting_post_id' => $conflict['post_id'],
+				// Unlike a system path, this can be a deliberate redirect (a docs
+				// archive sent to its welcome article, say), so the link form lets
+				// the user confirm it — see Traits\Links::can_override_wp_url_collision().
+				'overridable'         => true,
 				// Short enough to sit under the slug field in the link form; the
 				// full message above is for toasts and API consumers.
 				'short_message'       => sprintf(
@@ -720,6 +776,46 @@ class Helper {
 			}
 		}
 		return $candidates;
+	}
+
+	/**
+	 * Whether a path belongs to WordPress itself: admin, login, REST API, cron,
+	 * XML-RPC or the core file directories. A short link at such a path would take
+	 * over a core entry point for every visitor.
+	 *
+	 * @param string $path Path relative to the site root.
+	 * @return bool
+	 */
+	public static function is_reserved_wp_path( $path ) {
+		$path = strtolower( trim( (string) $path, "/ \t\n\r\0\x0B" ) );
+		if ( '' === $path ) {
+			return false;
+		}
+		$first    = (string) strtok( $path, '/?#' );
+		$reserved = array(
+			'wp-admin',
+			'wp-content',
+			'wp-includes',
+			'wp-login.php',
+			'wp-signup.php',
+			'wp-activate.php',
+			'wp-cron.php',
+			'wp-comments-post.php',
+			'wp-trackback.php',
+			'wp-mail.php',
+			'wp-links-opml.php',
+			'wp-load.php',
+			'xmlrpc.php',
+			function_exists( 'rest_get_url_prefix' ) ? rest_get_url_prefix() : 'wp-json',
+		);
+		/**
+		 * Filters the first path segments that short links may never use.
+		 *
+		 * @param string[] $reserved Lower-case first path segments.
+		 */
+		$reserved = array_map( 'strtolower', (array) apply_filters( 'betterlinks/reserved_wp_paths', $reserved ) );
+
+		return in_array( $first, $reserved, true );
 	}
 
 	/**
@@ -927,10 +1023,58 @@ class Helper {
 		return null;
 	}
 
+	/**
+	 * Whether BetterLinks Pro is active.
+	 *
+	 * The single detection point for the free plugin. Pro sets the
+	 * `betterlinks/pro_enabled` filter at bootstrap; the constant is only the
+	 * default so older Pro builds, which set the filter inside wp-admin only, are
+	 * still detected on the front end, in REST and in cron.
+	 *
+	 * @return bool
+	 */
+	public static function is_pro_active() {
+		return (bool) apply_filters( 'betterlinks/pro_enabled', defined( 'BETTERLINKS_PRO_VERSION' ) );
+	}
+
+	/**
+	 * Whether an active BetterLinks Pro predates the free plugin's extension API.
+	 *
+	 * Such Pro builds expect Pro features to still ship inside the free plugin,
+	 * so those features are unavailable until Pro is updated.
+	 *
+	 * @return bool
+	 */
+	public static function pro_needs_update() {
+		return self::is_pro_active() && ! defined( 'BETTERLINKS_PRO_EXTENSION_API_VERSION' );
+	}
+
+	/**
+	 * Whether BetterLinks Pro is active and at least the given version.
+	 *
+	 * @param string $version Minimum Pro version.
+	 * @return bool
+	 */
+	public static function pro_version_at_least( $version ) {
+		return self::is_pro_active() && defined( 'BETTERLINKS_PRO_VERSION' ) && version_compare( BETTERLINKS_PRO_VERSION, $version, '>=' );
+	}
+
 	public static function sanitize_text_or_array_field( $array_or_string, $key = '' ) {
 
 		$boolean   = array( 'true', 'false', '1', '0' );
-		$skip      = array( 'affiliate_disclosure_text', 'allow_contact_text', 'form_title', 'customFields', 'autolink_custom_icon' );
+		/**
+		 * Filters setting keys whose values the generic sanitizer leaves untouched,
+		 * because their owner sanitizes them (BetterLinks Pro: autolink_custom_icon).
+		 *
+		 * @param string[] $skip Keys.
+		 */
+		$skip      = (array) apply_filters( 'betterlinks/sanitize/skip_keys', array( 'customFields' ) );
+		if ( self::pro_needs_update() ) {
+			$skip[] = 'autolink_custom_icon'; // Compatibility: BetterLinks Pro before 3.0.4.
+		}
+		// Rich-text settings rendered on public pages: allow post-safe HTML only,
+		// unless the user may already publish unfiltered HTML.
+		$rich_text = array( 'affiliate_disclosure_text', 'allow_contact_text', 'form_title' );
 		$url_keys  = array( 'link', 'target_url' );
 		if ( is_string( $array_or_string ) ) {
 			if ( in_array( $key, $url_keys, true ) ) {
@@ -939,7 +1083,13 @@ class Helper {
 			$array_or_string = in_array( $array_or_string, $boolean ) || is_bool( $array_or_string ) ? rest_sanitize_boolean( $array_or_string ) : sanitize_text_field( $array_or_string );
 		} elseif ( is_array( $array_or_string ) ) {
 			foreach ( $array_or_string as $field_key => &$value ) {
-				if ( in_array( $field_key, $skip ) ) {
+				if ( in_array( $field_key, $skip, true ) ) {
+					continue;
+				}
+				if ( in_array( $field_key, $rich_text, true ) ) {
+					if ( is_string( $value ) && ! current_user_can( 'unfiltered_html' ) ) {
+						$value = wp_kses_post( $value );
+					}
 					continue;
 				}
 				if ( is_array( $value ) ) {
@@ -1059,6 +1209,36 @@ class Helper {
 	}
 	public static function generate_short_url( $short_url ) {
 		return site_url( '/' ) . trim( $short_url, '/' );
+	}
+
+	/**
+	 * Move options stored under the old three-letter `btl_` prefix to `betterlinks_`.
+	 *
+	 * Runs once per plugin update. Existing values are kept; an option that
+	 * already exists under the new name is not overwritten.
+	 *
+	 * @return void
+	 */
+	public static function migrate_legacy_option_names() {
+		$map = array(
+			'btl_failed_migration_prettylinks_links'                   => 'betterlinks_failed_migration_prettylinks_links',
+			'btl_failed_migration_prettylinks_clicks'                  => 'betterlinks_failed_migration_prettylinks_clicks',
+			'btl_migration_prettylinks_current_successful_links_count' => 'betterlinks_migration_prettylinks_current_successful_links_count',
+			'btl_migration_prettylinks_current_successful_clicks_count' => 'betterlinks_migration_prettylinks_current_successful_clicks_count',
+			'btl_prettylink_migration_should_not_start_in_background'  => 'betterlinks_prettylink_migration_should_not_start_in_background',
+			'btl_tags_analytics'                                       => 'betterlinks_tags_analytics',
+			'btl_categories_analytics'                                 => 'betterlinks_categories_analytics',
+		);
+		foreach ( $map as $old => $new ) {
+			$value = self::btl_get_option( $old );
+			if ( false === $value ) {
+				continue;
+			}
+			if ( false === self::btl_get_option( $new ) ) {
+				self::btl_update_option( $new, $value );
+			}
+			delete_option( $old );
+		}
 	}
 
 	public static function btl_get_option( $option_name ) {

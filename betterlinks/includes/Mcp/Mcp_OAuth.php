@@ -314,9 +314,12 @@ final class Mcp_OAuth {
 	 * @return string The authorization code.
 	 */
 	public static function issue_code( array $req, int $user_id ): string {
-		$code                    = bin2hex( random_bytes( 32 ) );
-		$state                   = self::state();
-		$state['codes'][ $code ] = [
+		$code = bin2hex( random_bytes( 32 ) );
+		// Keyed by hash, as the access and refresh tokens already are: a
+		// database read alone should not yield a usable credential, even one
+		// with a 60-second life.
+		$state                            = self::state();
+		$state['codes'][ self::hash( $code ) ] = [
 			'client_id'    => $req['client_id'],
 			'redirect_uri' => $req['redirect_uri'],
 			'challenge'    => $req['code_challenge'],
@@ -326,6 +329,38 @@ final class Mcp_OAuth {
 		];
 		self::save( $state );
 		return $code;
+	}
+
+	/**
+	 * Option name claiming one authorization code as consumed.
+	 *
+	 * @param string $code_hash Hashed code.
+	 * @return string
+	 */
+	private static function claim_key( string $code_hash ): string {
+		return 'betterlinks_mcp_code_' . substr( $code_hash, 0, 32 );
+	}
+
+	/**
+	 * Drop claim markers older than twice the code lifetime; the codes they
+	 * guard cannot be replayed by then.
+	 *
+	 * @return void
+	 */
+	private static function prune_claims(): void {
+		global $wpdb;
+		$cutoff = time() - ( self::CODE_TTL * 2 );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- tiny housekeeping sweep over our own option rows.
+		$stale = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d LIMIT 50",
+				$wpdb->esc_like( 'betterlinks_mcp_code_' ) . '%',
+				$cutoff
+			)
+		);
+		foreach ( (array) $stale as $name ) {
+			delete_option( $name );
+		}
 	}
 
 	// -- Token endpoint --------------------------------------------------
@@ -361,15 +396,26 @@ final class Mcp_OAuth {
 		$redirect_uri = isset( $body['redirect_uri'] ) ? (string) $body['redirect_uri'] : '';
 		$verifier     = isset( $body['code_verifier'] ) ? (string) $body['code_verifier'] : '';
 
+		$chash = self::hash( $code );
 		$state = self::state();
-		if ( '' === $code || ! isset( $state['codes'][ $code ] ) ) {
+		if ( '' === $code || ! isset( $state['codes'][ $chash ] ) ) {
 			return self::oauth_error( 'invalid_grant', 'Unknown or expired authorization code.' );
 		}
-		$entry = $state['codes'][ $code ];
+
+		// Claim the code before reading it. The read-modify-write below is not
+		// atomic on its own, so two requests arriving together could both find
+		// the code present and both mint tokens; add_option() is backed by a
+		// unique index, so exactly one caller wins the claim.
+		if ( ! add_option( self::claim_key( $chash ), time(), '', false ) ) {
+			return self::oauth_error( 'invalid_grant', 'Authorization code has already been used.' );
+		}
+
+		$entry = $state['codes'][ $chash ];
 
 		// Single-use: remove immediately whether or not verification passes.
-		unset( $state['codes'][ $code ] );
+		unset( $state['codes'][ $chash ] );
 		self::save( $state );
+		self::prune_claims();
 
 		if ( $entry['expires'] < time() ) {
 			return self::oauth_error( 'invalid_grant', 'Authorization code expired.' );
@@ -405,7 +451,9 @@ final class Mcp_OAuth {
 			return self::oauth_error( 'invalid_grant', 'Unknown refresh token.' );
 		}
 		$entry = $state['refresh'][ $rhash ];
-		if ( '' !== $client_id && ! hash_equals( (string) $entry['client_id'], $client_id ) ) {
+		// RFC 6749 §6 wants the client identified on every refresh, including
+		// public clients. Omitting client_id used to skip the check entirely.
+		if ( '' === $client_id || ! hash_equals( (string) $entry['client_id'], $client_id ) ) {
 			return self::oauth_error( 'invalid_grant', 'client_id mismatch.' );
 		}
 

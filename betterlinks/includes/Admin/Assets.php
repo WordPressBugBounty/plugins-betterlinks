@@ -79,7 +79,9 @@ class Assets
                 'exists_clicks_json' => BETTERLINKS_EXISTS_CLICKS_JSON,
                 // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page slug used to bootstrap admin assets, no state mutation.
                 'page' => isset($_GET['page']) ? sanitize_text_field(wp_unslash( $_GET['page'] )) : '',
-                'is_pro_enabled' => apply_filters('betterlinks/pro_enabled', false),
+                'is_pro_enabled' => \BetterLinks\Helper::is_pro_active(),
+                'pro_needs_update' => \BetterLinks\Helper::pro_needs_update(),
+                'min_pro_version' => BETTERLINKS_MIN_PRO_VERSION,
                 'prefix' => $prefix,
                 'betterlinkspro_version' => defined('BETTERLINKS_PRO_VERSION') ? BETTERLINKS_PRO_VERSION : null,
                 'is_extra_data_tracking_compatible' => apply_filters('betterlinks/is_extra_data_tracking_compatible', false),
@@ -96,6 +98,11 @@ class Assets
                 'is_fbs_enabled' => defined('FLUENT_BOARDS'),
                 'betterlinks_quick_setup_step' => get_option( 'betterlinks_quick_setup_step', false ),
                 'migratable_plugins' => Helper::get_migratable_plugins(),
+                // Whether the admin has opted in to usage data sharing (drives the Settings switch).
+                'usage_tracking_allowed' => ( function () {
+                    $allow_tracking = get_option( 'wpins_allow_tracking' );
+                    return is_array( $allow_tracking ) && isset( $allow_tracking[ BETTERLINKS_PLUGIN_SLUG ] );
+                } )(),
                 // Add user permission information for free version
                 'user_can_manage_options' => current_user_can('manage_options'),
                 // Term IDs that cannot be edited/deleted in the UI (Uncategorized + extensions).
@@ -197,10 +204,11 @@ class Assets
             'site_url' => apply_filters('betterlinks/site_url', site_url()),
             'actual_site_url' => site_url(),
             'route_path' => wp_parse_url(admin_url(), PHP_URL_PATH),
-            'is_pro_enabled' => apply_filters('betterlinks/pro_enabled', false),
+            'is_pro_enabled' => \BetterLinks\Helper::is_pro_active(),
             // Needed by pro_version_check() in the editor (e.g. the AI Link Assistant
             // 2.8.0+ gate). Without it the check falls back to its "no Pro" early-return.
             'betterlinkspro_version' => defined('BETTERLINKS_PRO_VERSION') ? BETTERLINKS_PRO_VERSION : null,
+            'min_pro_version' => BETTERLINKS_MIN_PRO_VERSION,
             'prefix' => $prefix,
             'betterlinks_settings' => $betterlinks_settings,
             // Add user permission information for free version

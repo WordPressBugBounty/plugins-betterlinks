@@ -388,7 +388,43 @@ class CLEToken {
 			add_option( self::LEGACY_OPTION, $stored, '', false );
 		}
 
-		return (bool) apply_filters( 'betterlinks/cle/allow_legacy_api_key', '1' === (string) $stored );
+		$allowed = '1' === (string) $stored;
+
+		// Retire the shared legacy key after a grace period, so copies of it that
+		// were handed out in the past eventually stop working.
+		if ( $allowed ) {
+			$expires_at = self::legacy_key_expires_at();
+			if ( $expires_at && time() > $expires_at ) {
+				$allowed = false;
+			}
+		}
+
+		return (bool) apply_filters( 'betterlinks/cle/allow_legacy_api_key', $allowed );
+	}
+
+	/**
+	 * When the legacy md5( AUTH_KEY ) key stops being accepted.
+	 *
+	 * The grace period starts the first time this is checked on a site that still
+	 * accepts the key, and defaults to 90 days
+	 * (`betterlinks/cle/legacy_api_key_grace_period`).
+	 *
+	 * @return int Unix timestamp, or 0 when the legacy key is not in use.
+	 */
+	public static function legacy_key_expires_at() {
+		if ( '1' !== (string) get_option( self::LEGACY_OPTION, '0' ) ) {
+			return 0;
+		}
+
+		$since = (int) get_option( self::LEGACY_OPTION . '_since', 0 );
+		if ( ! $since ) {
+			$since = time();
+			add_option( self::LEGACY_OPTION . '_since', $since, '', false );
+		}
+
+		$grace = (int) apply_filters( 'betterlinks/cle/legacy_api_key_grace_period', 90 * DAY_IN_SECONDS );
+
+		return $since + max( 0, $grace );
 	}
 
 	/**

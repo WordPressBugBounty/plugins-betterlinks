@@ -37,7 +37,14 @@ trait Clicks {
 		if ( $id ) {
 			$transient_key .= '_' . $id;
 		}
-		return $key . $transient_key;
+		/**
+		 * Filters an analytics cache key. Extensions that change query results
+		 * (BetterLinks Pro IP exclusion) vary the key with their settings.
+		 *
+		 * @param string $cache_key Transient key.
+		 * @param array  $context   { prefix, from, to, id }.
+		 */
+		return (string) apply_filters( 'betterlinks/analytics/transient_key', $key . $transient_key, array( 'prefix' => $key, 'from' => $from, 'to' => $to, 'id' => $id ) );
 	}
 
 	/**
@@ -56,17 +63,16 @@ trait Clicks {
 
 		global $wpdb;
 		
-		// Get excluded IPs and build safe query
-		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
-		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
+		// Build a safe, prepared query
 		
 		$query_params = array( $from . ' 00:00:00', $to . ' 23:59:59' );
 		$where_conditions = array( 'created_at BETWEEN %s AND %s' );
 		
-		if ( ! empty( $excluded_ips ) ) {
-			$placeholders = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
-			$where_conditions[] = "ip NOT IN ({$placeholders})";
-			$query_params = array_merge( $query_params, $excluded_ips );
+		// Extra analytics conditions from extensions (BetterLinks Pro adds IP exclusion).
+		$extra_where = \BetterLinks\Helper::analytics_extra_where( 'ip', array( 'report' => 'get_analytics_graph_data', 'from' => $from, 'to' => $to ) );
+		if ( '' !== $extra_where['sql'] ) {
+			$where_conditions[] = $extra_where['sql'];
+			$query_params = array_merge( $query_params, $extra_where['params'] );
 		}
 		
 		$where_clause = 'WHERE ' . implode( ' AND ', $where_conditions );
@@ -86,54 +92,6 @@ trait Clicks {
 			'total_count'  => $total_counts,
 			'unique_count' => $unique_counts,
 		);
-		set_transient( $transient_key, $results, self::$transient_timeout );
-		return $results;
-	}
-
-	/**
-	 * Clicks bucketed by weekday and hour, for the Timing heatmap.
-	 *
-	 * One row per (weekday, hour) bucket that had at least one click, with both
-	 * the total click count and the distinct-visitor count. `WEEKDAY()` returns
-	 * 0=Monday..6=Sunday, which matches the Mon-first grid, and `HOUR()` returns
-	 * 0..23. Empty buckets are simply absent — the client fills the full grid.
-	 *
-	 * Uses `created_at` (site-local, like the graph aggregate) so an "18:00"
-	 * bucket reads as 6pm locally rather than in UTC.
-	 *
-	 * @param string $from Start date (Y-m-d).
-	 * @param string $to   End date (Y-m-d).
-	 * @return array Rows of { dow, hr, clicks, unique_clicks }.
-	 */
-	public function get_analytics_timing_data( $from, $to ) {
-		$transient_key = self::get_transient_key( 'btl_analytics_timing_', $from, $to );
-		if ( $results = get_transient( $transient_key ) ) {
-			return $results;
-		}
-
-		global $wpdb;
-
-		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
-		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
-
-		$query_params     = array( $from . ' 00:00:00', $to . ' 23:59:59' );
-		$where_conditions = array( 'created_at BETWEEN %s AND %s' );
-
-		if ( ! empty( $excluded_ips ) ) {
-			$placeholders       = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
-			$where_conditions[] = "ip NOT IN ({$placeholders})";
-			$query_params       = array_merge( $query_params, $excluded_ips );
-		}
-
-		$where_clause = 'WHERE ' . implode( ' AND ', $where_conditions );
-
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$query = "SELECT WEEKDAY(created_at) as dow, HOUR(created_at) as hr, COUNT(id) as clicks, COUNT(DISTINCT ip) as unique_clicks
-			FROM {$wpdb->prefix}betterlinks_clicks {$where_clause} GROUP BY dow, hr";
-		$rows  = $wpdb->get_results( $wpdb->prepare( $query, $query_params ), ARRAY_A );
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-
-		$results = $rows ? $rows : array();
 		set_transient( $transient_key, $results, self::$transient_timeout );
 		return $results;
 	}
@@ -168,16 +126,15 @@ trait Clicks {
 
 		global $wpdb;
 
-		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
-		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
 
 		$query_params     = array( $from . ' 00:00:00', $to . ' 23:59:59' );
 		$where_conditions = array( 'created_at BETWEEN %s AND %s' );
 
-		if ( ! empty( $excluded_ips ) ) {
-			$placeholders       = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
-			$where_conditions[] = "ip NOT IN ({$placeholders})";
-			$query_params       = array_merge( $query_params, $excluded_ips );
+		// Extra analytics conditions from extensions (BetterLinks Pro adds IP exclusion).
+		$extra_where = \BetterLinks\Helper::analytics_extra_where( 'ip', array( 'report' => 'get_analytics_audience_data', 'from' => $from, 'to' => $to ) );
+		if ( '' !== $extra_where['sql'] ) {
+			$where_conditions[] = $extra_where['sql'];
+			$query_params = array_merge( $query_params, $extra_where['params'] );
 		}
 
 		$where_clause  = 'WHERE ' . implode( ' AND ', $where_conditions );
@@ -275,17 +232,16 @@ trait Clicks {
 
 		global $wpdb;
 		
-		// Get excluded IPs and build safe query parameters
-		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
-		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
+		// Build a safe, prepared query parameters
 		
 		$base_params = array( $tag_id, "{$from} 00:00:00", "{$to} 23:59:59" );
 		$where_conditions = array( "t.term_type='tags'", "t.id=%d", "c.created_at BETWEEN %s AND %s" );
 		
-		if ( ! empty( $excluded_ips ) ) {
-			$placeholders = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
-			$where_conditions[] = "c.ip NOT IN ({$placeholders})";
-			$base_params = array_merge( $base_params, $excluded_ips );
+		// Extra analytics conditions from extensions (BetterLinks Pro adds IP exclusion).
+		$extra_where = \BetterLinks\Helper::analytics_extra_where( 'c.ip', array( 'report' => 'get_analytics_graph_data_by_tag', 'from' => $from, 'to' => $to ) );
+		if ( '' !== $extra_where['sql'] ) {
+			$where_conditions[] = $extra_where['sql'];
+			$base_params = array_merge( $base_params, $extra_where['params'] );
 		}
 		
 		$where_clause = implode( ' AND ', $where_conditions );
@@ -383,72 +339,50 @@ trait Clicks {
 		global $wpdb;
 
 		$clicks_table = $wpdb->prefix . 'betterlinks_clicks';
-		$countries_table = $wpdb->prefix . 'betterlinks_countries';
 		
-		// Get excluded IPs and build safe query parameters
-		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
-		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
+		// Build a safe, prepared query parameters
 		
 		$base_params = array( $id, $from . ' 00:00:00', $to . ' 23:59:59' );
 		$where_conditions = array( 'c.link_id=%d', 'c.created_at BETWEEN %s AND %s' );
 		
-		if ( ! empty( $excluded_ips ) ) {
-			$placeholders = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
-			$where_conditions[] = "c.ip NOT IN ({$placeholders})";
-			$base_params = array_merge( $base_params, $excluded_ips );
+		// Extra analytics conditions from extensions (BetterLinks Pro adds IP exclusion).
+		$extra_where = \BetterLinks\Helper::analytics_extra_where( 'c.ip', array( 'report' => 'get_individual_analytics_clicks', 'from' => $from, 'to' => $to ) );
+		if ( '' !== $extra_where['sql'] ) {
+			$where_conditions[] = $extra_where['sql'];
+			$base_params = array_merge( $base_params, $extra_where['params'] );
 		}
 		
 		$where_clause = implode( ' AND ', $where_conditions );
 		
-		// Check if extra data tracking (including country data) is enabled
 		$is_extra_data_tracking_compatible = apply_filters( 'betterlinks/is_extra_data_tracking_compatible', false );
-		
-		// Check if user_agents table exists
-		$user_agents_table = $wpdb->prefix . 'betterlinks_user_agents';
-		$user_agents_table_exists = $wpdb->get_var( 
-			$wpdb->prepare( 
-				"SHOW TABLES LIKE %s", 
-				$user_agents_table 
-			)
+		$select = array(
+			'columns' => $is_extra_data_tracking_compatible
+				? array( 'c.ID', 'c.link_id', 'c.ip', 'c.browser', 'c.referer', 'c.os', 'c.device', 'c.query_params', 'c.created_at' )
+				: array( 'c.ID', 'c.link_id', 'c.ip', 'c.browser', 'c.referer', 'c.created_at' ),
+			'joins'   => array(),
 		);
-		
-		if ( $is_extra_data_tracking_compatible ) {
-			// Use normalized schema with JOIN to countries table (Pro version)
-			if ( $user_agents_table_exists ) {
-				$query_sql = "SELECT c.ID, c.link_id, c.ip, c.browser, c.referer, c.os, c.device, c.query_params, c.created_at,
-					 co.country_code, co.country_name, ua.user_agent
-					 FROM {$clicks_table} c
-					 LEFT JOIN {$countries_table} co ON c.country_id = co.id
-					 LEFT JOIN {$user_agents_table} ua ON c.user_agent_id = ua.id
-					 WHERE {$where_clause}
-					 ORDER BY c.created_at DESC";
-				$query = $wpdb->prepare( $query_sql, $base_params );
-			} else {
-				$query_sql = "SELECT c.ID, c.link_id, c.ip, c.browser, c.referer, c.os, c.device, c.query_params, c.created_at,
-					 co.country_code, co.country_name, NULL as user_agent
-					 FROM {$clicks_table} c
-					 LEFT JOIN {$countries_table} co ON c.country_id = co.id
-					 WHERE {$where_clause}
-					 ORDER BY c.created_at DESC";
-				$query = $wpdb->prepare( $query_sql, $base_params );
-			}
-		} else {
-			// Basic query without country data (Free version)
-			if ( $user_agents_table_exists ) {
-				$query_sql = "SELECT c.ID, c.link_id, c.ip, c.browser, c.referer, c.created_at, ua.user_agent
-					 FROM {$clicks_table} c
-					 LEFT JOIN {$user_agents_table} ua ON c.user_agent_id = ua.id
-					 WHERE {$where_clause}
-					 ORDER BY c.created_at DESC";
-				$query = $wpdb->prepare( $query_sql, $base_params );
-			} else {
-				$query_sql = "SELECT c.ID, c.link_id, c.ip, c.browser, c.referer, c.created_at, NULL as user_agent
-					 FROM {$clicks_table} c
-					 WHERE {$where_clause}
-					 ORDER BY c.created_at DESC";
-				$query = $wpdb->prepare( $query_sql, $base_params );
-			}
+		/**
+		 * Filters the columns and joins of the per-link click log query.
+		 * BetterLinks Pro adds country and user-agent data. Only simple
+		 * `alias.column` columns and `LEFT JOIN {prefix}betterlinks_* alias ON a.col = b.col`
+		 * joins are accepted.
+		 *
+		 * @param array $select  { columns: string[], joins: string[] }.
+		 * @param array $context { link_id, from, to }.
+		 */
+		$select  = apply_filters( 'betterlinks/analytics/individual_clicks_select', $select, array( 'link_id' => $id, 'from' => $from, 'to' => $to ) );
+		$columns = array_values( array_filter( isset( $select['columns'] ) ? (array) $select['columns'] : array(), function ( $column ) {
+			return is_string( $column ) && preg_match( '/^(?:[a-z]{1,3}\.[A-Za-z_]+|NULL)(?: AS [A-Za-z_]+)?$/', $column );
+		} ) );
+		$joins   = array_values( array_filter( isset( $select['joins'] ) ? (array) $select['joins'] : array(), function ( $join ) use ( $wpdb ) {
+			return is_string( $join ) && preg_match( '/^LEFT JOIN ' . preg_quote( $wpdb->prefix, '/' ) . 'betterlinks_[a-z_]+ [a-z]{1,3} ON [a-z]{1,3}\.[a-z_]+ = [a-z]{1,3}\.[a-z_]+$/i', $join );
+		} ) );
+		if ( empty( $columns ) ) {
+			$columns = array( 'c.ID', 'c.link_id', 'c.ip', 'c.browser', 'c.referer', 'c.created_at' );
 		}
+
+		$query_sql = 'SELECT ' . implode( ', ', $columns ) . " FROM {$clicks_table} c " . implode( ' ', $joins ) . " WHERE {$where_clause} ORDER BY c.created_at DESC";
+		$query     = $wpdb->prepare( $query_sql, $base_params );
 		$results = $wpdb->get_results( $query, ARRAY_A );
 
 		// Ensure we always return an array, even if empty
@@ -484,17 +418,16 @@ trait Clicks {
 
 		global $wpdb;
 
-		// Get excluded IPs and build safe query parameters
-		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
-		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
+		// Build a safe, prepared query parameters
 
 		$query_params     = array( $id, $from . ' 00:00:00', $to . ' 23:59:59' );
 		$where_conditions = array( 'link_id=%d', 'created_at BETWEEN %s AND %s' );
 
-		if ( ! empty( $excluded_ips ) ) {
-			$placeholders       = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
-			$where_conditions[] = "ip NOT IN ({$placeholders})";
-			$query_params       = array_merge( $query_params, $excluded_ips );
+		// Extra analytics conditions from extensions (BetterLinks Pro adds IP exclusion).
+		$extra_where = \BetterLinks\Helper::analytics_extra_where( 'ip', array( 'report' => 'get_individual_graph_data', 'from' => $from, 'to' => $to ) );
+		if ( '' !== $extra_where['sql'] ) {
+			$where_conditions[] = $extra_where['sql'];
+			$query_params = array_merge( $query_params, $extra_where['params'] );
 		}
 
 		$where_clause = 'WHERE ' . implode( ' AND ', $where_conditions );
@@ -555,17 +488,16 @@ trait Clicks {
 		}
 		global $wpdb;
 		
-		// Get excluded IPs and build safe query
-		$options      = json_decode( get_option( BETTERLINKS_LINKS_OPTION_NAME ), true );
-		$excluded_ips = isset( $options['excluded_ips'] ) && is_array( $options['excluded_ips'] ) ? $options['excluded_ips'] : array();
+		// Build a safe, prepared query
 		
 		$query_params = array( $from . ' 00:00:00', $to . ' 23:59:59' );
 		$where_conditions = array( 'created_at BETWEEN %s AND %s' );
 		
-		if ( ! empty( $excluded_ips ) ) {
-			$placeholders = implode( ', ', array_fill( 0, count( $excluded_ips ), '%s' ) );
-			$where_conditions[] = "ip NOT IN ({$placeholders})";
-			$query_params = array_merge( $query_params, $excluded_ips );
+		// Extra analytics conditions from extensions (BetterLinks Pro adds IP exclusion).
+		$extra_where = \BetterLinks\Helper::analytics_extra_where( 'ip', array( 'report' => 'get_unique_clicks_count', 'from' => $from, 'to' => $to ) );
+		if ( '' !== $extra_where['sql'] ) {
+			$where_conditions[] = $extra_where['sql'];
+			$query_params = array_merge( $query_params, $extra_where['params'] );
 		}
 		
 		$where_clause = 'WHERE ' . implode( ' AND ', $where_conditions );

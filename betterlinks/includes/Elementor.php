@@ -34,7 +34,7 @@ class Elementor {
 	 * @return void
 	 */
 	public function elementor_editor_assets() {
-		wp_enqueue_style( 'bl-el-editor', BETTERLINKS_ASSETS_URI . 'css/elementor.css', array(), BETTERLINKS_VERSION );
+		wp_enqueue_style( 'betterlinks-elementor-editor', BETTERLINKS_ASSETS_URI . 'css/elementor.css', array(), BETTERLINKS_VERSION );
 	}
 
 	/**

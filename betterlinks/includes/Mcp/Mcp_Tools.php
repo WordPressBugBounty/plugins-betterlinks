@@ -101,7 +101,7 @@ final class Mcp_Tools {
 				continue;
 			}
 			$schema = $ability->get_input_schema();
-			$out[]  = [
+			$entry  = [
 				'name'        => $name,
 				'description' => $ability->get_description(),
 				'inputSchema' => ! empty( $schema ) ? self::normalize_schema( $schema ) : [
@@ -109,6 +109,52 @@ final class Mcp_Tools {
 					'properties' => (object) [],
 				],
 			];
+
+			$annotations = self::annotations( $ability );
+			if ( ! empty( $annotations ) ) {
+				$entry['annotations'] = $annotations;
+			}
+
+			$out[] = $entry;
+		}
+		return $out;
+	}
+
+	/**
+	 * A tool's MCP annotations, in the key names the spec defines.
+	 *
+	 * These hints are how a client decides whether to ask the user before
+	 * running a tool: a client that sees `destructiveHint: true` prompts before
+	 * overwriting or deleting, and one that sees no annotations at all applies
+	 * the spec defaults. BetterLinks' abilities declare the hints in the
+	 * Abilities API's own vocabulary (`readonly`, `destructive`…), which no MCP
+	 * client reads, so they are translated here — without this the whole tool
+	 * list arrived unannotated and every write ran unprompted.
+	 *
+	 * Only declared hints are sent. An undeclared `destructiveHint` defaults to
+	 * true for a non-read-only tool under the spec, which is the safe side.
+	 *
+	 * @param \WP_Ability $ability Registered ability.
+	 * @return array<string, bool>
+	 */
+	private static function annotations( $ability ): array {
+		$meta = method_exists( $ability, 'get_meta' ) ? $ability->get_meta() : [];
+		if ( ! is_array( $meta ) || empty( $meta['annotations'] ) || ! is_array( $meta['annotations'] ) ) {
+			return [];
+		}
+		$declared = $meta['annotations'];
+		$hints    = [
+			'readonly'      => 'readOnlyHint',
+			'destructive'   => 'destructiveHint',
+			'idempotent'    => 'idempotentHint',
+			'openWorldHint' => 'openWorldHint',
+		];
+
+		$out = [];
+		foreach ( $hints as $key => $hint ) {
+			if ( array_key_exists( $key, $declared ) ) {
+				$out[ $hint ] = (bool) $declared[ $key ];
+			}
 		}
 		return $out;
 	}
@@ -185,19 +231,51 @@ final class Mcp_Tools {
 	}
 
 	/**
-	 * Whether a tool mutates state. Read tools are `get-*` / `list-*`;
-	 * everything else is treated as write.
+	 * Whether a tool mutates state.
+	 *
+	 * The ability's own `readonly` annotation decides it, so a read tool whose
+	 * name does not happen to start with `get-` or `list-` is not locked out of
+	 * a read-only connection. The name prefixes remain the fallback for an
+	 * ability that declares no annotations, and an unrecognised tool counts as a
+	 * write — the safe way to be wrong.
 	 *
 	 * @param string $name Tool name (sans prefix).
 	 * @return bool
 	 */
 	public static function is_write_tool( string $name ): bool {
+		$ability = self::find_ability( $name );
+		if ( $ability && method_exists( $ability, 'get_meta' ) ) {
+			$meta = $ability->get_meta();
+			if ( is_array( $meta ) && isset( $meta['annotations']['readonly'] ) ) {
+				return ! $meta['annotations']['readonly'];
+			}
+		}
+
 		foreach ( self::READ_PREFIXES as $prefix ) {
 			if ( 0 === strpos( $name, $prefix ) ) {
 				return false;
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * Look up a registered ability by tool name, or null.
+	 *
+	 * @param string $name Tool name (sans prefix).
+	 * @return \WP_Ability|null
+	 */
+	private static function find_ability( string $name ) {
+		if ( ! function_exists( 'wp_get_ability' ) ) {
+			return null;
+		}
+		foreach ( self::ABILITY_PREFIXES as $prefix ) {
+			$candidate = wp_get_ability( $prefix . $name );
+			if ( $candidate ) {
+				return $candidate;
+			}
+		}
+		return null;
 	}
 
 	/**

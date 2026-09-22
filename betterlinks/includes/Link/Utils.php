@@ -55,6 +55,184 @@ class Utils {
 			}
 		}
 	}
+	/**
+	 * Cookie that tells the next request "BetterLinks sent you here to break a
+	 * redirect loop — let WordPress serve this page".
+	 */
+	const LOOP_GUARD_COOKIE = 'betterlinks_loop_guard';
+
+	/**
+	 * Most short-link hops followed when looking for a loop.
+	 */
+	const LOOP_GUARD_MAX_HOPS = 5;
+
+	/**
+	 * Whether this request is the landing hop of a redirect loop that was broken
+	 * on the previous request.
+	 *
+	 * The guard is cleared once WordPress actually renders the page, not here:
+	 * WordPress may first canonical-redirect the landing URL (adding the
+	 * trailing slash, say), and that follow-up request still has to be let
+	 * through.
+	 *
+	 * Two links can point at each other's paths — `/category/x` → `/docs/y/` and
+	 * `/docs/y` → `/category/x` — and each redirect then sends the visitor
+	 * straight into the other one until the browser gives up with "too many
+	 * redirects", so *both* URLs break. With the guard, whichever link the
+	 * visitor starts from still redirects, and the page it lands on is served
+	 * by WordPress instead of bouncing back.
+	 *
+	 * @param string $request_path Requested path, relative to the site root.
+	 * @return bool
+	 */
+	public function consume_loop_guard( $request_path ) {
+		if ( empty( $_COOKIE[ self::LOOP_GUARD_COOKIE ] ) ) {
+			return false;
+		}
+		$guard = sanitize_text_field( wp_unslash( $_COOKIE[ self::LOOP_GUARD_COOKIE ] ) );
+		if ( ! hash_equals( $guard, $this->loop_guard_hash( $request_path ) ) ) {
+			return false;
+		}
+		// redirect_canonical() runs at template_redirect:10 and exits when it
+		// redirects, so this only fires on the request that renders the page.
+		add_action(
+			'template_redirect',
+			function () {
+				$this->set_loop_guard_cookie( '', time() - HOUR_IN_SECONDS );
+			},
+			PHP_INT_MAX
+		);
+		return true;
+	}
+
+	/**
+	 * Arm the loop guard when redirecting `$request_path` to `$target_url` would
+	 * lead through other short links back to `$request_path`.
+	 *
+	 * Only a real loop arms it — a chain that ends on a normal page or an
+	 * external URL is left alone.
+	 *
+	 * @param string $request_path Requested path, relative to the site root.
+	 * @param string $target_url   Where this request is about to be redirected.
+	 * @return void
+	 */
+	public function maybe_arm_loop_guard( $request_path, $target_url ) {
+		$first_hop = $this->get_internal_path( $target_url );
+		if ( null === $first_hop || ! $this->redirect_loops_back( $request_path, $first_hop ) ) {
+			return;
+		}
+		$this->set_loop_guard_cookie( $this->loop_guard_hash( $first_hop ), time() + MINUTE_IN_SECONDS );
+	}
+
+	/**
+	 * Follow short links from `$path` and report whether they come back to
+	 * `$request_path`.
+	 *
+	 * @param string $request_path Path the visitor requested.
+	 * @param string $path         First hop, relative to the site root.
+	 * @return bool
+	 */
+	protected function redirect_loops_back( $request_path, $path ) {
+		$origin = $this->normalize_loop_path( $request_path );
+		// A link pointing at its own URL is already refused by dispatch_redirect().
+		if ( $this->normalize_loop_path( $path ) === $origin ) {
+			return false;
+		}
+		$seen = array( $origin );
+		for ( $hop = 0; $hop < self::LOOP_GUARD_MAX_HOPS; $hop++ ) {
+			$key = $this->normalize_loop_path( $path );
+			if ( in_array( $key, $seen, true ) ) {
+				return $key === $origin;
+			}
+			$seen[] = $key;
+			$next   = $this->get_slug_raw( $path );
+			if ( empty( $next['target_url'] ) || ! apply_filters( 'betterlinks/pre_before_redirect', $next ) ) { // phpcs:ignore
+				return false;
+			}
+			$path = $this->get_internal_path( $next['target_url'] );
+			if ( null === $path ) {
+				return false;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * The site-relative path of `$url` when it points at this site, else null.
+	 *
+	 * @param string $url
+	 * @return string|null
+	 */
+	protected function get_internal_path( $url ) {
+		$parts = wp_parse_url( (string) $url );
+		if ( ! is_array( $parts ) ) {
+			return null;
+		}
+		if ( ! empty( $parts['host'] ) ) {
+			$site_host = (string) wp_parse_url( site_url( '/' ), PHP_URL_HOST );
+			$strip_www = static function ( $host ) {
+				return preg_replace( '/^www\./', '', strtolower( $host ) );
+			};
+			if ( $strip_www( $parts['host'] ) !== $strip_www( $site_host ) ) {
+				return null;
+			}
+		}
+		$path      = isset( $parts['path'] ) ? rawurldecode( $parts['path'] ) : '';
+		$site_path = rtrim( (string) wp_parse_url( site_url( '/' ), PHP_URL_PATH ), '/' ) . '/';
+		if ( '/' !== $site_path && 0 === strpos( $path, $site_path ) ) {
+			$path = substr( $path, strlen( $site_path ) );
+		}
+		return trim( $path, '/' );
+	}
+
+	/**
+	 * Normalise a path the way the redirect lookup matches it.
+	 *
+	 * @param string $path
+	 * @return string
+	 */
+	protected function normalize_loop_path( $path ) {
+		global $betterlinks;
+		$path = trim( (string) $path, '/' );
+		if ( is_array( $betterlinks ) && isset( $betterlinks['is_case_sensitive'] ) ) {
+			$case_sensitive = ! empty( $betterlinks['is_case_sensitive'] );
+		} else {
+			$options        = json_decode( (string) get_option( BETTERLINKS_LINKS_OPTION_NAME, '{}' ), true );
+			$case_sensitive = is_array( $options ) && ! empty( $options['is_case_sensitive'] );
+		}
+		return $case_sensitive ? $path : strtolower( $path );
+	}
+
+	/**
+	 * @param string $path
+	 * @return string
+	 */
+	protected function loop_guard_hash( $path ) {
+		return md5( $this->normalize_loop_path( $path ) );
+	}
+
+	/**
+	 * @param string $value
+	 * @param int    $expires
+	 * @return void
+	 */
+	protected function set_loop_guard_cookie( $value, $expires ) {
+		if ( headers_sent() ) {
+			return;
+		}
+		setcookie(
+			self::LOOP_GUARD_COOKIE,
+			$value,
+			array(
+				'expires'  => $expires,
+				'path'     => defined( 'COOKIEPATH' ) && COOKIEPATH ? COOKIEPATH : '/',
+				'secure'   => is_ssl(),
+				'httponly' => true,
+				'samesite' => 'Lax',
+			)
+		);
+	}
+
 	public function dispatch_redirect( $data, $param ) {
 		global $betterlinks;
 
@@ -127,7 +305,15 @@ class Utils {
 		header( 'Expires: Mon, 26 Jul 1997 05:00:00 GMT' );
 		header( 'Cache-Control: no-cache' );
 		header( 'Pragma: no-cache' );
-		header( 'X-Redirect-Powered-By:  https://www.betterlinks.io/' );
+		/**
+		 * Filters whether redirects send the X-Redirect-Powered-By header.
+		 *
+		 * @param bool  $send Default true.
+		 * @param array $data Link data being redirected.
+		 */
+		if ( apply_filters( 'betterlinks/link/send_powered_by_header', true, $data ) ) {
+			header( 'X-Redirect-Powered-By: https://www.betterlinks.io/' );
+		}
 
 		// phpcs:disable WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- BetterLinks redirects to the user-configured external target URL by design; wp_safe_redirect would block off-site URLs and break the plugin's core feature.
 		switch ( $data['redirect_type'] ) {
@@ -197,29 +383,6 @@ class Utils {
 			$IP                 = $this->get_current_client_IP();
 			$click_data['ip']   = $IP;
 			$click_data['host'] = $IP;
-
-			// Only process country data if BetterLinks Pro v2.5.0 or newer is installed
-			$is_pro_version_valid = defined( 'BETTERLINKS_PRO_VERSION' ) && version_compare( BETTERLINKS_PRO_VERSION, '2.5.0', '>=' );
-
-			if ( $is_pro_version_valid ) {
-				// Check if country data was provided from frontend geolocation
-				$has_frontend_country = isset( $data['country_code'] ) && isset( $data['country_name'] );
-
-				if ( $has_frontend_country ) {
-					// Use country data from frontend geolocation
-					$click_data['country_code'] = $data['country_code'];
-					$click_data['country_name'] = $data['country_name'];
-				} else {
-					// Fallback to server-side detection if frontend didn't provide country data
-					if ( class_exists( '\BetterLinks\Services\CountryDetectionService' ) ) {
-						$country_data = \BetterLinks\Services\CountryDetectionService::get_country_by_ip( $IP );
-						if ( $country_data ) {
-							$click_data['country_code'] = $country_data['country_code'];
-							$click_data['country_name'] = $country_data['country_name'];
-						}
-					}
-				}
-			}
 		}
 
 		if ( apply_filters( 'betterlinks/is_extra_data_tracking_compatible', false ) ) {
@@ -235,15 +398,13 @@ class Utils {
 			$click_data['query_params']    = wp_json_encode( $query_params );
 		}
 
-		// Add user agent if tracking is enabled
-		$settings = get_option( BETTERLINKS_LINKS_OPTION_NAME, '[]' );
-		if ( is_string( $settings ) ) {
-			$settings = json_decode( $settings, true );
-		}
-		if ( ! empty( $settings['enable_user_agent_tracking'] ) && isset( $_SERVER['HTTP_USER_AGENT'] ) ) {
-			$click_data['user_agent'] = sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) );
-		}
-		$arg = apply_filters( 'betterlinks/link/insert_click_arg', $click_data );
+		/**
+		 * Filters a click row before it is stored. BetterLinks Pro adds country and user-agent data.
+		 *
+		 * @param array $click_data Click row.
+		 * @param array $data       Link data used for tracking.
+		 */
+		$arg = apply_filters( 'betterlinks/link/insert_click_arg', $click_data, $data );
 
 		if ( BETTERLINKS_EXISTS_CLICKS_JSON ) {
 			$this->insert_json_into_file( BETTERLINKS_UPLOAD_DIR_PATH . '/clicks.json', $arg );
@@ -254,7 +415,10 @@ class Utils {
 					do_action( 'betterlinks/link/after_insert_click', $arg['link_id'], $click_id, $arg['target_url'] );
 				}
 			} catch ( \Throwable $th ) {
-				echo esc_html( $th->getMessage() );
+				// Never print internal errors on the public redirect path.
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+					error_log( 'BetterLinks: failed to record click: ' . $th->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				}
 			}
 		}
 	}
@@ -272,7 +436,7 @@ class Utils {
 	 * to the per-IP country lookup on every single hit.
 	 *
 	 * The same walk was already replaced in
-	 * CountryDetectionService::get_current_client_ip() and in
+	 * ClientIp::get_current_client_ip() and in
 	 * BetterLinksPro\Helper::get_current_client_ip(); this path was missed.
 	 * Delegate to the same resolver so all three agree: REMOTE_ADDR by default,
 	 * a forwarding header only when the peer is inside an operator-configured
@@ -285,8 +449,8 @@ class Utils {
 	 * @return string Client IP, or '' when none can be established.
 	 */
 	public function get_current_client_IP() {
-		if ( class_exists( '\\BetterLinks\\Services\\CountryDetectionService' ) ) {
-			$resolved = \BetterLinks\Services\CountryDetectionService::get_current_client_ip();
+		if ( class_exists( '\\BetterLinks\\Services\\ClientIp' ) ) {
+			$resolved = \BetterLinks\Services\ClientIp::get_current_client_ip();
 
 			if ( ! empty( $resolved ) ) {
 				return $resolved;
@@ -302,8 +466,16 @@ class Utils {
 		return filter_var( $address, FILTER_VALIDATE_IP ) ? $address : '';
 	}
 	public function addScheme( $url, $scheme = 'http://' ) {
+		// Protocol-relative ("//example.com/x") already names a host — only the
+		// scheme is missing. Treating it as site-relative would send the visitor
+		// to the wrong place entirely.
+		if ( strpos( $url, '//' ) === 0 ) {
+			return apply_filters( 'betterlinks/link/target_url', ( is_ssl() ? 'https:' : 'http:' ) . $url );
+		}
 		if ( strpos( $url, '/' ) === 0 ) {
-			return $url = site_url( '/' ) . $url;
+			// site_url() already supplies the separating slash; concatenating it
+			// with a leading-slash path produced "http://example.com//page/".
+			return site_url( $url );
 		}
 		return apply_filters( 'betterlinks/link/target_url', wp_parse_url( $url, PHP_URL_SCHEME ) === null ? $scheme . $url : $url );
 	}

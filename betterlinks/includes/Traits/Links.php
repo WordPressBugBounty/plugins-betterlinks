@@ -88,9 +88,14 @@ trait Links
      * @param bool  $is_update       Whether this is an update of an existing row.
      * @param int   $allowed_post_id Post whose own permalink this write is allowed
      *                               to shadow (Instant Redirect). 0 for none.
+     * @param bool  $allow_override  Whether the user confirmed that this link may
+     *                               take over WordPress content at its path (the
+     *                               link form's "Redirect this path anyway").
+     *                               Honoured only for users allowed to — see
+     *                               can_override_wp_url_collision().
      * @return \WP_Error|null
      */
-    public function validate_link_payload($args, $is_update = false, $allowed_post_id = 0)
+    public function validate_link_payload($args, $is_update = false, $allowed_post_id = 0, $allow_override = false)
     {
         if (!isset($args['short_url']) || '' === (string) $args['short_url']) {
             return null;
@@ -127,8 +132,45 @@ trait Links
             }
         }
 
+        if (!$is_update) {
+            // insert_link() simply returns nothing when the short URL is taken,
+            // and the REST controller turned that into `success: false, data:
+            // false` with no reason — the caller could not tell a duplicate slug
+            // from any other failure. Name the conflict here instead, so REST,
+            // admin-ajax and MCP all answer the same way.
+            $owner = \BetterLinks\Helper::get_link_by_short_url($short_url);
+            $owner = is_array($owner) && !empty($owner) ? current($owner) : null;
+            if (is_array($owner) && isset($owner['ID'])) {
+                return new \WP_Error(
+                    'betterlinks_duplicate_short_url',
+                    sprintf(
+                        /* translators: 1: the short URL that is already taken, 2: ID of the link that holds it */
+                        __('A link with the short URL "%1$s" already exists (ID %2$d). Short URLs have to be unique.', 'betterlinks'),
+                        $short_url,
+                        absint($owner['ID'])
+                    ),
+                    ['status' => 409, 'conflicting_link_id' => absint($owner['ID'])]
+                );
+            }
+        }
+
+        // Short URLs end up inside href attributes (AutoLinks, the block editor,
+        // exports). Quotes, angle brackets and whitespace have no place in a URL
+        // path and would let a slug break out of the attribute. Unchanged slugs
+        // returned early above, so existing links are not affected.
+        if (preg_match('/[\s"\'<>`]/u', $short_url)) {
+            return new \WP_Error(
+                'betterlinks_invalid_short_url',
+                __('Short URLs cannot contain spaces, quotes or angle brackets.', 'betterlinks'),
+                ['status' => 400]
+            );
+        }
+
         $collision = \BetterLinks\Helper::check_wp_url_collision($short_url, $allowed_post_id);
         if (is_wp_error($collision)) {
+            if ($allow_override && $this->can_override_wp_url_collision($collision)) {
+                return null;
+            }
             return $collision;
         }
         return null;
@@ -162,6 +204,56 @@ trait Links
         return current_user_can('edit_post', $post_id) ? $post_id : 0;
     }
 
+    /**
+     * Whether the request asks to keep a short URL that shadows WordPress content.
+     *
+     * The link form sends `allow_wp_url_override` alongside the link payload once
+     * the user ticks "Redirect this path anyway" — for example to send a docs
+     * archive to its welcome article, which is a redirect people set up on
+     * purpose. Like `instant_redirect_post_id` it is request context, not link
+     * data, so it never reaches the links table.
+     *
+     * @param array $source Raw (unsanitized) request payload.
+     * @return bool
+     */
+    public function resolve_wp_url_override($source)
+    {
+        return is_array($source) && isset($source['allow_wp_url_override']) && wp_validate_boolean($source['allow_wp_url_override']);
+    }
+
+    /**
+     * Whether the current user may confirm a WP URL collision and save anyway.
+     *
+     * System paths are never overridable. Shadowing a post or page needs the
+     * right to edit that post, the same rule Instant Redirect follows; anything
+     * else (a taxonomy, post type, author or date archive) affects the whole
+     * site, so it needs `manage_options`.
+     *
+     * @param \WP_Error $error Result of Helper::check_wp_url_collision().
+     * @return bool
+     */
+    public function can_override_wp_url_collision($error)
+    {
+        if (!is_wp_error($error)) {
+            return false;
+        }
+        $data = $error->get_error_data();
+        if (!is_array($data) || empty($data['overridable'])) {
+            return false;
+        }
+        $post_id = isset($data['conflicting_post_id']) ? absint($data['conflicting_post_id']) : 0;
+        $allowed = $post_id > 0 ? current_user_can('edit_post', $post_id) : current_user_can('manage_options');
+        /**
+         * Filters whether the current user may save a short URL over WordPress
+         * content after confirming it. Return false to keep every collision a
+         * hard block.
+         *
+         * @param bool      $allowed Whether the override is allowed.
+         * @param \WP_Error $error   The collision being overridden.
+         */
+        return (bool) apply_filters('betterlinks/allow_wp_url_collision_override', $allowed, $error);
+    }
+
     public function insert_link($arg)
     {
         if (isset($arg['short_url']) && ! \BetterLinks\Helper::is_exists_short_url($arg['short_url'])) {
@@ -192,15 +284,27 @@ trait Links
                     $arg['cat_data'] = $value;
                 }
             }
+            /**
+             * Filters the target URL of a link right after it is created.
+             * Return a different URL to rewrite it, or null to keep it
+             * (BetterLinks Pro applies global UTM templates here).
+             *
+             * @param string|null $target_url Replacement target URL.
+             * @param int         $id         New link ID.
+             * @param array       $arg        Link data, with resolved cat_id.
+             */
+            $updated_target_url = apply_filters('betterlinks/link/auto_target_url', null, $id, $arg);
+            if (is_string($updated_target_url) && '' !== $updated_target_url && isset($arg['target_url']) && $updated_target_url !== $arg['target_url']) {
+                $updated_target_url = esc_url_raw($updated_target_url);
+                $wpdb->update($wpdb->prefix . 'betterlinks', array('target_url' => $updated_target_url), array('ID' => $id), array('%s'), array('%d'));
+            } else {
+                $updated_target_url = null;
+            }
+
             if (BETTERLINKS_EXISTS_LINKS_JSON) {
                 $params['ID'] = $id;
                 $params['cat_id'] = $arg['cat_id'];
-                
-                // Auto-apply UTM template if enabled for this category
-                $updated_target_url = $this->auto_apply_utm_template_to_new_link($id, $arg);
-                
-                // Update params with the UTM-enhanced URL if it was modified
-                if ($updated_target_url && $updated_target_url !== $arg['target_url']) {
+                if ($updated_target_url) {
                     $params['target_url'] = $updated_target_url;
                 }
                 
@@ -208,9 +312,6 @@ trait Links
                 
                 // Sync missing links when new link is created (including when duplicating)
                 \BetterLinks\Helper::sync_all_missing_links_to_json();
-            } else {
-                // Auto-apply UTM template if enabled for this category (when JSON is not used)
-                $updated_target_url = $this->auto_apply_utm_template_to_new_link($id, $arg);
             }
             
             do_action( 'betterlinkspro/admin/update_link', $id, $arg  );
@@ -257,7 +358,28 @@ trait Links
         // never mentioned terms — e.g. the bulk status change, which posts only
         // {ID, link_status} — silently moved the link out of its category.
         $has_term_payload = isset($arg['cat_id']) || isset($arg['tags_id']);
-        $term_data        = $has_term_payload
+        if ($has_term_payload) {
+            // That function rebuilds the link's term relationships from scratch:
+            // it deletes every one of them, then inserts what the payload names.
+            // So a payload mentioning only one side silently dropped the other —
+            // changing a link's category wiped its tags, and setting tags moved
+            // the link to the default category. Carry the unmentioned side over
+            // from what is stored. The admin form always sends both, so this only
+            // changes the outcome for partial writes (MCP, REST, bulk actions).
+            if (!isset($arg['cat_id'])) {
+                $existing_cat = \BetterLinks\Helper::get_terms_by_link_ID_and_term_type($id, 'category');
+                if (!empty($existing_cat) && isset($existing_cat[0]['term_id'])) {
+                    $arg['cat_id'] = $existing_cat[0]['term_id'];
+                }
+            }
+            if (!isset($arg['tags_id'])) {
+                $existing_tags = \BetterLinks\Helper::get_terms_by_link_ID_and_term_type($id, 'tags');
+                if (!empty($existing_tags)) {
+                    $arg['tags_id'] = array_values(array_filter(wp_list_pluck($existing_tags, 'term_id')));
+                }
+            }
+        }
+        $term_data = $has_term_payload
             ? \BetterLinks\Helper::insert_terms_and_terms_relationship($id, $arg)
             : array();
 
@@ -291,8 +413,18 @@ trait Links
             }
         }
         if (BETTERLINKS_EXISTS_LINKS_JSON) {
-            $params['cat_id'] = $arg['cat_id'];
-            \BetterLinks\Helper::update_json_into_file(trailingslashit(BETTERLINKS_UPLOAD_DIR_PATH) . 'links.json', $params, $old_short_url);
+            // Cache the row as stored, not the payload as sent. Helper::insert_link()
+            // merges a partial update over the existing row, so a client that sends
+            // only what it changed (MCP update-link, the bulk status change, any
+            // REST caller posting a diff) left this cache — which is what the
+            // redirect actually reads — stale, or skipped it altogether because
+            // update_json_into_file() bails when short_url is absent.
+            $stored      = \BetterLinks\Helper::get_link_by_ID($id);
+            $stored      = is_array($stored) && !empty($stored) ? (array) current($stored) : array();
+            $json_params = !empty($stored) ? array_merge($stored, $params) : $params;
+
+            $json_params['cat_id'] = $arg['cat_id'];
+            \BetterLinks\Helper::update_json_into_file(trailingslashit(BETTERLINKS_UPLOAD_DIR_PATH) . 'links.json', $json_params, $old_short_url);
             
             // Sync missing links when link is updated
             \BetterLinks\Helper::sync_all_missing_links_to_json();
@@ -342,198 +474,4 @@ trait Links
         return true;
     }
 
-    /**
-     * Auto-apply UTM template to newly created link if enabled for the category
-     * Returns the updated target URL if modified, or null if no changes
-     */
-    public function auto_apply_utm_template_to_new_link($link_id, $link_args)
-    {
-        // Get the category ID from the link
-        $category_id = isset($link_args['cat_id']) ? intval($link_args['cat_id']) : 1; // Default to Uncategorized
-
-        // Get current settings
-        $settings = get_option(BETTERLINKS_LINKS_OPTION_NAME, []);
-        if (is_string($settings)) {
-            $settings = json_decode($settings, true);
-        }
-
-        // Get UTM templates
-        $utm_templates = isset($settings['global_utm_templates']) ? $settings['global_utm_templates'] : [];
-        if (!is_array($utm_templates)) {
-            return null;
-        }
-
-        // Get last applied templates tracking
-        $last_applied_templates = isset($settings['utm_last_applied_templates']) ? $settings['utm_last_applied_templates'] : [];
-        
-        // Find the most recently applied template for this category
-        $matching_template = null;
-        
-        // First, check if there's a last applied template for this category
-        // Normalize category ID for consistent comparison
-        $normalized_category_id = strval($category_id);
-        
-        if (isset($last_applied_templates[$normalized_category_id])) {
-            $last_applied_template_index = $last_applied_templates[$normalized_category_id]['template_index'];
-            
-            // Find the template with this index
-            foreach ($utm_templates as $template) {
-                if (isset($template['template_index']) && 
-                    $template['template_index'] == $last_applied_template_index) {
-                    
-                    // Verify this template still applies to the current category
-                    if (isset($template['categories']) && is_array($template['categories'])) {
-                        foreach ($template['categories'] as $template_cat_id) {
-                            // Normalize both IDs for comparison
-                            $normalized_template_cat_id = strval($template_cat_id);
-                            if ($normalized_template_cat_id === $normalized_category_id) {
-                                // If the active template has auto-apply enabled, use it
-                                if (!empty($template['utm_auto_apply_new_link'])) {
-                                    $matching_template = $template;
-                                }
-                                // If active template exists but auto-apply is disabled, and don't use any template (respect user's choice) and Set a flag to prevent fallback search
-                                $active_template_found = true;
-                                break 2;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Only fall back to finding any template if there's no active template for this category
-        if (!$matching_template && !isset($active_template_found)) {
-            foreach ($utm_templates as $template) {
-                // Check if auto-apply is enabled for this template
-                if (empty($template['utm_auto_apply_new_link'])) {
-                    continue;
-                }
-
-                // Check if this template applies to the current category
-                if (isset($template['categories']) && is_array($template['categories'])) {
-                    foreach ($template['categories'] as $template_cat_id) {
-                        // Normalize both IDs for comparison
-                        $normalized_template_cat_id = strval($template_cat_id);
-                        if ($normalized_template_cat_id === $normalized_category_id) {
-                            $matching_template = $template;
-                            break 2; // Break out of both loops
-                        }
-                    }
-                }
-            }
-        }
-
-        // If no matching template found, return
-        if (!$matching_template) {
-            return null;
-        }
-
-        // Extract UTM parameters from template
-        $utm_params = [
-            'utm_source' => isset($matching_template['utm_source']) ? sanitize_text_field($matching_template['utm_source']) : '',
-            'utm_medium' => isset($matching_template['utm_medium']) ? sanitize_text_field($matching_template['utm_medium']) : '',
-            'utm_campaign' => isset($matching_template['utm_campaign']) ? sanitize_text_field($matching_template['utm_campaign']) : '',
-            'utm_term' => isset($matching_template['utm_term']) ? sanitize_text_field($matching_template['utm_term']) : '',
-            'utm_content' => isset($matching_template['utm_content']) ? sanitize_text_field($matching_template['utm_content']) : '',
-        ];
-
-        // Remove empty UTM parameters
-        $utm_params = array_filter($utm_params, function($value) {
-            return !empty($value);
-        });
-
-        // If no UTM parameters to apply, return
-        if (empty($utm_params)) {
-            return null;
-        }
-
-        // Get the current target URL from the arguments (it should be the original URL)
-        $target_url = isset($link_args['target_url']) ? $link_args['target_url'] : '';
-        if (empty($target_url)) {
-            return null;
-        }
-
-        // Parse current target URL
-        $url_parts = wp_parse_url($target_url);
-        if (!$url_parts) {
-            return null;
-        }
-        
-        // Parse existing query parameters
-        $query_params = [];
-        if (isset($url_parts['query'])) {
-            parse_str($url_parts['query'], $query_params);
-        }
-
-        // Add UTM parameters (don't overwrite existing ones if rewrite is not enabled)
-        $rewrite_existing = isset($matching_template['utm_enable_to_rewrite_existing_utm_template']) 
-            ? $matching_template['utm_enable_to_rewrite_existing_utm_template'] 
-            : false;
-
-        $params_added = false;
-        foreach ($utm_params as $key => $value) {
-            if ($rewrite_existing || !isset($query_params[$key])) {
-                $query_params[$key] = $value;
-                $params_added = true;
-            }
-        }
-
-        // If no parameters were added, return original URL
-        if (!$params_added) {
-            return null;
-        }
-
-        // Reconstruct the URL
-        $new_url = $url_parts['scheme'] . '://' . $url_parts['host'];
-        if (isset($url_parts['port'])) {
-            $new_url .= ':' . $url_parts['port'];
-        }
-        if (isset($url_parts['path'])) {
-            $new_url .= $url_parts['path'];
-        }
-        if (!empty($query_params)) {
-            $new_url .= '?' . http_build_query($query_params);
-        }
-        if (isset($url_parts['fragment'])) {
-            $new_url .= '#' . $url_parts['fragment'];
-        }
-
-        // Update the link with new target URL
-        global $wpdb;
-        $wpdb->update(
-            $wpdb->prefix . 'betterlinks',
-            ['target_url' => $new_url],
-            ['ID' => $link_id],
-            ['%s'],
-            ['%d']
-        );
-
-        // Update JSON file if it exists
-        if (BETTERLINKS_EXISTS_LINKS_JSON) {
-            // Fetch complete link data to update JSON file
-            $link_data = $wpdb->get_row(
-                $wpdb->prepare(
-                    "SELECT * FROM {$wpdb->prefix}betterlinks WHERE ID = %d",
-                    $link_id
-                ),
-                ARRAY_A
-            );
-
-            if ($link_data && isset($link_data['short_url'])) {
-                // Update target_url with the new value
-                $link_data['target_url'] = $new_url;
-                \BetterLinks\Helper::update_json_into_file(
-                    trailingslashit(BETTERLINKS_UPLOAD_DIR_PATH) . 'links.json',
-                    $link_data,
-                    $link_data['short_url']
-                );
-            }
-        }
-
-        // Clear cache
-        delete_transient(BETTERLINKS_CACHE_LINKS_NAME);
-
-        // Return the updated URL
-        return $new_url;
-    }
 }

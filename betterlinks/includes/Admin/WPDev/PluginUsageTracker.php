@@ -68,7 +68,10 @@ class PluginUsageTracker {
         $this->disabled_wp_cron = defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON == true;
         $this->enable_self_cron = $this->disabled_wp_cron == true ? true : false;
 
-        $this->event_hook = 'put_do_weekly_action';
+        // Plugin-specific event. The SDK default (`put_do_weekly_action`) is shared by
+        // every plugin that bundles this tracker, so clearing it on deactivation
+        // stopped the others too.
+        $this->event_hook = 'betterlinks_usage_tracker_daily';
 
         $this->require_optin        = isset( $args['opt_in'] ) ? $args['opt_in'] : true;
         $this->include_goodbye_form = isset( $args['goodbye_form'] ) ? $args['goodbye_form'] : true;
@@ -153,6 +156,10 @@ class PluginUsageTracker {
         // $this->clicked();
         add_action( 'wpdeveloper_notice_clicked_for_' . $this->plugin_name, array( $this, 'clicked' ) );
         add_action( $this->event_hook, array( $this, 'do_tracking' ) );
+        // Sites that opted in under the old shared event name get the new event.
+        if ( ! $this->disabled_wp_cron && ! wp_next_scheduled( $this->event_hook ) && $this->is_tracking_allowed() ) {
+            $this->schedule_tracking();
+        }
         // For Test
         // add_action( 'admin_init', array( $this, 'force_tracking' ) );
         // add_action( 'admin_notices', array( $this, 'notice' ) );
@@ -164,6 +171,8 @@ class PluginUsageTracker {
         add_action( 'admin_print_footer_scripts', array( $this, 'notice_script' ) );
         add_action( 'admin_print_footer_scripts-plugins.php', array( $this, 'deactivate_reasons_form_script' ) );
         add_action( 'admin_print_styles-plugins.php', array( $this, 'deactivate_reasons_form_style' ) );
+        add_action( 'wp_ajax_' . esc_attr( $this->plugin_name ) . '_deactivation_form', array( $this, 'deactivate_reasons_form_submit' ) );
+        // Deprecated action name, kept for cached admin pages.
         add_action( 'wp_ajax_deactivation_form_' . esc_attr( $this->plugin_name ), array( $this, 'deactivate_reasons_form_submit' ) );
     }
     /**
@@ -385,7 +394,7 @@ class PluginUsageTracker {
          */
         $plugin = $this->plugin_data();
         if ( empty( $plugin ) ) {
-            $body['message'] .= __( 'We can\'t detect any plugin information. This is most probably because you have not included the code in the plugin main file.', 'plugin-usage-tracker' );
+            $body['message'] .= __( 'We can\'t detect any plugin information. This is most probably because you have not included the code in the plugin main file.', 'betterlinks' );
             $body['status']   = 'NOT FOUND';
         } else {
             if ( isset( $plugin['Name'] ) ) {
@@ -412,7 +421,6 @@ class PluginUsageTracker {
 
         $body['optional_data'] = array_merge(
             Helper::get_link_count(),
-            Helper::get_password_protected_link_count(),
             Helper::get_redirect_type_breakdown(),
             Helper::used_features_by_client()
         );
@@ -678,9 +686,9 @@ class PluginUsageTracker {
      */
     public function set_notice_options( $options = [] ) {
         $default_options      = [
-            'consent_button_text' => __( 'What we collect.', 'wpinsight' ),
-            'yes'                 => __( 'Sure, I\'d like to help', 'wpinsight' ),
-            'no'                  => __( 'No Thanks.', 'wpinsight' ),
+            'consent_button_text' => __( 'What we collect.', 'betterlinks' ),
+            'yes'                 => __( 'Sure, I\'d like to help', 'betterlinks' ),
+            'no'                  => __( 'No Thanks.', 'betterlinks' ),
         ];
         $options              = wp_parse_args( $options, $default_options );
         $this->notice_options = $options;
@@ -748,6 +756,9 @@ class PluginUsageTracker {
      */
     public function deactivate_reasons_form_submit() {
         check_ajax_referer( 'wpins_deactivation_nonce', 'security' );
+        if ( ! current_user_can( 'activate_plugins' ) ) {
+            wp_die( -1, 403 );
+        }
         if ( isset( $_POST['values'] ) ) {
             $values = sanitize_text_field( wp_unslash( $_POST['values'] ) );
             update_option( 'wpins_deactivation_reason_' . $this->plugin_name, $values, 'no' );
@@ -788,20 +799,20 @@ class PluginUsageTracker {
      */
     public function deactivation_reasons() {
         $form            = array();
-        $form['heading'] = __( 'Sorry to see you go', 'wpinsight' );
-        $form['body']    = __( 'Before you deactivate the plugin, would you quickly give us your reason for doing so?', 'wpinsight' );
+        $form['heading'] = __( 'Sorry to see you go', 'betterlinks' );
+        $form['body']    = __( 'Before you deactivate the plugin, would you quickly give us your reason for doing so?', 'betterlinks' );
 
         $form['options'] = array(
-            __( 'I no longer need the plugin', 'wpinsight' ),
+            __( 'I no longer need the plugin', 'betterlinks' ),
             [
-                'label'       => __( 'I found a better plugin', 'wpinsight' ),
-                'extra_field' => __( 'Please share which plugin', 'wpinsight' ),
+                'label'       => __( 'I found a better plugin', 'betterlinks' ),
+                'extra_field' => __( 'Please share which plugin', 'betterlinks' ),
             ],
-            __( "I couldn't get the plugin to work", 'wpinsight' ),
-            __( 'It\'s a temporary deactivation', 'wpinsight' ),
+            __( "I couldn't get the plugin to work", 'betterlinks' ),
+            __( 'It\'s a temporary deactivation', 'betterlinks' ),
             [
-                'label'       => __( 'Other', 'wpinsight' ),
-                'extra_field' => __( 'Please share the reason', 'wpinsight' ),
+                'label'       => __( 'Other', 'betterlinks' ),
+                'extra_field' => __( 'Please share the reason', 'betterlinks' ),
                 'type'        => 'textarea',
             ],
         );
@@ -993,7 +1004,7 @@ class PluginUsageTracker {
             $html .= '</ul></div><!-- .wpinsights-' . esc_attr( $this->plugin_name ) . '-goodbye-options -->';
         }
         $html .= '</div><!-- .wpinsights-goodbye-form-body -->';
-        $html .= '<p class="deactivating-spinner"><span class="spinner"></span> ' . __( 'Submitting form', 'wpinsight' ) . '</p>';
+        $html .= '<p class="deactivating-spinner"><span class="spinner"></span> ' . __( 'Submitting form', 'betterlinks' ) . '</p>';
 
         ?>
         <script type="text/javascript">
@@ -1003,7 +1014,7 @@ class PluginUsageTracker {
                     var url = document.getElementById("wpinsights-goodbye-link-<?php echo esc_attr( $this->plugin_name ); ?>");
                     $('body').toggleClass('wpinsights-form-active-<?php echo esc_attr( $this->plugin_name ); ?>');
                     $(".wpinsights-goodbye-form-wrapper-<?php echo esc_attr( $this->plugin_name ); ?> #wpinsights-goodbye-form").fadeIn();
-                    $(".wpinsights-goodbye-form-wrapper-<?php echo esc_attr( $this->plugin_name ); ?> #wpinsights-goodbye-form").html( '<?php echo $html; ?>' + '<div class="wpinsights-goodbye-form-footer"><div class="wpinsights-goodbye-form-buttons"><a id="wpinsights-submit-form-<?php echo esc_attr( $this->plugin_name ); ?>" class="wpinsights-submit-btn" href="#"><?php esc_html_e( 'Submit and Deactivate', 'wpinsight' ); ?></a>&nbsp;<a class="wpsp-put-deactivate-btn" href="'+url+'"><?php esc_html_e( 'Just Deactivate', 'wpinsight' ); ?></a></div></div>');
+                    $(".wpinsights-goodbye-form-wrapper-<?php echo esc_attr( $this->plugin_name ); ?> #wpinsights-goodbye-form").html( '<?php echo $html; ?>' + '<div class="wpinsights-goodbye-form-footer"><div class="wpinsights-goodbye-form-buttons"><a id="wpinsights-submit-form-<?php echo esc_attr( $this->plugin_name ); ?>" class="wpinsights-submit-btn" href="#"><?php esc_html_e( 'Submit and Deactivate', 'betterlinks' ); ?></a>&nbsp;<a class="wpsp-put-deactivate-btn" href="'+url+'"><?php esc_html_e( 'Just Deactivate', 'betterlinks' ); ?></a></div></div>');
                     $('#wpinsights-submit-form-<?php echo esc_attr( $this->plugin_name ); ?>').on('click', function(e){
                         // As soon as we click, the body of the form should disappear
                         $("#wpinsights-goodbye-form-<?php echo esc_attr( $this->plugin_name ); ?> .wpinsights-goodbye-form-body").fadeOut();
@@ -1026,7 +1037,7 @@ class PluginUsageTracker {
                         }
 
                         var data = {
-                            'action': 'deactivation_form_<?php echo esc_attr( $this->plugin_name ); ?>',
+                            'action': '<?php echo esc_attr( $this->plugin_name ); ?>_deactivation_form',
                             'values': checkedInputVal,
                             'details': details,
                             'security': "<?php echo wp_create_nonce( 'wpins_deactivation_nonce' ); ?>",

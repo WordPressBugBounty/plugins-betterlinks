@@ -9,6 +9,34 @@ class BLImportCSV extends BaseCSV implements ImportCsvInterface {
 
 	private $link_header = array();
 
+	/**
+	 * Old link ID => new link ID for links created by this import.
+	 *
+	 * @var array
+	 */
+	private $link_id_map = array();
+
+	/**
+	 * Rows claimed by extensions (betterlinks/tools/import_row_bucket), by bucket.
+	 *
+	 * @var array
+	 */
+	private $extra_rows = array();
+
+	/**
+	 * @return array
+	 */
+	public function get_link_id_map() {
+		return $this->link_id_map;
+	}
+
+	/**
+	 * @return array
+	 */
+	public function get_extra_rows() {
+		return $this->extra_rows;
+	}
+
 	public function start_importing( $csv, $optional_param_1 = '' ) {
 		$link_message  = array();
 		$click_message = array();
@@ -38,7 +66,11 @@ class BLImportCSV extends BaseCSV implements ImportCsvInterface {
 					$click_message[] = 'Skipped "' . $item['short_url'] . '" already exists';
 				}
 			} elseif ( is_array( $item ) && in_array( count( $item ), array( 24, 25, 26, 27 ) ) ) {
-				$is_insert = $this->insert_link_data( $item );
+				$old_link_id = isset( $item['ID'] ) ? absint( $item['ID'] ) : 0;
+				$is_insert   = $this->insert_link_data( $item );
+				if ( $is_insert && $old_link_id && is_numeric( $is_insert ) ) {
+					$this->link_id_map[ $old_link_id ] = (int) $is_insert;
+				}
 				if ( $is_insert ) {
 					if ( $this->last_operation === 'updated' ) {
 						$link_message[] = 'Updated existing "' . $item['short_url'] . '"';
@@ -47,6 +79,18 @@ class BLImportCSV extends BaseCSV implements ImportCsvInterface {
 					}
 				} else {
 					$link_message[] = 'Skipped "' . $item['short_url'] . '" already exists';
+				}
+			} elseif ( is_array( $item ) ) {
+				/**
+				 * Lets an extension claim CSV rows the core importer does not recognise
+				 * (BetterLinks Pro: link rotations). Return a bucket name, or '' to skip.
+				 *
+				 * @param string $bucket Bucket name.
+				 * @param array  $header CSV header row.
+				 */
+				$bucket = sanitize_key( (string) apply_filters( 'betterlinks/tools/import_row_bucket', '', $this->link_header ) );
+				if ( '' !== $bucket ) {
+					$this->extra_rows[ $bucket ][] = $item;
 				}
 			}
 		}

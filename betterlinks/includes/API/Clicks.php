@@ -46,18 +46,6 @@ class Clicks extends Controller {
 			)
 		);
 
-		register_rest_route(
-			$this->namespace,
-			$endpoint . 'get_countries/',
-			array(
-				array(
-					'methods'             => \WP_REST_Server::READABLE,
-					'callback'            => array( $this, 'get_countries' ),
-					'permission_callback' => array( $this, 'get_items_permissions_check' ),
-					'args'                => $this->get_clicks_schema(),
-				),
-			)
-		);
 
 		register_rest_route(
 			$this->namespace,
@@ -72,18 +60,6 @@ class Clicks extends Controller {
 			)
 		);
 
-		register_rest_route(
-			$this->namespace,
-			$endpoint . 'get_timing/',
-			array(
-				array(
-					'methods'             => \WP_REST_Server::READABLE,
-					'callback'            => array( $this, 'get_timing' ),
-					'permission_callback' => array( $this, 'get_items_permissions_check' ),
-					'args'                => $this->get_clicks_schema(),
-				),
-			)
-		);
 
 		register_rest_route(
 			$this->namespace,
@@ -213,61 +189,6 @@ class Clicks extends Controller {
 				'success' => true,
 				'data'    => array(
 					'clicks' => $graph_data,
-				),
-			)
-		);
-	}
-
-	/**
-	 * Get clicks aggregated by country for the range.
-	 *
-	 * Backs the Geography section: the choropleth map (every country) plus the
-	 * Top-countries list. Rows are `{ country_code (ISO alpha-2), country_name,
-	 * clicks, unique_clicks }`, already ordered by clicks desc. Countries are
-	 * only recorded when extra data tracking is on, so this is simply empty on
-	 * setups without it — the client renders a "not tracked" state in that case.
-	 *
-	 * @param WP_REST_Request $request Full data about the request.
-	 * @return WP_Error|WP_REST_Response
-	 */
-	public function get_countries( $request ) {
-		$request = $request->get_params();
-		$from    = isset( $request['from'] ) && $this->sanitize_date( $request['from'] ) ? $request['from'] : gmdate( 'Y-m-d', strtotime( ' - 30 days' ) );
-		$to      = isset( $request['to'] ) && $this->sanitize_date( $request['to'] ) ? $request['to'] : gmdate( 'Y-m-d' );
-
-		$countries = \BetterLinks\Services\CountryDetectionService::get_country_statistics( $from, $to );
-
-		return new \WP_REST_Response(
-			array(
-				'success' => true,
-				'data'    => array(
-					'countries' => $countries,
-				),
-			)
-		);
-	}
-
-	/**
-	 * Get clicks bucketed by weekday and hour for the range.
-	 *
-	 * Backs the Timing heatmap. Rows are `{ dow (0=Mon..6=Sun), hr (0..23),
-	 * clicks, unique_clicks }`; empty buckets are omitted and filled client-side.
-	 *
-	 * @param WP_REST_Request $request Full data about the request.
-	 * @return WP_Error|WP_REST_Response
-	 */
-	public function get_timing( $request ) {
-		$request = $request->get_params();
-		$from    = isset( $request['from'] ) && $this->sanitize_date( $request['from'] ) ? $request['from'] : gmdate( 'Y-m-d', strtotime( ' - 30 days' ) );
-		$to      = isset( $request['to'] ) && $this->sanitize_date( $request['to'] ) ? $request['to'] : gmdate( 'Y-m-d' );
-
-		$timing = $this->get_analytics_timing_data( $from, $to );
-
-		return new \WP_REST_Response(
-			array(
-				'success' => true,
-				'data'    => array(
-					'timing' => $timing,
 				),
 			)
 		);

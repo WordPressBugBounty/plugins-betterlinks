@@ -40,16 +40,19 @@ class Create_Link extends Ability_Base {
 		return [
 			'type'                 => 'object',
 			'additionalProperties' => false,
-			'properties'           => [
-				'link_title'    => [ 'type' => 'string', 'description' => __( 'Internal title for the link.', 'betterlinks' ) ],
-				'target_url'    => [ 'type' => 'string', 'description' => __( 'Destination URL the short link redirects to. Required.', 'betterlinks' ) ],
-				'link_slug'     => [ 'type' => 'string', 'description' => __( 'The short URL slug (e.g. "go/deal"). Auto-generated when omitted.', 'betterlinks' ) ],
-				'redirect_type' => [ 'type' => 'string', 'enum' => [ '301', '302', '307' ], 'description' => __( 'HTTP redirect type. Defaults to 307.', 'betterlinks' ) ],
-				'cat_id'        => [ 'type' => 'integer', 'description' => __( 'Category ID to file the link under.', 'betterlinks' ) ],
-				'nofollow'      => [ 'type' => 'boolean' ],
-				'sponsored'     => [ 'type' => 'boolean' ],
-				'link_status'   => [ 'type' => 'string', 'enum' => [ 'publish', 'draft' ] ],
-			],
+			'properties'           => array_merge(
+				[
+					'link_title'    => [ 'type' => 'string', 'description' => __( 'Internal title for the link.', 'betterlinks' ) ],
+					'target_url'    => [ 'type' => 'string', 'description' => __( 'Destination URL the short link redirects to. Required.', 'betterlinks' ) ],
+					'link_slug'     => [ 'type' => 'string', 'description' => __( 'The short URL slug (e.g. "deal"). The configured link prefix is prepended to it. Auto-generated from the title when omitted.', 'betterlinks' ) ],
+					'redirect_type' => [ 'type' => 'string', 'enum' => [ '301', '302', '307' ], 'description' => __( 'HTTP redirect type. Defaults to 307.', 'betterlinks' ) ],
+					'cat_id'        => [ 'type' => 'integer', 'description' => __( 'Category ID to file the link under.', 'betterlinks' ) ],
+					'nofollow'      => [ 'type' => 'boolean' ],
+					'sponsored'     => [ 'type' => 'boolean' ],
+					'link_status'   => [ 'type' => 'string', 'enum' => [ 'publish', 'draft' ] ],
+				],
+				self::shared_link_properties()
+			),
 		];
 	}
 
@@ -64,11 +67,13 @@ class Create_Link extends Ability_Base {
 	}
 
 	public function execute( $input ) {
-		$target = isset( $input['target_url'] ) ? esc_url_raw( (string) $input['target_url'] ) : '';
-		if ( '' === $target ) {
-			return new \WP_Error( 'betterlinks_missing_target', __( 'A target_url is required to create a link.', 'betterlinks' ), [ 'status' => 400 ] );
+		$target = self::validate_target_url( isset( $input['target_url'] ) ? $input['target_url'] : '' );
+		if ( is_wp_error( $target ) ) {
+			return $target;
 		}
-		$title = isset( $input['link_title'] ) ? (string) $input['link_title'] : '';
+		// Capped: the title is stored on the link row and copied into the
+		// links.json cache the redirect handler reads on every request.
+		$title = isset( $input['link_title'] ) ? mb_substr( (string) $input['link_title'], 0, self::MAX_TITLE_LENGTH ) : '';
 		// Use the slash-preserving sanitizer so multi-segment slugs like "go/deal"
 		// survive intact (WP core's sanitize_title() would convert '/' to '-').
 		$raw   = isset( $input['link_slug'] ) && '' !== $input['link_slug']
@@ -78,10 +83,14 @@ class Create_Link extends Ability_Base {
 		if ( '' === $slug ) {
 			return new \WP_Error( 'betterlinks_invalid_slug', __( 'link_slug produced an empty value after sanitization.', 'betterlinks' ), [ 'status' => 400 ] );
 		}
-		// Apply the configured link prefix (matches the admin UI behaviour).
+		// An explicit short_url is taken as the final path; otherwise the
+		// configured prefix is applied to the slug (matching the admin UI).
 		// build_short_url() is idempotent — if the caller already included the
 		// prefix, no double-prepending happens.
-		$short_url = self::build_short_url( $slug );
+		$short_url = self::resolve_short_url( $input, $slug );
+		if ( is_wp_error( $short_url ) ) {
+			return $short_url;
+		}
 
 		// Reject collisions with existing WordPress URLs before creation,
 		// otherwise BetterLinks' init:0 redirect handler would silently shadow
@@ -106,6 +115,25 @@ class Create_Link extends Ability_Base {
 		if ( ! empty( $input['cat_id'] ) ) {
 			$params['cat_id'] = absint( $input['cat_id'] );
 		}
-		return $this->dispatch( 'POST', '/links', $params );
+		$params = array_merge( $params, self::shared_link_params( $input ) );
+		// A link made here should match one made in the link form, so anything
+		// the caller left out falls back to the site's own defaults.
+		$params = self::apply_site_defaults( $input, $params );
+
+		$result = $this->dispatch( 'POST', '/links', $params );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		$link_id = ! empty( $result['data']['ID'] ) ? absint( $result['data']['ID'] ) : 0;
+		if ( $link_id && array_key_exists( 'favorite', $input ) ) {
+			$this->set_favorite( $link_id, rest_sanitize_boolean( $input['favorite'] ) );
+		}
+
+		$stored = self::stored_link( $link_id );
+		return null === $stored ? $result : [
+			'success' => true,
+			'data'    => $stored,
+		];
 	}
 }

@@ -32,7 +32,22 @@ class Link extends Utils {
 		$request_uri = stripslashes( rawurldecode( $request_uri ) );
 		$request_uri = substr( $request_uri, strlen( wp_parse_url( site_url( '/' ), PHP_URL_PATH ) ) );
 		$param       = explode( '?', $request_uri, 2 );
-		$data        = $this->get_slug_raw( rtrim( current( $param ), '/' ) );
+
+		// Never let a short link take over a WordPress system path (login, admin,
+		// REST API, cron…), including links saved before slugs were validated.
+		$pagenow = isset( $GLOBALS['pagenow'] ) ? $GLOBALS['pagenow'] : '';
+		if ( 'wp-login.php' === $pagenow || Helper::is_reserved_wp_path( current( $param ) ) ) {
+			return false;
+		}
+
+		$request_path = rtrim( current( $param ), '/' );
+		$data         = $this->get_slug_raw( $request_path );
+
+		// The previous request broke a redirect loop by sending the visitor here;
+		// let WordPress serve this page instead of redirecting again.
+		if ( ! empty( $data['target_url'] ) && $this->consume_loop_guard( $request_path ) ) {
+			return false;
+		}
 
 		$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : ''; // phpcs:ignore
 		$dd         = new DeviceDetector( $user_agent );
@@ -50,6 +65,12 @@ class Link extends Utils {
 		$data = apply_filters( 'betterlinks/link/before_dispatch_redirect', $data ); // phpcs:ignore.
 		if ( empty( $data ) ) {
 			return false;
+		}
+
+		// If this redirect lands on another short link that leads back here, mark
+		// the landing page so it is served rather than redirected again.
+		if ( ! empty( $data['target_url'] ) ) {
+			$this->maybe_arm_loop_guard( $request_path, $data['target_url'] );
 		}
 
 		do_action( 'betterlinks/before_redirect', $data ); // phpcs:ignore.

@@ -29,7 +29,8 @@ class Delete_Term extends Ability_Base {
 	public function get_annotations() {
 		return [
 			'readonly'      => false,
-			'destructive'   => false,
+			// Removes the term and unfiles every link under it.
+			'destructive'   => true,
 			'idempotent'    => false,
 			'priority'      => 2.0,
 			'openWorldHint' => false,
@@ -43,6 +44,7 @@ class Delete_Term extends Ability_Base {
 			'properties'           => [
 				'ID'        => [ 'type' => 'integer', 'description' => __( 'The term ID to delete.', 'betterlinks' ) ],
 				'term_type' => [ 'type' => 'string', 'enum' => [ 'category', 'tags' ], 'description' => __( 'Whether the ID is a category or a tag.', 'betterlinks' ) ],
+				'confirm'   => self::confirm_property(),
 			],
 		];
 	}
@@ -64,6 +66,45 @@ class Delete_Term extends Ability_Base {
 		}
 		$type = isset( $input['term_type'] ) ? (string) $input['term_type'] : 'category';
 		$key  = ( 'tags' === $type ) ? 'tag_id' : 'cat_id';
+
+		// Every link filed under the term loses it, so name the term and say how
+		// many links are affected before removing anything.
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- read for the confirmation summary, immediately before a delete.
+		$term = $wpdb->get_row( $wpdb->prepare( "SELECT term_name, term_type FROM {$wpdb->prefix}betterlinks_terms WHERE ID = %d", $id ), ARRAY_A );
+		if ( empty( $term ) ) {
+			return new \WP_Error(
+				'betterlinks_term_not_found',
+				sprintf(
+					/* translators: %d: term ID */
+					__( 'No term with ID %d exists.', 'betterlinks' ),
+					$id
+				),
+				[ 'status' => 404 ]
+			);
+		}
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- as above.
+		$link_count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}betterlinks_terms_relationships WHERE term_id = %d", $id ) );
+		$gate       = $this->confirmation_gate(
+			$input,
+			'delete-term',
+			sprintf(
+				/* translators: 1: term type (category or tag), 2: term name, 3: number of links */
+				__( 'Delete the %1$s "%2$s". %3$d link(s) filed under it lose it. The links themselves are kept.', 'betterlinks' ),
+				( 'tags' === $type ) ? __( 'tag', 'betterlinks' ) : __( 'category', 'betterlinks' ),
+				isset( $term['term_name'] ) ? $term['term_name'] : '',
+				$link_count
+			),
+			[
+				'term_name'       => isset( $term['term_name'] ) ? $term['term_name'] : '',
+				'term_type'       => $type,
+				'links_affected'  => $link_count,
+			]
+		);
+		if ( null !== $gate ) {
+			return $gate;
+		}
+
 		return $this->dispatch( 'DELETE', '/terms', [ $key => $id ] );
 	}
 }

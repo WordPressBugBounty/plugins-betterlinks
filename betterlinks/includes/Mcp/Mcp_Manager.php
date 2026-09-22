@@ -142,14 +142,10 @@ final class Mcp_Manager {
 	 * @return void
 	 */
 	public function add_rewrite(): void {
-		// Token-in-URL form: /betterlinks/mcp/<token> — a single string the user
-		// pastes into their AI client (no separate token field). The bare
-		// /betterlinks/mcp still works with a Bearer token.
-		add_rewrite_rule(
-			'^betterlinks/mcp/([a-f0-9]{64})/?$',
-			'index.php?' . self::QUERY_VAR . '=1&' . self::TOKEN_QUERY_VAR . '=$matches[1]',
-			'top'
-		);
+		// Header-only. There used to be a /betterlinks/mcp/<token> form that
+		// carried the credential in the URL path; a token there is written to
+		// every access log, proxy and CDN it passes through, and nothing in the
+		// UI offered it. Clients send `Authorization: Bearer <token>`.
 		add_rewrite_rule( '^betterlinks/mcp/?$', 'index.php?' . self::QUERY_VAR . '=1', 'top' );
 
 		// OAuth discovery documents. RFC 9728 §3.1 / RFC 8414 §3.1 place the
@@ -244,9 +240,15 @@ final class Mcp_Manager {
 	public function maybe_handle_pretty_endpoint( $wp ): void {
 		// OAuth discovery documents (served at the site root).
 		if ( ! empty( $wp->query_vars[ self::WELLKNOWN_QUERY_VAR ] ) ) {
-			if ( ! self::is_enabled() ) {
-				status_header( 404 );
-				exit;
+			// The root-form rule matches any /.well-known/oauth-* URL, including
+			// one that belongs to another plugin or to a future core feature.
+			// Answering 404 + exit there made BetterLinks break their discovery
+			// even with MCP switched off, and with it on it handed a client
+			// looking for someone else's authorization server our metadata.
+			// Claim only requests for this site's own MCP resource; otherwise
+			// fall through and let WordPress serve the URL as it normally would.
+			if ( ! self::is_enabled() || ! self::wellknown_request_is_ours() ) {
+				return;
 			}
 			$doc  = (string) $wp->query_vars[ self::WELLKNOWN_QUERY_VAR ];
 			$data = 'authorization-server' === $doc
@@ -280,15 +282,6 @@ final class Mcp_Manager {
 		$auth = self::server_header( 'authorization' );
 		if ( null !== $auth ) {
 			$request->set_header( 'authorization', $auth );
-		}
-		// Token embedded in the URL path (/betterlinks/mcp/<token>) — surface it
-		// as a Bearer header so Mcp_Server validates it the same way. A real
-		// Authorization header (if also sent) takes precedence.
-		$path_token = isset( $wp->query_vars[ self::TOKEN_QUERY_VAR ] )
-			? (string) $wp->query_vars[ self::TOKEN_QUERY_VAR ]
-			: '';
-		if ( '' !== $path_token && '' === (string) $request->get_header( 'authorization' ) ) {
-			$request->set_header( 'authorization', 'Bearer ' . $path_token );
 		}
 		$request->set_body( (string) file_get_contents( 'php://input' ) );
 
@@ -623,6 +616,18 @@ final class Mcp_Manager {
 		if ( ! self::is_enabled() ) {
 			return new \WP_Error( 'betterlinks_mcp_disabled', __( 'MCP is disabled on this site.', 'betterlinks' ), [ 'status' => 403 ] );
 		}
+		// Unauthenticated by design (a client registers before it has any
+		// credential), and every call rewrites the whole client option. Without a
+		// ceiling that is an anonymous write loop, and a flood past the client cap
+		// evicts registrations that admins are part-way through approving.
+		if ( Mcp_Rate_Limiter::is_locked() ) {
+			return new \WP_Error(
+				'betterlinks_mcp_rate_limited',
+				__( 'Too many registration attempts. Try again later.', 'betterlinks' ),
+				[ 'status' => 429 ]
+			);
+		}
+		Mcp_Rate_Limiter::record_failure();
 		$body = $request->get_json_params();
 		if ( ! is_array( $body ) ) {
 			$body = [];
@@ -641,6 +646,19 @@ final class Mcp_Manager {
 	 * @return \WP_REST_Response
 	 */
 	public function rest_oauth_token( \WP_REST_Request $request ): \WP_REST_Response {
+		// Same reasoning as registration: unauthenticated, and each call reads and
+		// rewrites the shared OAuth option.
+		if ( self::is_enabled() && Mcp_Rate_Limiter::is_locked() ) {
+			$response = new \WP_REST_Response(
+				[
+					'error'             => 'invalid_request',
+					'error_description' => 'Too many attempts. Try again later.',
+				],
+				429
+			);
+			$response->header( 'Retry-After', (string) Mcp_Rate_Limiter::retry_after() );
+			return $response;
+		}
 		if ( ! self::is_enabled() ) {
 			$response = new \WP_REST_Response(
 				[
@@ -698,6 +716,13 @@ final class Mcp_Manager {
 	 * @return void
 	 */
 	public function handle_authorize_page(): void {
+		// The consent and error pages must never render inside a third-party frame
+		// (clickjacking on the Approve button).
+		if ( ! headers_sent() ) {
+			send_frame_options_header();
+			header( "Content-Security-Policy: frame-ancestors 'none'" );
+		}
+
 		$is_post = isset( $_SERVER['REQUEST_METHOD'] ) && 'POST' === strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) );
 		// Params come from GET on the consent link and POST on the form submit.
 		// Nonce is verified below before any POST value is acted on.
@@ -708,15 +733,23 @@ final class Mcp_Manager {
 		foreach ( [ 'client_id', 'redirect_uri', 'response_type', 'code_challenge', 'code_challenge_method', 'scope', 'state', 'approve', 'deny', '_betterlinks_oauth_nonce' ] as $k ) {
 			$params[ $k ] = isset( $source[ $k ] ) ? sanitize_text_field( wp_unslash( $source[ $k ] ) ) : '';
 		}
+		// OAuth requires `state` to round-trip byte-for-byte and sanitize_text_field()
+		// can alter it. Treat it as opaque: strip control characters and cap the
+		// length. It is only ever output through esc_attr() or rawurlencode().
+		$params['state'] = isset( $source['state'] ) && is_string( $source['state'] )
+			? substr( (string) preg_replace( '/[\x00-\x1F\x7F]/', '', wp_unslash( $source['state'] ) ), 0, 1024 )
+			: '';
 
 		// Validate the OAuth params before touching the session.
 		$req = Mcp_OAuth::validate_authorize_request( $params );
 		if ( is_wp_error( $req ) ) {
 			$data         = $req->get_error_data();
 			$redirectable = is_array( $data ) && ! empty( $data['redirectable'] );
-			// Only redirect the error back when redirect_uri is verified valid;
-			// otherwise show a page (never bounce to an unverified URL).
-			if ( $redirectable && '' !== $params['redirect_uri'] ) {
+			// Only redirect the error back when redirect_uri is verified valid and
+			// an administrator is present; otherwise show a page. Client
+			// registration is public, so bouncing anonymous visitors to a
+			// registered redirect_uri would be an open redirect.
+			if ( $redirectable && '' !== $params['redirect_uri'] && is_user_logged_in() && current_user_can( 'manage_options' ) ) {
 				$this->redirect_error( $params['redirect_uri'], $req->get_error_code(), $req->get_error_message(), $params['state'] );
 			}
 			$this->emit_oauth_error_page( $req->get_error_message() );
@@ -734,7 +767,7 @@ final class Mcp_Manager {
 
 		// POST = consent form submitted.
 		if ( $is_post ) {
-			if ( ! wp_verify_nonce( $params['_betterlinks_oauth_nonce'], 'betterlinks_oauth_consent' ) ) {
+			if ( ! wp_verify_nonce( $params['_betterlinks_oauth_nonce'], self::consent_nonce_action( $req ) ) ) {
 				$this->emit_oauth_error_page( __( 'Security check failed. Please try connecting again.', 'betterlinks' ) );
 			}
 			if ( '' === $params['approve'] ) {
@@ -786,7 +819,7 @@ final class Mcp_Manager {
 		}
 		// Not wp_safe_redirect: redirect_uri is a client-registered off-site
 		// callback, already validated against the client's registered set.
-		wp_redirect( add_query_arg( $args, $redirect_uri ) ); // phpcs:ignore WordPress.Security.SafeRedirect -- validated OAuth redirect_uri.
+		wp_redirect( add_query_arg( array_map( 'rawurlencode', $args ), $redirect_uri ) ); // phpcs:ignore WordPress.Security.SafeRedirect -- validated OAuth redirect_uri.
 		exit;
 	}
 
@@ -827,7 +860,7 @@ final class Mcp_Manager {
 			: __( 'Create and manage short links, categories, tags and settings, and read click analytics.', 'betterlinks' );
 		$client     = '' !== $req['client_name'] ? $req['client_name'] : __( 'An AI assistant', 'betterlinks' );
 		$action_url = Mcp_OAuth::authorize_url();
-		$nonce      = wp_create_nonce( 'betterlinks_oauth_consent' );
+		$nonce      = wp_create_nonce( self::consent_nonce_action( $req ) );
 		$user       = wp_get_current_user();
 
 		// Preserve every OAuth param so the POST re-validates identically.
@@ -933,6 +966,52 @@ final class Mcp_Manager {
 	 * @param string $message Error message.
 	 * @return void
 	 */
+	/**
+	 * Whether the current /.well-known/oauth-* request is asking about this
+	 * site's MCP resource, rather than some other plugin's.
+	 *
+	 * The bare form carries no resource path, so it stays ours: it is the
+	 * fallback clients try when they cannot build the path-suffixed URL.
+	 *
+	 * @return bool
+	 */
+	private static function wellknown_request_is_ours(): bool {
+		$uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) wp_unslash( $_SERVER['REQUEST_URI'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- compared, never output.
+		$path = (string) wp_parse_url( $uri, PHP_URL_PATH );
+		$path = '/' . trim( $path, '/' );
+
+		$home = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+		$home = '/' === $home ? '' : '/' . trim( $home, '/' );
+		if ( '' !== $home && 0 === strpos( $path, $home ) ) {
+			$path = '/' . ltrim( substr( $path, strlen( $home ) ), '/' );
+		}
+
+		if ( preg_match( '#^/\.well-known/oauth-(protected-resource|authorization-server)$#', $path ) ) {
+			return true;
+		}
+
+		return (bool) preg_match(
+			'#^/\.well-known/oauth-(protected-resource|authorization-server)/betterlinks/mcp$#',
+			$path
+		);
+	}
+
+	/**
+	 * Nonce action bound to the specific OAuth request being approved.
+	 *
+	 * A single per-user action meant one nonce approved any client: whoever
+	 * obtained it could swap in their own client_id and PKCE challenge and have
+	 * the admin's approval apply to their registration instead. Binding the
+	 * action to the client and challenge makes a nonce usable only for the
+	 * request it was rendered for.
+	 *
+	 * @param array<string,string> $req Validated authorize request.
+	 * @return string
+	 */
+	private static function consent_nonce_action( array $req ): string {
+		return 'betterlinks_oauth_consent|' . ( $req['client_id'] ?? '' ) . '|' . ( $req['code_challenge'] ?? '' );
+	}
+
 	private function emit_oauth_error_page( string $message ): void {
 		status_header( 400 );
 		header( 'Content-Type: text/html; charset=utf-8' );

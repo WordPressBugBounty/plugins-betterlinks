@@ -55,6 +55,22 @@ class Get_Settings extends Ability_Base {
 	}
 
 	public function execute( $input ) {
-		return $this->dispatch( 'GET', '/settings' );
+		$result = $this->dispatch( 'GET', '/settings' );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		// The controller answers with the settings as a JSON-encoded STRING,
+		// because that is what the admin app expects. A tool caller then has to
+		// parse a string out of an already-parsed response, which reads as a bug
+		// and trips clients that do not try. Hand back an object.
+		if ( isset( $result['data'] ) && is_string( $result['data'] ) ) {
+			$decoded = json_decode( $result['data'], true );
+			if ( is_array( $decoded ) ) {
+				$result['data'] = $decoded;
+			}
+		}
+
+		return $result;
 	}
 }

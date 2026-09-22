@@ -2,12 +2,12 @@
 Contributors: wpdevteam, re_enter_rupok, asif2bd, priyomukul, hasandev
 Donate link: https://wpdeveloper.com
 Tags: link shortener, affiliate links, redirects, link cloaking, url shortener
-Requires at least: 5.3
+Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.1.3
-License: GPLv3 or later
-License URI: http://www.gnu.org/licenses/gpl-3.0.html
+Stable tag: 3.1.4
+License: GPL-3.0-or-later
+License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
 Shorten, cloak, redirect & track every link in WordPress. Branded short URLs, click analytics, affiliate links & MCP access for AI assistants.
 
@@ -27,7 +27,7 @@ BetterLinks now ships a built-in **MCP (Model Context Protocol) server**, so AI 
 
 Ask your assistant to *"create a short link for this affiliate offer"*, *"which links got the most clicks last month?"* or *"put every Black Friday link in its own category"*, and it does the work inside your own dashboard.
 
-* **Runs on your own site** — no hosted broker and no third-party service; your links and click data never leave your server
+* **Runs on your own site** — no hosted broker in between; link and analytics data is only shared with the AI assistant you connect, when that assistant uses a tool
 * **14 built-in tools** — create, update and delete links, manage categories and tags, read click analytics, and read or update settings
 * **Two ways to connect** — a one-time OAuth approval for Claude and ChatGPT, or a copy-paste command for Claude Code, Cursor and VS Code
 * **Off by default** — nothing is exposed to anyone until you switch it on in **BetterLinks → MCP**
@@ -68,7 +68,7 @@ Know which links actually work. BetterLinks records every click and turns it int
 * **Total & unique clicks** for every link
 * **Real-time analytics dashboard** with an interactive date-range calendar
 * **Traffic sources** — top referrers, social clicks, campaign performance
-* **Geographic reports** — see which countries your clicks come from
+* **Geographic reports (PRO)** — see which countries your clicks come from
 * **Browser, OS & device breakdown (PRO)**
 * **Per-link analytics (PRO)** — a full report for any single link
 * **Top & worst performers (PRO)** — find your winners and your dead weight
@@ -133,7 +133,7 @@ Move your existing links across in one click — no CSV wrangling, no lost redir
 * **Your data stays yours** — links and analytics live in your own WordPress database
 * **No per-click pricing** — unlike hosted URL shorteners
 * **Built for scale** — thousands of links without slowing your site down
-* **Actively maintained** by [WPDeveloper](https://wpdeveloper.com/), trusted by millions of WordPress users
+* **Actively maintained** by [WPDeveloper](https://wpdeveloper.com/)
 * **Free forever core** — shortening, redirects, categories, analytics and migration are all in the free plugin
 
 ## 🔥 Upgrade To BetterLinks PRO
@@ -144,7 +144,7 @@ Unlock the full toolkit: link cloaking, dynamic redirects with A/B split testing
 
 ## 💜 More From WPDeveloper
 
-🔝 [Essential Addons For Elementor](https://wordpress.org/plugins/essential-addons-for-elementor-lite/) – The most popular Elementor extensions library, with 2 million+ active users.
+🔝 [Essential Addons For Elementor](https://wordpress.org/plugins/essential-addons-for-elementor-lite/) – Elementor extensions library with 2 million+ active installs.
 
 👉 [Essential Blocks For Gutenberg](https://wordpress.org/plugins/essential-blocks/) – Advanced block library to supercharge the WordPress editor.
 
@@ -167,6 +167,26 @@ Unlock the full toolkit: link cloaking, dynamic redirects with A/B split testing
 * [Community support forum](https://wordpress.org/support/plugin/betterlinks/)
 * [Facebook community](https://www.facebook.com/groups/wpdeveloper.net/)
 * Loving BetterLinks? [Leave a ⭐⭐⭐⭐⭐ review](https://wordpress.org/support/plugin/betterlinks/reviews/?rate=5#new-post)
+
+== External services ==
+
+BetterLinks connects to the services below only in the cases described.
+
+= YouTube (youtube-nocookie.com) =
+
+The Quick Setup wizard embeds a getting-started video. When an administrator opens BetterLinks → Quick Setup, YouTube receives the viewer's IP address and browser details. [Terms](https://www.youtube.com/t/terms) · [Privacy](https://policies.google.com/privacy)
+
+= WPDeveloper usage insights (send.wpinsight.com) =
+
+Only if an administrator opts in. Sends site details, WordPress and PHP versions, installed plugins and theme, the admin email and BetterLinks usage stats, daily and on deactivation. Turn it off in BetterLinks → Settings → Tracking. [Terms](https://wpdeveloper.com/terms-and-conditions/) · [Privacy](https://wpdeveloper.com/privacy-policy/)
+
+= ip-api.com =
+
+Only with the usage insights above: the administrator's IP address is sent once, on opt-in, to look up the site's country. [Legal & privacy](https://ip-api.com/docs/legal)
+
+= AI assistants you connect over MCP =
+
+Off by default. A connected assistant receives only the link, category and analytics data returned by the tools it calls; the assistant provider's own terms and privacy policy apply.
 
 == Installation ==
 
@@ -209,7 +229,7 @@ Yes. Every short link is served from your own site by default, and BetterLinks P
 
 = Does BetterLinks track link clicks and analytics? =
 
-Yes. BetterLinks records total and unique clicks, referrers, countries, browsers and devices, with a real-time dashboard and date-range filtering. Bot traffic is filtered out automatically.
+Yes. BetterLinks records total and unique clicks and referrers, with a real-time dashboard and date-range filtering. Bot traffic is filtered out automatically. BetterLinks PRO adds country, browser and device reports.
 
 = Can I use BetterLinks for affiliate link management? =
 
@@ -265,6 +285,15 @@ Any MCP-capable client. The setup screen has ready-made instructions for Claude 
 6. AI Bulk Link Generator — create short links for many posts at once
 
 == Changelog ==
+
+= 3.1.4 - 22/09/2026 =
+
+- Improvement: Added compatibility alert and update notice
+- Improvement: MCP connector now has more tools, asks for confirmation before destructive actions and uses a more secure connection
+- Fixed: Redirect loops between short links
+- Fixed: Instant Redirect not applying in the block editor after a refused save
+- Security: Improved plugin security enhancements
+- Few minor bug fixes & improvements
 
 = 3.1.3 - 10/09/2026 =
 
@@ -518,6 +547,9 @@ Any MCP-capable client. The setup screen has ready-made instructions for Claude 
 [See changelog for all versions](https://betterlinks.io/changelog/).
 
 == Upgrade Notice ==
+
+= 3.1.4 =
+Update BetterLinks and BetterLinks Pro together: Pro features in this release need BetterLinks Pro 3.0.4 or later. Your links, analytics and settings are kept.
 
 = 3.1.0 =
 Adds the BetterLinks MCP connector, so Claude, ChatGPT, Cursor and other AI assistants can manage your links for you. It is off by default — enable it under BetterLinks → MCP. Also fixes a junk category being created when the default category setting held an invalid value.

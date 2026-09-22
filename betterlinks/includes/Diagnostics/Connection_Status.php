@@ -150,9 +150,9 @@ class Connection_Status {
 	}
 
 	/**
-	 * Link inventory — what an agent would actually find to work with. The
-	 * counterpart to ThinkRank's scoring row: a connector that authenticates
-	 * against an empty site looks broken, so surface the numbers.
+	 * Link inventory — what an agent would actually find to work with. A
+	 * connector that authenticates against an empty site looks broken, so
+	 * surface the numbers.
 	 *
 	 * @return array<string, int>
 	 */

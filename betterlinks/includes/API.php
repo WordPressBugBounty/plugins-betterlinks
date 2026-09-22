@@ -9,9 +9,7 @@ class API {
 		new API\Links();
 		new API\Terms();
 		new API\Clicks();
-		new API\Geolocation();
 		new API\QuickLink();
-		new API\AIBulkLinks();
 	}
 	public static function dispatch_hook() {
 		$self = new self();

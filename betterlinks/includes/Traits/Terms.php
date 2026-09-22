@@ -8,7 +8,7 @@ trait Terms {
 
 	public function tags_analytic( $force_refresh = false ) {
 
-		$analytic = get_option( 'btl_tags_analytics', array() );
+		$analytic = get_option( 'betterlinks_tags_analytics', array() );
 		if ( !$force_refresh && count( $analytic ) > 0 ) {
 			return $analytic;
 		}
@@ -42,7 +42,7 @@ trait Terms {
 			'total_clicks'  => $prepare_total_clicks,
 			'unique_clicks' => $prepare_unique_clicks,
 		);
-		update_option( 'btl_tags_analytics', $analytic );
+		update_option( 'betterlinks_tags_analytics', $analytic );
 		return $analytic;
 	}
 
@@ -53,7 +53,7 @@ trait Terms {
 	}
 
 	public function categories_analytic( $force_refresh = false ) {
-		$analytic = get_option( 'btl_categories_analytics', array() );
+		$analytic = get_option( 'betterlinks_categories_analytics', array() );
 		if ( !$force_refresh && count( $analytic ) > 0 ) {
 			return $analytic;
 		}
@@ -87,7 +87,7 @@ trait Terms {
 			'total_clicks'  => $prepare_total_clicks,
 			'unique_clicks' => $prepare_unique_clicks,
 		);
-		update_option( 'btl_categories_analytics', $analytic );
+		update_option( 'betterlinks_categories_analytics', $analytic );
 		return $analytic;
 	}
 

@@ -8,7 +8,7 @@ class Metabox {
     private $is_pro_enabled;
     public static function init() {
         $self = new self();
-        $self->is_pro_enabled = apply_filters('betterlinks/pro_enabled', false);
+        $self->is_pro_enabled = \BetterLinks\Helper::is_pro_active();
         add_action('add_meta_boxes', [$self, 'add_auto_create_shortlink_teaser'], 10, 2);
         add_action('add_meta_boxes', [$self, 'add_affiliate_disclosure_teaser'], 10, 2);
         add_action('add_meta_boxes', [$self, 'add_ai_link_assistant_teaser'], 10, 2);

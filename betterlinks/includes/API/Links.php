@@ -167,8 +167,9 @@ class Links extends Controller
         // would silently become unreachable. Sites can opt out via the
         // `betterlinks/skip_wp_url_collision_check` filter. Instant Redirect
         // shadows the edited post's own permalink by design and says so with
-        // `instant_redirect_post_id`, which exempts just that one path.
-        $invalid = $this->validate_link_payload($args, false, $this->resolve_instant_redirect_post_id($request));
+        // `instant_redirect_post_id`, which exempts just that one path. Any other
+        // collision can be kept when the user confirmed it (`allow_wp_url_override`).
+        $invalid = $this->validate_link_payload($args, false, $this->resolve_instant_redirect_post_id($request), $this->resolve_wp_url_override($request));
         if (is_wp_error($invalid)) {
             return $this->rejection_response($invalid);
         }
@@ -214,7 +215,7 @@ class Links extends Controller
         // Same collision gate as create, plus the uniqueness check the update
         // branch never had. Skipped when short_url is unchanged, so ordinary
         // edits to existing links keep working.
-        $invalid = $this->validate_link_payload($args, true, $this->resolve_instant_redirect_post_id($request));
+        $invalid = $this->validate_link_payload($args, true, $this->resolve_instant_redirect_post_id($request), $this->resolve_wp_url_override($request));
         if (is_wp_error($invalid)) {
             return $this->rejection_response($invalid);
         }

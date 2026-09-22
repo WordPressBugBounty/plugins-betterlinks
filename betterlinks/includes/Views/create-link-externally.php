@@ -71,9 +71,6 @@ if ( empty( $prevent_unwanted_click ) ) {
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title><?php esc_html_e( '🎉 Here is your Quick Link', 'betterlinks' ); ?></title>
-	<link rel="preconnect" href="https://fonts.googleapis.com">
-	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"> <?php // phpcs:ignore ?>
 	<?php wp_print_styles( 'betterlinks-cle' ); ?>
 	<?php wp_site_icon(); ?>
 </head>

@@ -3,13 +3,13 @@
  * Plugin Name:		BetterLinks
  * Plugin URI:		https://betterlinks.io/
  * Description:		Create, shorten, cloak, track and manage any URL. Gather click analytics, run marketing campaigns, and connect AI assistants over MCP.
- * Version:			3.1.3
+ * Version:			3.1.4
  * Author:			WPDeveloper
  * Author URI:		https://wpdeveloper.com
- * License:			GPL-3.0+
- * License URI:		http://www.gnu.org/licenses/gpl-3.0.txt
+ * License:			GPL-3.0-or-later
+ * License URI:		https://www.gnu.org/licenses/gpl-3.0.html
+ * Requires at least:	6.2
  * Requires PHP:	7.4
- * Author URI:		https://wpdeveloper.com
  * Text Domain:		betterlinks
  * Domain Path:		/languages
  */
@@ -43,6 +43,8 @@ if (!class_exists('BetterLinks')) {
     final class BetterLinks
     {
         private $Installer;
+        /** Whether rendered output on this request contains BetterLinks linked text. */
+        private $frontend_app_needed = false;
         private $upload_dir;
         private function __construct()
         {
@@ -61,6 +63,13 @@ if (!class_exists('BetterLinks')) {
             add_action('admin_init', [$this, 'quick_setup']);
             $this->dispatch_hook();
             add_action( 'wp_enqueue_scripts', [$this, 'frontend_scripts'] );
+            // Watch rendered output for linked text from the start of the request: block
+            // themes render the whole template before `wp_enqueue_scripts` runs.
+            if ( ! is_admin() ) {
+                add_filter( 'the_content', [ $this, 'maybe_enqueue_frontend_app' ], 999 );
+                add_filter( 'render_block', [ $this, 'maybe_enqueue_frontend_app' ], 999 );
+                add_filter( 'widget_text', [ $this, 'maybe_enqueue_frontend_app' ], 999 );
+            }
         }
 
         public function do_the_works_if_failed_during_activation()
@@ -101,7 +110,7 @@ if (!class_exists('BetterLinks')) {
             /**
              * Defines CONSTANTS for Whole plugins.
              */
-            define('BETTERLINKS_VERSION', '3.1.3');
+            define('BETTERLINKS_VERSION', '3.1.4');
             define('BETTERLINKS_DB_VERSION', '1.6.11');
             define('BETTERLINKS_MENU_NOTICE', '10');
             define('BETTERLINKS_SETTINGS_NAME', 'betterlinks_settings');
@@ -120,7 +129,15 @@ if (!class_exists('BetterLinks')) {
             define('BETTERLINKS_CACHE_LINKS_NAME', 'betterlinks_cache_links_data');
             define('BETTERLINKS_DB_ALTER_OPTIONS', 'betterlinks_db_alter_options');
             define('BETTERLINKS_CUSTOM_DOMAIN_MENU', 'betterlinks_custom_domain_menu');
+            // Option name only: BetterLinks Pro stores AI provider keys under it, and the
+            // settings cache must keep excluding it.
             define('BETTERLINKS_AI_API_KEYS_OPTION_NAME', 'betterlinks_ai_api_keys');
+            // Version of the extension points BetterLinks Pro builds on (hooks that
+            // replaced Pro implementations formerly bundled in this plugin). Pro
+            // checks it to decide whether it must provide those features itself.
+            define('BETTERLINKS_EXTENSION_API_VERSION', 1);
+            // Oldest BetterLinks Pro that supports this extension API.
+            define('BETTERLINKS_MIN_PRO_VERSION', '3.0.4');
         }
 
         public function upload_dir_path()
@@ -169,13 +186,24 @@ if (!class_exists('BetterLinks')) {
         {
             $GLOBALS['betterlinks'] = BetterLinks\Helper::get_links();
             $settings = Cache::get_json_settings();
-            $auto_create_link_settings = defined('BETTERLINKS_PRO_AUTO_LINK_CREATE_OPTION_NAME') ? get_option( BETTERLINKS_PRO_AUTO_LINK_CREATE_OPTION_NAME, array() ) : array();
-            if ( is_string( $auto_create_link_settings ) ) {
-                $auto_create_link_settings = json_decode( $auto_create_link_settings, true );
-            }
             $settings = is_array($settings) ? $settings : array();
-            $auto_create_link_settings = is_array( $auto_create_link_settings ) ? $auto_create_link_settings : array();
-            $GLOBALS['betterlinks_settings'] = array_merge( $settings, $auto_create_link_settings );
+            // Compatibility: BetterLinks Pro before 3.0.4 expects its auto-create link
+            // settings merged in here. Newer Pro adds them through the filter below.
+            if ( BetterLinks\Helper::pro_needs_update() && defined('BETTERLINKS_PRO_AUTO_LINK_CREATE_OPTION_NAME') ) {
+                $auto_create_link_settings = get_option( BETTERLINKS_PRO_AUTO_LINK_CREATE_OPTION_NAME, array() );
+                if ( is_string( $auto_create_link_settings ) ) {
+                    $auto_create_link_settings = json_decode( $auto_create_link_settings, true );
+                }
+                $settings = array_merge( $settings, is_array( $auto_create_link_settings ) ? $auto_create_link_settings : array() );
+            }
+            /**
+             * Filters the global BetterLinks settings array. Runs while the plugin file
+             * loads, so listeners must be added before that (BetterLinks Pro adds its
+             * auto-create link settings from its own constructor).
+             *
+             * @param array $settings Settings.
+             */
+            $GLOBALS['betterlinks_settings'] = apply_filters( 'betterlinks/global_settings', $settings );
         }
 
         public function run_migrator()
@@ -189,6 +217,10 @@ if (!class_exists('BetterLinks')) {
                 // version can therefore describe categories wrongly forever — drop it
                 // once per upgrade so the first dashboard load rebuilds it fresh.
                 BetterLinks\Helper::clear_query_cache();
+                // Rewrite links.json so it no longer carries settings that older
+                // versions merged into it (BetterLinks Pro analytics credentials).
+                BetterLinks\Helper::rebuild_links_json();
+                BetterLinks\Helper::migrate_legacy_option_names();
                 $this->Installer->data($this->Installer->migration)->save()->dispatch();
                 BetterLinks\Helper::btl_update_option('betterlinks_activation_flag', [
                     "last_activation_timestamp" => time(),
@@ -247,10 +279,11 @@ if (!class_exists('BetterLinks')) {
         }
 
         public function frontend_scripts() {
-			$dependencies = include_once BETTERLINKS_ASSETS_DIR_PATH . 'js/betterlinks.app.core.min.asset.php';
+			$dependencies = include BETTERLINKS_ASSETS_DIR_PATH . 'js/betterlinks.app.core.min.asset.php';
 
-			// Enqueue main app script (geolocation logic is bundled inside)
-			wp_enqueue_script( 'betterlinks-app', BETTERLINKS_ASSETS_URI . 'js/betterlinks.app.core.min.js', [ 'jquery' ], $dependencies['version'], true );
+			// Click-tracking beacon. Extensions can add fields through the `betterlinks:beforeBeacon` event.
+			// Registered here, enqueued only on pages that print BetterLinks-linked text.
+			wp_register_script( 'betterlinks-app', BETTERLINKS_ASSETS_URI . 'js/betterlinks.app.core.min.js', [ 'jquery' ], $dependencies['version'], true );
 
             // Deliberately no `betterlinks_admin_nonce` here. This runs on every
             // public page, and a nonce is bound to the session rather than to a
@@ -263,8 +296,49 @@ if (!class_exists('BetterLinks')) {
                 'site_url' => apply_filters('betterlinks/site_url', site_url()),
                 'rest_url' => rest_url(),
                 'nonce' => wp_create_nonce('wp_rest'),
-                'betterlinkspro_version' => defined('BETTERLINKS_PRO_VERSION') ? BETTERLINKS_PRO_VERSION : null,
             ]);
+
+            /**
+             * Filters whether the click-tracking script loads on every public page.
+             * Use it when linked text is printed outside post content, blocks and widgets.
+             *
+             * @param bool $force Default false.
+             */
+            if ( $this->frontend_app_needed || apply_filters( 'betterlinks/frontend/force_load_app_script', false ) ) {
+                $this->enqueue_frontend_app();
+            }
+        }
+
+        /**
+         * Enqueue the click-tracking script once rendered output contains linked text.
+         *
+         * @param string $content Rendered content.
+         * @return string Unchanged content.
+         */
+        public function maybe_enqueue_frontend_app( $content ) {
+            if ( ! $this->frontend_app_needed && is_string( $content ) && false !== strpos( $content, 'betterlinks-linked-text' ) ) {
+                $this->frontend_app_needed = true;
+                // Content rendered after `wp_enqueue_scripts` (classic themes): enqueue now,
+                // the script prints in the footer. Otherwise frontend_scripts() enqueues it.
+                if ( did_action( 'wp_enqueue_scripts' ) ) {
+                    $this->enqueue_frontend_app();
+                }
+            }
+            return $content;
+        }
+
+        public function enqueue_frontend_app() {
+            if ( did_action( 'betterlinks/frontend/app_script_enqueued' ) || ! wp_script_is( 'betterlinks-app', 'registered' ) ) {
+                return;
+            }
+            remove_filter( 'the_content', [ $this, 'maybe_enqueue_frontend_app' ], 999 );
+            remove_filter( 'render_block', [ $this, 'maybe_enqueue_frontend_app' ], 999 );
+            remove_filter( 'widget_text', [ $this, 'maybe_enqueue_frontend_app' ], 999 );
+            wp_enqueue_script( 'betterlinks-app' );
+            /**
+             * Fires once the click-tracking script is enqueued, so extensions can enqueue theirs next to it.
+             */
+            do_action( 'betterlinks/frontend/app_script_enqueued' );
         }
     }
 }

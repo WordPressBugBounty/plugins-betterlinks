@@ -16,10 +16,10 @@ class PrettyLinks extends MigrationNotice
     {
         $self = new self();
         if(defined('PRLI_VERSION')){
-            $self::$failed_links = \BetterLinks\Helper::btl_get_option("btl_failed_migration_prettylinks_links");
-            $self::$failed_clicks = \BetterLinks\Helper::btl_get_option("btl_failed_migration_prettylinks_clicks");
-            $self::$total_successful_links = \BetterLinks\Helper::btl_get_option("btl_migration_prettylinks_current_successful_links_count");
-            $self::$total_successful_clicks = \BetterLinks\Helper::btl_get_option("btl_migration_prettylinks_current_successful_clicks_count");
+            $self::$failed_links = \BetterLinks\Helper::btl_get_option("betterlinks_failed_migration_prettylinks_links");
+            $self::$failed_clicks = \BetterLinks\Helper::btl_get_option("betterlinks_failed_migration_prettylinks_clicks");
+            $self::$total_successful_links = \BetterLinks\Helper::btl_get_option("betterlinks_migration_prettylinks_current_successful_links_count");
+            $self::$total_successful_clicks = \BetterLinks\Helper::btl_get_option("betterlinks_migration_prettylinks_current_successful_clicks_count");
             if (!get_option('betterlinks_notice_ptl_migrate')) {
                 global $pagenow;
                 $self::$pagenow = $pagenow;
