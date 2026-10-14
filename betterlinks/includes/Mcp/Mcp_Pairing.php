@@ -142,7 +142,8 @@ final class Mcp_Pairing {
 	}
 
 	/**
-	 * The admin user the connection runs as (the token's minter).
+	 * The user the token acts as: whoever created it or last reset it. Only
+	 * administrators may do either, and the token only works while they are one.
 	 *
 	 * @return int
 	 */
@@ -153,11 +154,26 @@ final class Mcp_Pairing {
 	/**
 	 * Whether an MCP connection token is currently active for this site.
 	 *
+	 * A token counts only while an administrator owns it. The token acts as its
+	 * owner, and it is shared by every header-based client on the site, so a
+	 * token owned by anyone else (left behind by the #125 build, which let MCP
+	 * roles reset it) is treated as not connected until an administrator resets
+	 * it. See #127.
+	 *
 	 * @return bool
 	 */
 	public static function is_connected(): bool {
 		$state = self::state();
-		return $state['connected'] && '' !== $state['site_token'];
+		return $state['connected'] && '' !== $state['site_token'] && self::owner_is_admin();
+	}
+
+	/**
+	 * Whether the token's owner is currently an administrator.
+	 *
+	 * @return bool
+	 */
+	public static function owner_is_admin(): bool {
+		return Mcp_Access::is_admin( self::user_id() );
 	}
 
 	/**
@@ -196,6 +212,61 @@ final class Mcp_Pairing {
 			// A drop-in instruction the user can paste into their AI client so
 			// it sets the connection up itself.
 			'ai_prompt'         => self::ai_prompt(),
+		];
+	}
+
+	/**
+	 * The MCP page's status for a user who has MCP but is not an administrator.
+	 *
+	 * Carries no connection token. That token is shared site-wide and acts as
+	 * the administrator who owns it, so handing it to anyone else would let them
+	 * act as that administrator. These users connect by signing in (OAuth),
+	 * which every supported client can do, and their connection acts as them.
+	 *
+	 * @return array<string,mixed>
+	 */
+	public static function member_status(): array {
+		return [
+			// Nothing to prepare: sign-in needs only the endpoint and MCP on.
+			'connected'         => Mcp_Manager::is_enabled(),
+			'connection_token'  => '',
+			'signin_only'       => true,
+			'mcp_endpoint'      => self::site_endpoint(),
+			'mcp_endpoint_rest' => self::site_endpoint_fallback(),
+			'connected_at'      => 0,
+			'last_used'         => 0,
+			'scopes'            => [],
+			'read_only'         => false,
+			'config'            => self::signin_snippets(),
+			'ai_prompt'         => self::ai_prompt( true ),
+		];
+	}
+
+	/**
+	 * Connection recipes that sign in instead of carrying a token.
+	 *
+	 * Claude Code, Cursor and VS Code all run the OAuth flow themselves when a
+	 * remote server answers 401 with this site's discovery metadata, so the URL
+	 * alone is enough.
+	 *
+	 * @return array{cli:string,json:string}
+	 */
+	public static function signin_snippets(): array {
+		$endpoint = self::site_endpoint();
+		$json     = wp_json_encode(
+			[
+				'mcpServers' => [
+					'betterlinks' => [
+						'url' => $endpoint,
+					],
+				],
+			],
+			JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+		);
+
+		return [
+			'cli'  => sprintf( 'claude mcp add betterlinks %s --transport http', $endpoint ),
+			'json' => is_string( $json ) ? $json : '',
 		];
 	}
 
@@ -251,11 +322,31 @@ final class Mcp_Pairing {
 	 *
 	 * @return string
 	 */
-	public static function ai_prompt(): string {
+	public static function ai_prompt( bool $signin = false ): string {
+		$endpoint = self::site_endpoint();
+		if ( $signin ) {
+			$prompt = implode(
+				"\n",
+				[
+					'Add the following remote MCP server to your connections so you can manage links on my WordPress site, then use it.',
+					'',
+					'Server name: BetterLinks',
+					'Server URL: ' . $endpoint,
+					'Transport: streamable HTTP',
+					'Authentication: OAuth. Do not add a token; you will be sent to my site to sign in and approve access.',
+					'',
+					'If you use the Claude Code CLI, this is the command:',
+					'  claude mcp add betterlinks ' . $endpoint . ' --transport http',
+					'',
+					'Add it now, sign in when asked, confirm it is connected by calling its "list-links" tool, and tell me which short links you can see.',
+				]
+			);
+			/** This filter is documented below. */
+			return (string) apply_filters( 'betterlinks_mcp_ai_prompt', $prompt, false );
+		}
 		if ( ! self::is_connected() ) {
 			return '';
 		}
-		$endpoint = self::site_endpoint();
 		$access   = self::is_read_only()
 			? 'read-only (inspect links, analytics and settings only)'
 			: 'read-write (can create and manage links, terms and settings)';
@@ -300,8 +391,10 @@ final class Mcp_Pairing {
 	 * @return array<string,mixed> Public status.
 	 */
 	public static function connect( bool $read_only = false ): array {
-		$state    = self::state();
-		$existing = '' !== $state['site_token'];
+		$state = self::state();
+		// Keep an existing token only while an administrator owns it. A token
+		// owned by anyone else may have been seen by them, so it is replaced.
+		$existing = '' !== $state['site_token'] && self::owner_is_admin();
 		$token    = $existing ? $state['site_token'] : self::mint_token();
 		$scopes   = $existing && ! empty( $state['scopes'] )
 			? $state['scopes']

@@ -1,0 +1,816 @@
+// ==========================================================================
+// Customize Link Preview modal — two-pane card in the bl-* design system.
+// Shared by the free teaser (CustomizeLinkPreviewTeaser) and the Pro settings
+// form (CustomizeMetaTagLinkSettings); both render `.bl-clp`, so this sheet
+// ships in the free plugin only and Pro inherits it. Keep the two markups in
+// step when editing here.
+//
+// The social preview cards themselves (.btl-customized-link-preview-*) keep
+// their existing styles from _customize_link_preview.scss — only the panel
+// chrome around them is restyled here.
+// ==========================================================================
+$blu: var(--bl-m-accent, #2f6bff);
+$blu-dark: var(--bl-m-accent-hover, #1f57e6);
+$brd: var(--bl-m-border, #e6e8ee);
+$ttl: var(--bl-m-text, #1a2233);
+$mut: var(--bl-m-muted, #6b7280);
+$foot-bg: var(--bl-m-surface-2, #f7f8fa);
+$err: var(--bl-m-danger, #ef4444);
+$ok: #16a34a;
+$warn: #d97706;
+
+.ReactModal__Content:has(.bl-clp) {
+	padding: 0 !important;
+	border: none !important;
+	border-radius: 16px !important;
+	overflow: visible !important;
+	background: #fff !important;
+	// react-modal sizes to content (right/bottom: auto), so without a fixed
+	// width the shell resized every time a social tab with a differently sized
+	// preview card was selected. Pin it and let the panes flex instead.
+	width: 920px !important;
+	max-width: calc(100vw - 40px) !important;
+
+	> .btl-close-modal {
+		display: none !important;
+	}
+}
+
+.bl-clp {
+	* {
+		box-sizing: border-box;
+	}
+
+	display: flex;
+	flex-direction: column;
+	max-height: calc(100vh - 80px);
+	overflow: hidden;
+	background: var(--bl-m-surface);
+	border-radius: 16px;
+	color: $ttl;
+	font-family: inherit;
+	text-align: left;
+
+	// ---- Header ----------------------------------------------------------
+	&__header {
+		flex: none;
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 18px 22px;
+		border-bottom: 1px solid $brd;
+	}
+	&__heading {
+		min-width: 0;
+	}
+	&__title {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0;
+		font-size: 17px;
+		font-weight: 700;
+		line-height: 1.3;
+		color: $ttl;
+	}
+	&__subtitle {
+		margin: 3px 0 0;
+		font-size: 13px;
+		font-weight: 400;
+		line-height: 1.5;
+		color: $mut;
+	}
+	&__close {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		padding: 0;
+		border: 0;
+		border-radius: 8px;
+		background: transparent;
+		color: $mut;
+		cursor: pointer;
+		transition: background 0.15s ease, color 0.15s ease;
+
+		&:hover {
+			background: $foot-bg;
+			color: $ttl;
+		}
+		svg {
+			display: block;
+		}
+	}
+
+	// ---- Body: form pane + preview pane ----------------------------------
+	&__body {
+		flex: 1 1 auto;
+		min-height: 0;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+
+		@media (max-width: 860px) {
+			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+
+	&__pane {
+		min-width: 0;
+		overflow-y: auto;
+		padding: 22px;
+
+		scrollbar-width: thin;
+		scrollbar-color: var(--bl-m-scroll) transparent;
+		&::-webkit-scrollbar {
+			width: 6px;
+		}
+		&::-webkit-scrollbar-thumb {
+			background: var(--bl-m-scroll);
+			border-radius: 10px;
+		}
+
+		&--form {
+			display: flex;
+			flex-direction: column;
+			gap: 22px;
+		}
+		&--preview {
+			border-left: 1px solid $brd;
+			background: $foot-bg;
+
+			@media (max-width: 860px) {
+				border-left: none;
+				border-top: 1px solid $brd;
+			}
+		}
+	}
+
+	// ---- Fields ----------------------------------------------------------
+	&__field {
+		display: flex;
+		flex-direction: column;
+		gap: 7px;
+	}
+	// Label and character counter share one row, so the counter reads as part
+	// of the field rather than as another line of prose under it.
+	&__field-head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 12px;
+	}
+	&__label {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 13px;
+		font-weight: 600;
+		color: $ttl;
+
+		&.is-required::after {
+			content: '*';
+			color: $err;
+		}
+	}
+
+	&__textarea {
+		width: 100%;
+		min-height: 110px;
+		padding: 11px 13px;
+		border: 1px solid $brd;
+		border-radius: 10px;
+		background: var(--bl-m-input-bg);
+		font-family: inherit;
+		font-size: 14px;
+		font-weight: 400;
+		line-height: 1.55;
+		color: $ttl;
+		resize: vertical;
+		outline: none;
+		box-shadow: none;
+		transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+		&::placeholder {
+			color: var(--bl-m-placeholder);
+		}
+		&:focus {
+			border-color: $blu;
+			box-shadow: 0 0 0 3px var(--bl-m-accent-ring);
+		}
+		&.is-error {
+			border-color: $err;
+			box-shadow: 0 0 0 3px var(--bl-m-danger-ring);
+		}
+		&--sm {
+			min-height: 62px;
+		}
+		&:disabled {
+			background: $foot-bg;
+			color: $mut;
+			cursor: not-allowed;
+		}
+	}
+
+	// ---- Length meter ----------------------------------------------------
+	// Replaces the paragraph of guidance that used to sit under every field:
+	// the bar shows length against the recommended window at a glance, and the
+	// hint only names the target range.
+	&__counter {
+		flex: none;
+		font-size: 12px;
+		font-weight: 600;
+		color: $mut;
+		font-variant-numeric: tabular-nums;
+
+		&.is-good {
+			color: $ok;
+		}
+		&.is-over {
+			color: $err;
+		}
+	}
+	&__meter {
+		height: 3px;
+		border-radius: 999px;
+		background: $brd;
+		overflow: hidden;
+	}
+	&__meter-bar {
+		height: 100%;
+		border-radius: inherit;
+		background: $warn;
+		transition: width 0.2s ease, background-color 0.2s ease;
+
+		&.is-good {
+			background: $ok;
+		}
+		&.is-over {
+			background: $err;
+		}
+	}
+
+	&__hint {
+		font-size: 12px;
+		line-height: 1.5;
+		color: $mut;
+
+		&.is-error {
+			color: $err;
+		}
+	}
+	&__error {
+		font-size: 12px;
+		font-weight: 500;
+		color: $err;
+	}
+
+	// ---- Meta image ------------------------------------------------------
+	&__dropzone {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		width: 100%;
+		padding: 14px;
+		border: 1px dashed var(--bl-m-input-border);
+		border-radius: 10px;
+		background: var(--bl-m-input-bg);
+		text-align: left;
+		cursor: pointer;
+		transition: border-color 0.15s ease, background 0.15s ease;
+
+		&:hover {
+			border-color: $blu;
+			background: var(--bl-m-accent-soft);
+		}
+		&.is-locked {
+			cursor: pointer;
+			opacity: 0.85;
+		}
+	}
+	&__dropzone-icon {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 38px;
+		height: 38px;
+		border-radius: 9px;
+		background: var(--bl-m-accent-soft);
+		color: $blu;
+
+		svg {
+			display: block;
+		}
+	}
+	&__dropzone-text {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		font-size: 12px;
+		color: $mut;
+
+		strong {
+			font-size: 13px;
+			font-weight: 600;
+			color: $ttl;
+		}
+	}
+
+	&__thumb {
+		position: relative;
+		width: 100%;
+		border: 1px solid $brd;
+		border-radius: 10px;
+		overflow: hidden;
+		line-height: 0;
+
+		img {
+			display: block;
+			width: 100%;
+			max-height: 180px;
+			object-fit: cover;
+			cursor: pointer;
+		}
+	}
+	&__thumb-remove {
+		position: absolute;
+		top: 8px;
+		right: 8px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 30px;
+		height: 30px;
+		padding: 0;
+		border: none;
+		border-radius: 8px;
+		background: rgba(15, 23, 42, 0.65);
+		color: #fff;
+		cursor: pointer;
+		transition: background 0.15s ease;
+
+		&:hover {
+			background: $err;
+		}
+		.dashicons {
+			font-size: 16px;
+			width: 16px;
+			height: 16px;
+			line-height: 16px;
+		}
+	}
+
+	// ---- Preview pane chrome ---------------------------------------------
+	.btl-modal-customize-link-preview-box {
+		width: 100%;
+		font-family: inherit;
+
+		// The legacy preview cards carry a 300px min-width on their image, which
+		// is what pushed the shell wider on some tabs. Let them fill the pane.
+		.react-tabs__tab-panel > div {
+			width: 100%;
+			max-width: 100%;
+		}
+		img {
+			min-width: 0 !important;
+			max-width: 100%;
+		}
+
+		.btl-modal-customize-link-preview__title {
+			margin: 0 0 12px;
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: 0.06em;
+			text-transform: uppercase;
+			color: $mut;
+		}
+
+		// Segmented control, matching the Manage Links view toggle.
+		.react-tabs__tab-list {
+			display: flex;
+			gap: 4px;
+			margin: 0 0 16px;
+			padding: 4px;
+			border: 1px solid $brd;
+			border-radius: 10px;
+			background: var(--bl-m-input-bg);
+		}
+		.react-tabs__tab {
+			flex: 1 1 0;
+			border: none !important;
+			border-radius: 7px;
+			padding: 7px 10px;
+			background: transparent;
+			font-size: 12px;
+			font-weight: 600;
+			line-height: 1.2;
+			color: $mut;
+			text-align: center;
+			cursor: pointer;
+			transition: background 0.15s ease, color 0.15s ease;
+			margin-bottom: unset;
+
+			&:hover {
+				color: $ttl;
+			}
+			&--selected {
+				background: var(--bl-m-accent-soft);
+				color: $blu;
+			}
+			&::after {
+				display: none !important;
+			}
+		}
+	}
+
+	// ---- Footer ----------------------------------------------------------
+	&__footer {
+		flex: none;
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		flex-wrap: wrap;
+		gap: 10px;
+		padding: 14px 22px;
+		border-top: 1px solid $brd;
+		background: $foot-bg;
+		border-radius: 0 0 16px 16px;
+	}
+	&__footer-note {
+		margin-right: auto;
+		font-size: 13px;
+		color: $mut;
+	}
+
+	&__btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		height: 40px;
+		padding: 0 18px;
+		border: 1px solid transparent;
+		border-radius: 9px;
+		font-size: 14px;
+		font-weight: 600;
+		white-space: nowrap;
+		cursor: pointer;
+		transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+		&--primary {
+			background: $blu;
+			border-color: $blu;
+			color: #fff;
+
+			&:hover {
+				background: $blu-dark;
+				border-color: $blu-dark;
+			}
+		}
+		&--ghost {
+			background: var(--bl-m-input-bg);
+			border-color: $brd;
+			color: $ttl;
+
+			&:hover {
+				color: $blu;
+				border-color: var(--bl-m-accent-border);
+			}
+		}
+	}
+}
+
+// ==========================================================================
+// Backward-compatibility: Pro v2.8.0 Customize Link Preview
+// --------------------------------------------------------------------------
+// Old Pro ships `.btl-modal-customize-link-preview*` markup (not `.bl-clp`) and
+// injects it through `linkOptionsOptimizeMetaTags` into the same react-modal.
+// Without this it fell back to default modal chrome + a dated two-column form.
+// These rules re-skin that legacy markup into the same two-pane card. They read
+// the shared `--bl-m-*` tokens (registered in _bl-modal-tokens.scss) and use
+// `!important` to out-rank the old CSS Pro v2.8.0 still ships.
+// ==========================================================================
+
+// Strip react-modal chrome for the instance hosting the legacy container.
+.ReactModal__Content:has(.btl-modal-customize-link-preview-container) {
+	padding: 0 !important;
+	border: none !important;
+	border-radius: 16px !important;
+	overflow: hidden !important;
+	background: var(--bl-m-surface, #fff) !important;
+	width: 920px !important;
+	max-width: calc(100vw - 40px) !important;
+
+	// Legacy markup has no header close of its own — keep + restyle the shell's.
+	> .btl-close-modal {
+		position: absolute;
+		top: 14px;
+		right: 16px;
+		z-index: 4;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		margin: 0;
+		border-radius: 8px;
+		background: transparent;
+		color: $mut;
+		cursor: pointer;
+		transition: background 0.15s ease, color 0.15s ease;
+
+		&:hover {
+			background: $foot-bg;
+			color: $ttl;
+		}
+		.btl {
+			font-size: 15px;
+			line-height: 1;
+		}
+	}
+}
+
+// Two-pane card: form on the left, live preview on the right.
+.btl-modal-customize-link-preview-container {
+	display: grid !important;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+	max-height: calc(100vh - 80px);
+	color: $ttl;
+	text-align: left;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	@media (max-width: 860px) {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+// ---- Form pane -----------------------------------------------------------
+.btl-modal-customize-link-preview {
+	min-width: 0;
+	overflow-y: auto;
+	padding: 22px !important;
+	display: flex !important;
+	flex-direction: column;
+	gap: 20px;
+
+	scrollbar-width: thin;
+	scrollbar-color: var(--bl-m-scroll, rgba(107, 114, 128, 0.3)) transparent;
+	&::-webkit-scrollbar {
+		width: 6px;
+	}
+	&::-webkit-scrollbar-thumb {
+		background: var(--bl-m-scroll, rgba(107, 114, 128, 0.3));
+		border-radius: 10px;
+	}
+
+	&__title {
+		margin: 0 0 2px !important;
+		padding-right: 40px; // clear the close button
+		font-size: 17px !important;
+		font-weight: 700 !important;
+		line-height: 1.3 !important;
+		color: $ttl !important;
+	}
+
+	&__body {
+		display: flex !important;
+		flex-direction: column;
+		gap: 20px;
+	}
+
+	&__form-group {
+		display: flex !important;
+		flex-direction: column;
+		align-items: stretch !important;
+		gap: 7px;
+		margin: 0 !important;
+
+		> label {
+			display: inline-flex !important;
+			align-items: center;
+			gap: 4px;
+			width: auto !important;
+			margin: 0 !important;
+			padding: 0 !important;
+			font-size: 13px !important;
+			font-weight: 600 !important;
+			color: $ttl !important;
+
+			.required {
+				color: $err;
+			}
+		}
+
+		> div {
+			display: flex;
+			flex-direction: column;
+			gap: 6px;
+			width: 100% !important;
+		}
+
+		textarea {
+			width: 100% !important;
+			margin: 0 !important;
+			padding: 11px 13px !important;
+			border: 1px solid $brd !important;
+			border-radius: 10px !important;
+			background: var(--bl-m-input-bg, #fff) !important;
+			font-family: inherit;
+			font-size: 14px !important;
+			line-height: 1.55 !important;
+			color: $ttl !important;
+			resize: vertical;
+			outline: none !important;
+			box-shadow: none !important;
+
+			&:focus {
+				border-color: $blu !important;
+				box-shadow: 0 0 0 3px var(--bl-m-accent-ring, rgba(47, 107, 255, 0.12)) !important;
+			}
+		}
+	}
+
+	&--text-counter {
+		font-size: 12px !important;
+		font-weight: 600;
+		color: $mut;
+		font-variant-numeric: tabular-nums;
+	}
+	&--note {
+		font-size: 12px !important;
+		line-height: 1.5;
+		color: $mut !important;
+	}
+
+	// Meta image upload trigger.
+	&__btn {
+		display: inline-flex !important;
+		align-items: center;
+		gap: 8px;
+		width: auto !important;
+		min-height: 40px;
+		padding: 0 16px !important;
+		border: 1px dashed var(--bl-m-input-border, #e6e8ee) !important;
+		border-radius: 10px !important;
+		background: var(--bl-m-input-bg, #fff) !important;
+		color: $ttl !important;
+		font-size: 13px !important;
+		font-weight: 600 !important;
+		cursor: pointer;
+		transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+
+		&:hover {
+			border-color: $blu !important;
+			background: var(--bl-m-accent-soft, rgba(47, 107, 255, 0.1)) !important;
+			color: $blu !important;
+		}
+		&.dashicons-upload::before {
+			font-size: 17px;
+		}
+	}
+
+	// Save.
+	&__save_btn {
+		align-self: flex-start;
+		display: inline-flex !important;
+		align-items: center;
+		justify-content: center;
+		width: auto !important;
+		min-height: 40px;
+		padding: 0 22px !important;
+		border: 1px solid $blu !important;
+		border-radius: 9px !important;
+		background: $blu !important;
+		color: #fff !important;
+		font-size: 14px !important;
+		font-weight: 600 !important;
+		cursor: pointer;
+		transition: background 0.15s ease, border-color 0.15s ease;
+
+		&:hover {
+			background: $blu-dark !important;
+			border-color: $blu-dark !important;
+		}
+	}
+}
+
+// Meta image thumbnail + delete.
+.btl-modal-customize-link-preview .btl-image-container {
+	position: relative;
+	width: 100%;
+	border: 1px solid $brd;
+	border-radius: 10px;
+	overflow: hidden;
+	line-height: 0;
+
+	img {
+		display: block;
+		width: 100%;
+		max-height: 180px;
+		object-fit: cover;
+		cursor: pointer;
+	}
+	.btl-image-delete {
+		position: absolute;
+		top: 8px;
+		right: 8px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 30px;
+		height: 30px;
+		border-radius: 8px;
+		background: rgba(15, 23, 42, 0.65);
+		color: #fff;
+		cursor: pointer;
+		transition: background 0.15s ease;
+
+		&:hover {
+			background: $err;
+		}
+		&::before {
+			font-size: 16px;
+		}
+	}
+}
+
+// ---- Preview pane --------------------------------------------------------
+.btl-modal-customize-link-preview-container > .btl-modal-customize-link-preview-box {
+	min-width: 0;
+	overflow-y: auto;
+	padding: 22px !important;
+	border-left: 1px solid $brd;
+	background: $foot-bg;
+	font-family: inherit;
+
+	@media (max-width: 860px) {
+		border-left: none;
+		border-top: 1px solid $brd;
+	}
+
+	.react-tabs__tab-panel > div {
+		width: 100%;
+		max-width: 100%;
+	}
+	img {
+		min-width: 0 !important;
+		max-width: 100%;
+	}
+
+	.btl-modal-customize-link-preview__title {
+		margin: 0 0 12px !important;
+		padding: 0 !important;
+		font-size: 11px !important;
+		font-weight: 700 !important;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: $mut !important;
+	}
+
+	.react-tabs__tab-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		margin: 0 0 16px;
+		padding: 4px;
+		border: 1px solid $brd;
+		border-radius: 10px;
+		background: var(--bl-m-input-bg, #fff);
+	}
+	.react-tabs__tab {
+		// Size to content (long labels like "X (Formerly Twitter)" would wrap
+		// mid-word under equal-width thirds); wrap to a second row if they don't fit.
+		flex: 0 1 auto;
+		border: none !important;
+		border-radius: 7px;
+		padding: 7px 12px;
+		background: transparent;
+		font-size: 12px;
+		font-weight: 600;
+		line-height: 1.2;
+		color: $mut;
+		text-align: center;
+		white-space: nowrap;
+		cursor: pointer;
+		transition: background 0.15s ease, color 0.15s ease;
+		margin-bottom: unset;
+		bottom: 0;
+
+		&:hover {
+			color: $ttl;
+		}
+		&--selected {
+			background: var(--bl-m-accent-soft, rgba(47, 107, 255, 0.1));
+			color: $blu;
+		}
+		&::after {
+			display: none !important;
+		}
+	}
+}

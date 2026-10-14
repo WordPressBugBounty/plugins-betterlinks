@@ -116,6 +116,8 @@ class Connection_Status {
 			'id'                     => get_current_user_id(),
 			'login'                  => ( $user && $user->exists() ) ? $user->user_login : '',
 			'is_admin'               => current_user_can( 'manage_options' ),
+			// Administrators, plus roles BetterLinks Pro has granted MCP.
+			'can_use_mcp'            => \BetterLinks\Mcp\Mcp_Access::user_can(),
 			'betterlinks_capabilities' => array_values( array_filter( [ 'manage_options' ], 'current_user_can' ) ),
 		];
 	}

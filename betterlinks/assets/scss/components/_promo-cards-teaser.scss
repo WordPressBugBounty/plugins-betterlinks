@@ -1,0 +1,429 @@
+// ==========================================================================
+// Promo Cards teaser (`pages/ProductDisplayTeaser`).
+//
+// A static, locked preview of the Pro Promo Cards screen, shown to free users
+// under the shared UpgradeToProSpecial overlay + UpgradeToPro modal.
+//
+// The `.btl-pd-*` rules below are ported 1:1 from Pro
+// `_product-display-admin.scss` so the preview matches pixel-for-pixel — but
+// they are nested under `.bl-pdt`, because when Pro IS installed its own
+// (unscoped) copy of those rules loads on the same screens. Scoping keeps the
+// two from fighting; only the list view is ported, since that is all the
+// teaser renders.
+// ==========================================================================
+$pdt-blue: #2f6bff;
+$pdt-ink: #1a2233;
+$pdt-muted: #6b7280;
+$pdt-border: #e6e8ee;
+
+.bl-pdt {
+	// The overlay is absolutely positioned, so it needs a positioned ancestor.
+	&__stage {
+		position: relative;
+	}
+
+	// The replica is decoration, not a form — nothing in it should be
+	// clickable, focusable or selectable behind the overlay.
+	&__preview {
+		pointer-events: none;
+		user-select: none;
+		filter: saturate(0.92);
+	}
+
+	// Outdated-Pro users have no overlay, so the replica is made interactive:
+	// every action control accepts clicks (each surfaces the "update" toast).
+	&__preview.is-interactive {
+		pointer-events: auto;
+		user-select: auto;
+		filter: none;
+
+		.btl-pd-tab,
+		.btl-pd-btn,
+		.btl-pd-iconbtn,
+		.btl-pd-code__copy {
+			cursor: pointer;
+		}
+	}
+
+	// Selling points listed inside the UpgradeToProSpecial overlay card.
+	&__sell {
+		margin: 14px 0 0;
+		padding: 0;
+		list-style: none;
+		text-align: left;
+
+		li {
+			display: flex;
+			align-items: flex-start;
+			gap: 10px;
+			margin: 0 0 10px;
+			color: $pdt-ink;
+			font-size: 14px;
+			line-height: 1.45;
+
+			&:last-child {
+				margin-bottom: 0;
+			}
+
+			svg {
+				flex: none;
+				margin-top: 1px;
+				color: $pdt-blue;
+			}
+		}
+	}
+
+	// ---- Page shell ------------------------------------------------------
+	.btl-product-display-page {
+		font-size: 14px;
+		color: $pdt-ink;
+	}
+
+	// ---- Tabs row --------------------------------------------------------
+	.btl-pd-tabs {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		margin-bottom: 24px;
+
+		&__nav {
+			display: inline-flex;
+			gap: 4px;
+			padding: 4px;
+			border: 1px solid $pdt-border;
+			border-radius: 10px;
+			background: #f7f8fa;
+		}
+
+		&__action {
+			flex: none;
+		}
+	}
+
+	.btl-pd-tab {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 9px 22px;
+		border: 0;
+		border-radius: 8px;
+		background: transparent;
+		box-shadow: none;
+		color: $pdt-muted;
+		font-size: 14px;
+		font-weight: 600;
+		text-decoration: none;
+
+		&.is-active {
+			background: #fff;
+			color: $pdt-blue;
+			box-shadow: 0 1px 3px rgba(15, 20, 30, 0.12);
+		}
+	}
+
+	// ---- Buttons ---------------------------------------------------------
+	.btl-pd-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 9px 16px;
+		border: 1px solid transparent;
+		border-radius: 7px;
+		background: none;
+		font-size: 14px;
+		font-weight: 600;
+		line-height: 1;
+
+		.btl-pd-icon {
+			flex: 0 0 auto;
+			width: 18px;
+			height: 18px;
+		}
+
+		&--outline {
+			border-color: $pdt-blue;
+			background: #fff;
+			color: $pdt-blue;
+		}
+	}
+
+	// ---- List ------------------------------------------------------------
+	.btl-pd-list {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+
+	.btl-pd-card {
+		border: 1px solid $pdt-border;
+		border-radius: 12px;
+		background: #fff;
+		box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+
+		&--table {
+			overflow: hidden;
+		}
+	}
+
+	// ---- Table -----------------------------------------------------------
+	.btl-pd-table {
+		width: 100%;
+		border-collapse: separate;
+		border-spacing: 0;
+		background: #fff;
+		font-size: 14px;
+
+		th,
+		td {
+			padding: 16px 24px;
+			border-bottom: 1px solid #f0f1f3;
+			text-align: left;
+			vertical-align: middle;
+		}
+
+		thead th {
+			padding-top: 13px;
+			padding-bottom: 13px;
+			border-bottom: 1px solid #eceef2;
+			background: #f9fafb;
+			color: $pdt-muted;
+			font-size: 14px;
+			font-weight: 500;
+		}
+
+		tbody td {
+			color: $pdt-ink;
+		}
+
+		tbody tr:last-child td {
+			border-bottom: none;
+		}
+
+		&__name {
+			min-width: 0;
+			color: $pdt-ink;
+			font-weight: 600;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		&__template {
+			color: $pdt-muted;
+			white-space: nowrap;
+		}
+
+		&__actions-col {
+			text-align: right;
+			white-space: nowrap;
+		}
+	}
+
+	// ---- Product cell ----------------------------------------------------
+	.btl-pd-product {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		min-width: 0;
+	}
+
+	.btl-pd-thumb {
+		flex: 0 0 auto;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		border-radius: 8px;
+		background: #f2f4f7;
+		color: #98a2b3;
+		overflow: hidden;
+
+		&--orange {
+			background: #fff1e3;
+			color: #f59331;
+		}
+		&--blue {
+			background: #e8efff;
+			color: #3b76f6;
+		}
+		&--green {
+			background: #e6f8ee;
+			color: #1fa971;
+		}
+		&--purple {
+			background: #f0ebfe;
+			color: #8b5cf6;
+		}
+	}
+
+	// ---- Shortcode box ---------------------------------------------------
+	.btl-pd-code {
+		display: inline-flex;
+		align-items: stretch;
+		max-width: 320px;
+		border: 1px solid #eaecf0;
+		border-radius: 8px;
+		background: #f9fafb;
+		overflow: hidden;
+
+		&__text {
+			display: inline-block;
+			padding: 7px 12px;
+			color: #475467;
+			font-size: 13px;
+			line-height: 18px;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		&__copy {
+			flex: 0 0 auto;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 34px;
+			border-left: 1px solid #eaecf0;
+			background: #fff;
+			color: #667085;
+		}
+	}
+
+	// ---- Row actions -----------------------------------------------------
+	.btl-pd-actions {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.btl-pd-iconbtn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border: 1px solid #eaecf0;
+		border-radius: 8px;
+		background: #fff;
+		color: #667085;
+
+		&--danger {
+			color: #d92d20;
+		}
+	}
+}
+
+// ==========================================================================
+// Responsive
+// ==========================================================================
+@media screen and (max-width: 782px) {
+	.bl-pdt {
+		.btl-pd-tabs {
+			flex-direction: column;
+			align-items: stretch;
+		}
+		.btl-pd-table {
+			th,
+			td {
+				padding: 12px 14px;
+			}
+		}
+		.btl-pd-code {
+			max-width: 180px;
+		}
+	}
+}
+
+// ==========================================================================
+// Dark mode — palette matches Pro `_product-display-admin.scss`
+// ==========================================================================
+body.betterlinks-dark-mode {
+	.bl-pdt {
+		&__sell li {
+			color: #e5e9f2;
+
+			svg {
+				color: #6f97ff;
+			}
+		}
+
+		.btl-product-display-page {
+			color: #e5e9f2;
+		}
+
+		.btl-pd-tabs__nav {
+			border-color: #36405a;
+			background: #252f47;
+		}
+		.btl-pd-tab {
+			color: #9aa5bd;
+
+			&.is-active {
+				background: #36405a;
+				color: #6f97ff;
+				box-shadow: none;
+			}
+		}
+
+		.btl-pd-btn--outline {
+			background: transparent;
+		}
+
+		.btl-pd-card {
+			border-color: #36405a;
+			background: #252f47;
+		}
+
+		.btl-pd-table {
+			background: transparent;
+
+			thead th {
+				border-bottom-color: #36405a;
+				background: #1f283d;
+				color: #9aa5bd;
+			}
+
+			th,
+			td {
+				border-bottom-color: #36405a;
+			}
+
+			tbody td {
+				color: #d7dcea;
+			}
+
+			&__name {
+				color: #e5e9f2;
+			}
+			&__template {
+				color: #9aa5bd;
+			}
+		}
+
+		.btl-pd-code {
+			border-color: #36405a;
+			background: #1f283d;
+
+			&__text {
+				color: #c7cddb;
+			}
+			&__copy {
+				border-left-color: #36405a;
+				background: #252f47;
+				color: #9aa5bd;
+			}
+		}
+
+		.btl-pd-iconbtn {
+			border-color: #36405a;
+			background: #252f47;
+			color: #9aa5bd;
+
+			&--danger {
+				color: #f87171;
+			}
+		}
+	}
+}

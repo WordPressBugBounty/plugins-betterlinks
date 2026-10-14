@@ -1,0 +1,709 @@
+// ==========================================================================
+// Manage Links — BOARD
+//
+// Written from scratch under the `blb-*` namespace. The previous board
+// (`.bl-board` / `.bl-col` / `.bl-card`) is gone, so nothing here can be
+// overridden by, or collide with, a leftover legacy rule.
+//
+// ---- Layout contract -----------------------------------------------------
+//
+//   .bl-manage.is-board                                no fixed height
+//     .bl-manage__scroll                               pass-through
+//       .blb             SCROLLS X  (more columns than fit)
+//         .blb-col       height: content
+//           __head
+//           __list       height: content + the droppable
+//             .blb-card
+//           __foot
+//
+// Nothing scrolls vertically inside the board: each column is as tall as its
+// cards, the board is as tall as its tallest column, and the WINDOW scrolls.
+// That way every link in a category is reachable with the page scrollbar
+// rather than a separate one per column.
+//
+// `.blb` still scrolls horizontally, and because CSS turns `overflow-y` into a
+// scrolling value the moment `overflow-x` does, it is technically a vertical
+// scroller too — it just never has anything to scroll, since its height is its
+// content. `min-height` keeps a short board tall enough that a column's
+// dropdown menu isn't clipped by that edge.
+//
+// ---- The rule that keeps drag-and-drop sane ------------------------------
+//
+// While dragging, react-beautiful-dnd gives the card `position: fixed`. A
+// fixed-position element inside a scroller makes Chrome leave stale paint —
+// the other cards draw on top of each other until a scroll forces a repaint.
+// `components/Board/BoardCard.js` portals the dragged card out to <body>, so
+// no fixed element ever sits inside the board.
+//
+// That lives in the component rather than here because it isn't expressible in
+// CSS; the comment there points back to this contract.
+// ==========================================================================
+$blb-border: #e6e8ee;
+$blb-muted: #6b7280;
+$blb-title: #1a2233;
+$blb-surface: #f7f8fa;
+$blb-blue: #2f6bff;
+$blb-radius: 12px;
+
+// ---- Board strip ---------------------------------------------------------
+.blb {
+	display: flex;
+	align-items: flex-start; // each column is only as tall as its own cards
+	// Tall enough that a column's dropdown menu has room even when every
+	// category holds a card or two — `overflow-y` clips at this box's edge.
+	min-height: 460px;
+	gap: 14px;
+	overflow-x: auto;
+	overflow-y: hidden;
+	padding-bottom: 10px;
+	// No `scroll-behavior: smooth`: rbd auto-scrolls this container by writing
+	// scrollLeft directly during a drag; smooth scrolling animates those writes
+	// and fights the drag.
+	scrollbar-width: thin;
+	scrollbar-color: rgba($blb-muted, 0.3) transparent;
+
+	&::-webkit-scrollbar {
+		height: 6px;
+	}
+	&::-webkit-scrollbar-thumb {
+		background: rgba($blb-muted, 0.3);
+		border-radius: 10px;
+
+		&:hover {
+			background: rgba($blb-muted, 0.5);
+		}
+	}
+	&::-webkit-scrollbar-track {
+		background: transparent;
+	}
+}
+
+// ---- Column --------------------------------------------------------------
+.blb-col {
+	flex: 0 0 265px;
+	width: 265px;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	background: $blb-surface;
+	border: 1px solid $blb-border;
+	border-radius: $blb-radius;
+
+	// Lifted look while the column is being dragged to a new position.
+	&.is-dragging {
+		border-color: rgba($blb-blue, 0.5);
+		box-shadow: 0 16px 36px rgba(16, 24, 40, 0.2);
+	}
+
+	&__head {
+		flex: none;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 14px 14px 12px;
+	}
+	&__head-left,
+	&__head-right {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-width: 0;
+	}
+	// Drag grip for reordering the whole column (shown only when reordering is
+	// enabled — the header passes drag-handle props in the pristine board).
+	&__grip {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex: none;
+		width: 18px;
+		height: 24px;
+		margin-left: -4px;
+		border-radius: 5px;
+		color: rgba($blb-muted, 0.75);
+		cursor: grab;
+		transition: background 0.15s ease, color 0.15s ease;
+
+		&:hover {
+			background: rgba($blb-muted, 0.14);
+			color: $blb-title;
+		}
+		&:active {
+			cursor: grabbing;
+		}
+		svg {
+			display: block;
+		}
+	}
+	&__title {
+		margin: 0;
+		font-size: 14px;
+		font-weight: 700;
+		color: $blb-title;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 160px;
+	}
+	&__count {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 22px;
+		height: 20px;
+		padding: 0 6px;
+		border-radius: 20px;
+		background: rgba($blb-muted, 0.14);
+		color: $blb-muted;
+		font-size: 12px;
+		font-weight: 700;
+	}
+	&__clicks {
+		font-size: 12px;
+		color: $blb-muted;
+		white-space: nowrap;
+	}
+	&__menu {
+		position: relative;
+
+		// The list is always in the DOM so <Link> can keep its create-link modal
+		// alive after the menu closes — see the comment in `containers/CatHeader.js`.
+		// Visibility is therefore a class, not conditional rendering.
+		.dropdown-menu {
+			display: none;
+			width: 128px;
+
+			&.is-open {
+				display: block;
+			}
+		}
+	}
+	&__menu-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 26px;
+		height: 26px;
+		border: none;
+		border-radius: 6px;
+		background: transparent;
+		color: $blb-muted;
+		cursor: pointer;
+		&:hover {
+			background: rgba($blb-muted, 0.12);
+		}
+	}
+	// "New link" row. <Link> renders its own `.btl-create-link-button`, so match
+	// it to the plain `.link` rows it sits above rather than the outlined button
+	// the column footer uses.
+	&__menu-create .btl-create-link-button {
+		display: flex;
+		align-items: center;
+		width: 100%;
+		padding: 9px 20px;
+		border: none;
+		background: transparent;
+		color: $secondary;
+		font-size: 15px;
+		font-weight: 500;
+		text-align: left;
+		cursor: pointer;
+
+		&:hover {
+			color: $dark;
+		}
+		// Text-only, to sit level with the Edit / Delete rows beneath it. Hidden
+		// here rather than via <Link>'s `isShowIcon={false}`, which would also
+		// pull the AI Bulk Generator button into the menu.
+		i.btl-add {
+			display: none;
+		}
+	}
+
+	// This IS the droppable. It doesn't scroll — it grows with its cards and the
+	// window scrolls — so rbd auto-scrolls the page during a drag near the
+	// viewport edge, which is its default behaviour for a window scroller.
+	&__list {
+		flex: 1 1 auto;
+		// A category with no cards still needs a target big enough to drop onto.
+		min-height: 56px;
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		// Don't let the browser re-anchor scroll position as cards are displaced
+		// mid-drag.
+		overflow-anchor: none;
+		padding: 4px 6px 6px;
+
+		// Nothing may be wider than the column — a wide child would extend `.blb`'s
+		// horizontal scroll range. rbd gives its drop placeholder an inline pixel
+		// width measured in whichever column the card was picked up from; without
+		// this, dropping into a narrower column overflows sideways. The dragged
+		// card is exempt for free:
+		// it is `position: fixed`, so its percentage resolves against the viewport.
+		> * {
+			max-width: 100%;
+		}
+	}
+	&__foot {
+		flex: none;
+		padding: 8px 10px 12px;
+
+		.btl-create-link-button {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 6px;
+			width: 100%;
+			height: 40px;
+			border: 1px dashed $blb-border;
+			border-radius: 9px;
+			background: transparent;
+			color: $blb-muted;
+			font-size: 13px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: all 0.15s ease;
+
+			&:hover {
+				border-color: rgba($blb-blue, 0.5);
+				color: $blb-blue;
+				background: rgba($blb-blue, 0.04);
+			}
+			i.btl-add {
+				font-size: 12px;
+			}
+		}
+	}
+
+	// "Add category" trailing column
+	&--add {
+		flex: 0 0 220px;
+		width: 220px;
+		background: transparent;
+		border: 1px dashed $blb-border;
+		padding: 24px 16px;
+		align-items: center;
+		justify-content: center;
+
+		.dnd-create-category {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			gap: 10px;
+			text-align: center;
+			width: 100%;
+		}
+		.dnd-create-category-button {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 44px;
+			height: 44px;
+			border: none;
+			border-radius: 50%;
+			background: rgba($blb-blue, 0.1);
+			color: $blb-blue;
+			cursor: pointer;
+			transition: background 0.15s ease;
+
+			&:hover {
+				background: rgba($blb-blue, 0.18);
+			}
+			i.btl-add {
+				font-size: 15px;
+			}
+		}
+		.dnd-create-category-text {
+			margin: 0;
+			font-size: 13px;
+			font-weight: 600;
+			color: $blb-muted;
+		}
+	}
+}
+
+// ---- Responsive ----------------------------------------------------------
+// Mobile: horizontal scrolling of fixed 265px columns is a poor touch layout,
+// so stack the columns full-width and let each size to its content. Stacked,
+// the columns define the board height, so the `min-height` reserved for a
+// dropdown is no longer needed.
+@media (max-width: 782px) {
+	.blb {
+		flex-direction: column;
+		align-items: stretch;
+		min-height: 0;
+		overflow-x: visible;
+		overflow-y: visible;
+		gap: 16px;
+	}
+	.blb-col {
+		flex: 1 1 auto;
+		width: 100%;
+	}
+	.blb-col--add {
+		flex: 1 1 auto;
+		width: 100%;
+	}
+}
+
+.blb-card {
+	background: #fff;
+	border: 1px solid $blb-border;
+	border-radius: 14px;
+	padding: 12px;
+	margin-bottom: 10px; // spacing via margin (not column gap) for react-beautiful-dnd
+	// A flex item's automatic minimum size is its content, so a long unbroken
+	// title or URL would otherwise push the card wider than its column and widen
+	// `.blb`'s horizontal scroll range.
+	min-width: 0;
+	box-shadow: 0 1px 2px rgba(#0b1220, 0.04);
+	transition: box-shadow 0.15s ease, border-color 0.15s ease;
+	cursor: grab;
+
+	&:active {
+		cursor: grabbing;
+	}
+	&:hover {
+		border-color: rgba($blb-blue, 0.35);
+		box-shadow: 0 6px 18px rgba(#0b1220, 0.08);
+	}
+	&.is-dragging {
+		// Keep the lift shadow tight: columns sit only 14px apart, so a wide blur
+		// bleeds the drag preview across the gap and over the neighbouring column.
+		box-shadow: 0 5px 12px rgba(#0b1220, 0.16);
+		border-color: rgba($blb-blue, 0.5);
+	}
+
+	&__top {
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
+	}
+	&__grip {
+		flex: none;
+		display: inline-flex;
+		margin-top: 2px;
+		color: rgba($blb-muted, 0.55);
+	}
+	.bl-viewlink {
+		flex: 1;
+		min-width: 0;
+	}
+	&__title {
+		display: block;
+		font-size: 13px;
+		font-weight: 600;
+		color: $blb-title;
+		line-height: 1.4;
+		cursor: pointer;
+		word-break: break-word;
+	}
+	// Neutralise the wrapping <Link> button styles around the title
+	.dnd-link-button {
+		flex: 1;
+		min-width: 0;
+		padding: 0;
+		border: none;
+		background: none;
+		text-align: left;
+		span {
+			text-decoration: none !important;
+		}
+	}
+	&__actions {
+		flex: none;
+		display: flex;
+		align-items: center;
+		gap: 2px;
+		width: 22px;
+		height: 22px;
+	}
+	&__tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+		margin-top: 10px;
+	}
+	&__tag {
+		font-size: 10px;
+		font-weight: 500;
+		color: $blb-muted;
+		background: rgba($blb-muted, 0.1);
+		padding: 1px 7px;
+		border-radius: 8px;
+	}
+
+	// Slug row: text sits in its own pill on the left; the copy + visit
+	// buttons are separate icons on the right (outside the pill).
+	&__slug {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-top: 12px;
+
+		&-text {
+			flex: 1;
+			min-width: 0;
+			padding: 4px 9px;
+			background: $blb-surface;
+			border: 1px solid $blb-border;
+			border-radius: 8px;
+			font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+			font-size: 11px;
+			color: #3a465a;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		&-actions {
+			flex: none;
+			display: flex;
+			align-items: center;
+			gap: 1px;
+		}
+	}
+	&__icon-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border: none;
+		border-radius: 8px;
+		background: transparent;
+		color: $blb-muted;
+		cursor: pointer;
+		text-decoration: none;
+		transition: all 0.15s ease;
+
+		&:hover {
+			color: $blb-blue;
+			background: rgba($blb-blue, 0.1);
+		}
+		&.is-copied {
+			color: #16a34a;
+		}
+	}
+
+	&__foot {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		margin-top: 10px;
+		padding-top: 4px;
+		border-top: 1px solid $blb-border;
+		min-height: 27px;
+	}
+	&__foot-meta {
+		display: flex;
+		align-items: center;
+		gap: 3px;
+	}
+	// Action row — hidden until the card is hovered
+	&__foot-actions {
+		display: flex;
+		align-items: center;
+		opacity: 0;
+		transform: translateY(3px);
+		pointer-events: none;
+		transition: opacity 0.15s ease, transform 0.15s ease;
+
+		.btl-tooltip {
+			display: inline-flex;
+		}
+		.dnd-link-button {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 28px;
+			height: 28px;
+			min-width: 28px;
+			padding: 0;
+			// margin: 0;
+			border-radius: 8px;
+			background: transparent;
+			border: 1px solid #767c8b;
+			color: $blb-muted;
+			cursor: pointer;
+			transition: all 0.15s ease;
+
+			.icon,
+			i {
+				font-size: 15px;
+				line-height: 1;
+			}
+			img {
+				width: 17px;
+				height: 17px;
+			}
+			&:hover {
+				background: rgba($blb-blue, 0.1);
+				color: $blb-blue;
+			}
+		}
+		.delete-button {
+			order: 1; // keep the red delete action last
+			color: #ef4444;
+			background: rgba(#ef4444, 0.08);
+			margin-left: 5px;
+			&:hover {
+				background: rgba(#ef4444, 0.15);
+				color: #ef4444;
+			}
+		}
+		// Inline delete confirmation
+		.btl-confirm-message {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			padding: 0 4px;
+			white-space: nowrap;
+
+			.action-text {
+				font-size: 12px;
+				font-weight: 600;
+				color: $blb-title;
+			}
+			.action-set {
+				display: flex;
+				gap: 4px;
+			}
+			.action {
+				border: none;
+				border-radius: 6px;
+				padding: 3px 8px;
+				font-size: 12px;
+				font-weight: 600;
+				cursor: pointer;
+				&.yes {
+					background: #ef4444;
+					color: #fff;
+				}
+				&.no {
+					background: rgba($blb-muted, 0.15);
+					color: $blb-title;
+				}
+			}
+		}
+	}
+	// NOTE: written as a nested literal class (not `&:hover &__foot-actions`) —
+	// this partial is imported inside `.betterlinks-body`, so a second `&` would
+	// re-inject `.betterlinks-body` and the selector would never match.
+	&:hover {
+		.blb-card__foot-actions {
+			opacity: 1;
+			transform: none;
+			pointer-events: auto;
+		}
+	}
+	// While a card is being dragged it sits under the cursor, so its own :hover
+	// stays active and would pop the action toolbar onto the floating preview
+	// (overhanging the neighbouring column). Keep the drag preview clean. Placed
+	// after the :hover rule so it wins on equal specificity.
+	&.is-dragging .blb-card__foot-actions {
+		opacity: 0;
+		pointer-events: none;
+	}
+	&__dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: #22c55e;
+
+		&--publish {
+			background: #22c55e;
+		}
+		&--draft {
+			background: #9ca3af;
+		}
+		&--expired {
+			background: #f59e0b;
+		}
+		&--broken {
+			background: #ef4444;
+		}
+	}
+	&__clicks {
+		font-size: 13px;
+		font-weight: 700;
+		color: $blb-title;
+		em {
+			font-style: normal;
+			font-weight: 500;
+			color: $blb-muted;
+		}
+
+		// Clickable → opens this link's individual analytics.
+		&--link {
+			text-decoration: none;
+			cursor: pointer;
+			transition: color 0.15s ease;
+
+			&:hover,
+			&:hover em {
+				color: $blb-blue;
+			}
+		}
+	}
+}
+// Reuse the favourite star button inside cards / restyle to match
+.blb-card .btl-fav-link {
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border: none;
+	background: transparent;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	.favorite-svg {
+		width: 16px;
+		height: 16px;
+	}
+	&.unfavorated .fav-icon-svg-path {
+		fill: none;
+		stroke: $blb-muted;
+		stroke-width: 28px;
+	}
+	&.favorated .fav-icon-svg-path {
+		fill: $favorite-icon-yellow;
+		stroke: $favorite-icon-yellow;
+	}
+}
+
+// ---- Compact density -----------------------------------------------------
+// Compact view drops the tags + slug pill, leaving just the title and the
+// clicks/actions footer.
+.bl-manage.is-compact {
+	.blb-card__tags,
+	.blb-card__slug {
+		display: none;
+	}
+	.blb-card {
+		margin-bottom: 8px;
+	}
+}
+
+// ==========================================================================
+// Tooltips inside cards
+// ==========================================================================
+// `.btl-tooltiptext` (betterlinks.scss) is `position: absolute`,
+// `width: max-content` and merely `visibility: hidden` when idle — so it still
+// takes part in layout and EXTENDS THE SCROLLABLE OVERFLOW of whatever box
+// contains it. Every card's action row holds several, and each one that
+// reaches past the column's right edge widens `.blb`'s horizontal scroll range,
+// so the board could be scrolled sideways into empty space.
+//
+// Swapping visibility for display removes them from layout entirely until
+// they're actually hovered, so an idle card contributes nothing sideways.
+.blb-card .btl-tooltip .btl-tooltiptext {
+	display: none;
+	visibility: visible;
+}
+.blb-card .btl-tooltip:hover .btl-tooltiptext {
+	display: block;
+}

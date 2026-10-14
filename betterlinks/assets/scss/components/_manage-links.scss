@@ -1,0 +1,1239 @@
+// ==========================================================================
+// Manage Links — board redesign
+// New markup uses the `bl-*` prefix; tokens reuse the global $variables.
+// ==========================================================================
+$bl-border: #e6e8ee;
+$bl-muted: #6b7280;
+$bl-title: #1a2233;
+$bl-surface: #f7f8fa;
+$bl-blue: #2f6bff;
+$bl-blue-dark: #1f57e6;
+$bl-radius: 12px;
+
+.bl-manage {
+	color: $bl-title;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	// Holds overview + toolbar + board. Nothing here is height-constrained: the
+	// board grows to its content and the PAGE scrolls, so every card in a
+	// category is reachable with the normal window scrollbar instead of a
+	// separate one per column.
+	&__scroll {
+		display: flex;
+		flex-direction: column;
+
+		> .bl-overview,
+		> .bl-toolbar {
+			flex: none;
+		}
+	}
+
+	// ---- Header ----------------------------------------------------------
+	&__header {
+		flex: none;
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+		flex-wrap: wrap;
+		margin-bottom: 22px;
+	}
+	&__title {
+		margin: 0 0 4px;
+		font-size: 27px;
+		line-height: 1.15;
+		font-weight: 700;
+		color: $bl-title;
+	}
+	&__subtitle {
+		margin: 0;
+		font-size: 13px;
+		color: $bl-muted;
+	}
+	&__actions {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+}
+
+// ---- Generic icon button (refresh) --------------------------------------
+.bl-icon-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 42px;
+	height: 42px;
+	border: 1px solid $bl-border;
+	border-radius: 10px;
+	background: #fff;
+	color: $bl-muted;
+	cursor: pointer;
+	transition: all 0.15s ease;
+
+	&:hover {
+		color: $bl-blue;
+		border-color: rgba($bl-blue, 0.5);
+	}
+	&.is-spinning svg {
+		animation: bl-spin 0.7s linear infinite;
+	}
+}
+@keyframes bl-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+// ---- View segmented control ---------------------------------------------
+.bl-viewseg {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 4px;
+	border: 1px solid $bl-border;
+	border-radius: 10px;
+	background: #fff;
+
+	&__btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		height: 34px;
+		padding: 0 12px;
+		border: none;
+		border-radius: 7px;
+		background: transparent;
+		color: $bl-muted;
+		font-size: 13px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		&:hover {
+			color: $bl-title;
+		}
+		&.is-active {
+			background: rgba($bl-blue, 0.1);
+			color: $bl-blue;
+		}
+		&--icon {
+			padding: 0 9px;
+		}
+		&:disabled {
+			opacity: 0.45;
+			cursor: not-allowed;
+		}
+		svg {
+			display: block;
+		}
+	}
+
+	// Divides the layout choice (Board/List) from the density modifier next to it.
+	&__sep {
+		width: 1px;
+		align-self: stretch;
+		margin: 4px 2px;
+		background: $bl-border;
+	}
+}
+
+// ---- Create buttons (AI bulk + New link) --------------------------------
+.bl-manage .bl-create-links {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+
+	.btl-ai-button-wrapper {
+		order: -1; // AI button sits before the New link button
+		cursor: pointer;
+	}
+	.btl-ai-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		height: 42px;
+		padding: 0 16px;
+		border: 1px solid #c7d6fe;
+		border-radius: 10px;
+		background: #e3ebff;
+		color: $bl-blue;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+
+		img {
+			width: 17px;
+			height: 17px;
+		}
+		&:hover {
+			background: rgba($bl-blue, 0.12);
+		}
+	}
+	.btl-create-link-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		height: 42px;
+		padding: 0 18px;
+		border: none;
+		border-radius: 10px;
+		background: $bl-blue;
+		color: #fff;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+		box-shadow: 0 6px 16px rgba($bl-blue, 0.28);
+		transition: background 0.15s ease;
+
+		&:hover {
+			background: $bl-blue-dark;
+		}
+		i.btl-add {
+			font-size: 13px;
+		}
+		span {
+			line-height: 1;
+		}
+	}
+}
+
+// ---- Overview stats ------------------------------------------------------
+.bl-overview {
+	display: grid;
+	grid-template-columns: repeat(5, 1fr);
+	border: 1px solid $bl-border;
+	border-radius: $bl-radius;
+	background: #fff;
+	margin-bottom: 18px;
+	overflow: hidden;
+
+	&__card {
+		padding: 10px 24px;
+		border-left: 1px solid $bl-border;
+
+		&:first-child {
+			border-left: none;
+		}
+	}
+	&__head {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 10px;
+		color: $bl-muted;
+	}
+	&__icon {
+		display: inline-flex;
+		svg {
+			width: 16px;
+			height: 16px;
+		}
+	}
+	&__label {
+		font-size: 12px;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+	}
+	&__value {
+		font-size: 28px;
+		font-weight: 700;
+		line-height: 1;
+		color: $bl-title;
+	}
+	&__sub {
+		margin-left: 6px;
+		font-size: 15px;
+		font-weight: 500;
+		color: $bl-muted;
+	}
+
+	@media (max-width: 1100px) {
+		grid-template-columns: repeat(3, 1fr);
+		.bl-overview__card:nth-child(3n + 1) {
+			border-left: none;
+		}
+	}
+	@media (max-width: 640px) {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+// ---- Toolbar -------------------------------------------------------------
+.bl-toolbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 14px;
+	flex-wrap: wrap;
+	margin-bottom: 16px;
+
+	&__search {
+		position: relative;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex: 1 1 300px;
+		min-width: 240px;
+		max-width: 350px;
+		height: 35px;
+		padding: 0 14px;
+		border: 1px solid $bl-border;
+		border-radius: 10px;
+		background: #fff;
+		color: $bl-muted;
+
+		input {
+			flex: 1;
+			border: none !important;
+			outline: none !important;
+			box-shadow: none !important;
+			background: unset !important;
+			font-size: 14px;
+			color: $bl-title;
+			padding: 0;
+			margin: 0;
+			min-height: auto;
+
+			&::placeholder {
+				color: $bl-muted;
+			}
+			&:focus {
+				border: none !important;
+				box-shadow: none !important;
+			}
+		}
+	}
+	&__filters {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+	&__fav,
+	&__reset {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		height: 34px;
+		border: 1px solid $bl-border;
+		border-radius: 10px;
+		background: #fff;
+		color: $bl-muted;
+		cursor: pointer;
+		font-size: 14px;
+		font-weight: 600;
+		transition: all 0.15s ease;
+	}
+	&__fav {
+		width: 44px;
+		justify-content: center;
+
+		&.is-active {
+			color: $favorite-icon-yellow;
+			border-color: rgba($favorite-icon-yellow, 0.6);
+			background: rgba($favorite-icon-yellow, 0.1);
+		}
+	}
+	&__reset {
+		padding: 0 14px;
+		&:hover {
+			color: $bl-blue;
+			border-color: rgba($bl-blue, 0.4);
+		}
+	}
+	&__custom-date {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		height: 35px;
+		padding: 0 14px;
+		border: 1px solid $bl-border;
+		border-radius: 10px;
+		background: #fff;
+		color: $bl-title;
+		font-size: 13px;
+		cursor: pointer;
+	}
+}
+
+// ---- Filter pill (icon + label + react-select) --------------------------
+.bl-filter {
+	display: inline-flex;
+	align-items: center;
+	height: 35px;
+	padding: 0;
+	border: 1px solid $bl-border;
+	border-radius: 10px;
+	background: #fff;
+	color: $bl-muted;
+	cursor: pointer; // whole pill opens the menu
+
+	// The icon + label live inside the react-select control (see FilterControl).
+	&__lead {
+		flex: none;
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin-right: 8px;
+		color: $bl-muted;
+
+		svg {
+			flex: none;
+		}
+	}
+	&__label {
+		font-size: 13px;
+		font-weight: 500;
+		color: $bl-muted;
+		white-space: nowrap;
+	}
+
+	.bl-rs {
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		height: 100%;
+	}
+	// The control IS the whole pill, so its padding provides the inner spacing
+	// and clicking anywhere on the pill opens the menu.
+	.bl-rs__control {
+		height: 100%;
+		padding: 0 12px;
+		border: none !important;
+		min-height: auto;
+		background: transparent;
+		box-shadow: none !important;
+		cursor: pointer;
+		flex-wrap: nowrap;
+	}
+	.bl-rs__value-container {
+		padding: 0;
+		flex-wrap: nowrap;
+		overflow: visible;
+	}
+	// react-select absolutely-positions these, which collapses the value
+	// container and makes the placeholder wrap — flow them inline instead.
+	.bl-rs__single-value,
+	.bl-rs__placeholder {
+		position: static;
+		transform: none;
+		top: auto;
+		max-width: none;
+		margin: 0;
+		white-space: nowrap;
+		color: $bl-title;
+		font-size: 14px;
+		font-weight: 600;
+	}
+	.bl-rs__indicator-separator {
+		display: none;
+	}
+	.bl-rs__dropdown-indicator {
+		padding: 0 0 0 2px;
+		color: $bl-muted;
+	}
+	.bl-rs__clear-indicator {
+		padding: 0 2px;
+	}
+	.bl-rs__menu {
+		min-width: 260px;
+		margin-top: 8px;
+		border-radius: 12px;
+		border: 1px solid $bl-border;
+		box-shadow: 0 16px 36px rgba(#0b1220, 0.14);
+		overflow: hidden;
+		z-index: 30;
+	}
+	.bl-rs__menu-list {
+		padding: 6px;
+	}
+	.bl-rs__option {
+		padding: 9px 12px;
+		border-radius: 8px;
+		background: transparent;
+		cursor: pointer;
+		font-size: 14px;
+		color: $bl-title;
+
+		&--is-focused {
+			background: rgba($bl-muted, 0.12);
+		}
+		&--is-selected {
+			background: transparent;
+			color: $bl-title;
+			font-weight: 600;
+		}
+		&--is-selected.bl-rs__option--is-focused {
+			background: rgba($bl-muted, 0.12);
+		}
+	}
+
+	// Category / Tag option row: [check] name .......... count
+	.bl-opt {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		padding: 0;
+		font-size: 14px;
+		color: $bl-title;
+
+		&__check {
+			flex: none;
+			width: 16px;
+			height: 16px;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			color: $bl-blue;
+		}
+		&__label {
+			flex: 1;
+			min-width: 0;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+		&__count {
+			flex: none;
+			color: $bl-muted;
+			font-weight: 600;
+			font-size: 13px;
+		}
+		&.is-selected .bl-opt__label {
+			font-weight: 700;
+		}
+	}
+}
+
+// ---- Empty state ---------------------------------------------------------
+.bl-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	padding: 70px 24px;
+	border: 1px dashed $bl-border;
+	border-radius: $bl-radius;
+	background: #fff;
+
+	&__icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 64px;
+		height: 64px;
+		border-radius: 50%;
+		background: rgba($bl-blue, 0.08);
+		color: $bl-blue;
+		margin-bottom: 16px;
+	}
+	&__title {
+		margin: 0 0 6px;
+		font-size: 18px;
+		font-weight: 700;
+		color: $bl-title;
+	}
+	&__text {
+		margin: 0 0 16px;
+		font-size: 14px;
+		color: $bl-muted;
+		max-width: 360px;
+	}
+	&__reset {
+		height: 40px;
+		padding: 0 18px;
+		border: none;
+		border-radius: 9px;
+		background: $bl-blue;
+		color: #fff;
+		font-weight: 600;
+		cursor: pointer;
+	}
+}
+
+// ==========================================================================
+// List view (table)
+// ==========================================================================
+// List view grows with the page (no internal vertical scroll); pagination
+// limits how many rows render at once.
+.bl-listview {
+	display: block;
+}
+.bl-list {
+	display: flex;
+	flex-direction: column;
+	background: #fff;
+	border: 1px solid $bl-border;
+	border-radius: $bl-radius;
+	overflow: hidden;
+
+	&__bulk {
+		flex: none;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 10px 16px;
+		border-bottom: 1px solid $bl-border;
+		background: rgba($bl-blue, 0.04);
+
+		&-count {
+			font-size: 13px;
+			font-weight: 700;
+			color: $bl-title;
+		}
+		&-select {
+			min-width: 200px;
+			z-index: 9;
+			.bl-rs__control {
+				min-height: 34px;
+				border-color: $bl-border;
+				border-radius: 8px;
+			}
+		}
+		&-btn {
+			height: 34px;
+			padding: 0 14px;
+			border: 1px solid $bl-border;
+			border-radius: 8px;
+			background: #fff;
+			color: $bl-title;
+			font-size: 13px;
+			font-weight: 600;
+			cursor: pointer;
+
+			&:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
+			&.is-danger {
+				color: #ef4444;
+				border-color: rgba(#ef4444, 0.4);
+			}
+			// Pro-locked bulk action: still clickable (it opens the upgrade modal),
+			// so it reads as available-but-gated rather than disabled.
+			&.is-pro {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				border-color: #ffe9a6;
+				background: #fffaeb;
+				color: #b45309;
+
+				img {
+					flex: none;
+				}
+			}
+		}
+		&-clear {
+			margin-left: auto;
+			border: none;
+			background: none;
+			color: $bl-muted;
+			font-size: 13px;
+			font-weight: 600;
+			cursor: pointer;
+		}
+	}
+
+	&__scroll {
+		// Only horizontal scroll for the wide table on narrow screens; the page
+		// handles vertical scrolling.
+		overflow-x: auto;
+		scrollbar-width: thin;
+		scrollbar-color: rgba($bl-muted, 0.3) transparent;
+
+		&::-webkit-scrollbar {
+			width: 8px;
+			height: 8px;
+		}
+		&::-webkit-scrollbar-thumb {
+			background: rgba($bl-muted, 0.3);
+			border-radius: 10px;
+		}
+		&::-webkit-scrollbar-track {
+			background: transparent;
+		}
+	}
+
+	&__table {
+		width: 100%;
+		// The fixed columns already total ~994px; keep enough min-width that the
+		// auto-sized Title column never collapses (which made its text overlap the
+		// Short URL column on narrow screens). Below this, the wrapper scrolls x.
+		min-width: 1230px;
+		border-collapse: separate;
+		border-spacing: 0;
+		table-layout: fixed;
+
+		thead th {
+			position: sticky;
+			top: 0;
+			z-index: 2;
+			background: #fff;
+			text-align: left;
+			padding: 14px 16px;
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: 0.05em;
+			text-transform: uppercase;
+			color: $bl-muted;
+			border-bottom: 1px solid $bl-border;
+			white-space: nowrap;
+		}
+		tbody td {
+			padding: 6px;
+			border-bottom: 1px solid $bl-border;
+			vertical-align: middle;
+			font-size: 13.5px;
+			color: $bl-title;
+		}
+		tbody tr:last-child td {
+			border-bottom: none;
+		}
+		tbody tr:hover td {
+			background: rgba($bl-muted, 0.04);
+		}
+	}
+
+	// Column widths
+	&__c-check {
+		width: 46px;
+		text-align: center;
+
+		// Custom checkbox (appearance: none) — matches the board/keyword tables and,
+		// crucially, overrides WP admin's mobile rule (≤782px) that otherwise
+		// enlarges native checkboxes to 25px and knocks them out of alignment.
+		input[type='checkbox'] {
+			appearance: none;
+			-webkit-appearance: none;
+			width: 18px;
+			height: 18px;
+			min-width: 18px;
+			margin: 0;
+			padding: 0;
+			border: 1.5px solid $bl-border;
+			border-radius: 5px;
+			background: #fff;
+			cursor: pointer;
+			vertical-align: middle;
+			position: relative;
+			transition: all 0.15s ease;
+
+			&:checked {
+				background: $bl-blue;
+				border-color: $bl-blue;
+			}
+			&:checked::before {
+				content: '';
+				position: absolute;
+				left: 5px;
+				top: 2px;
+				width: 5px;
+				height: 9px;
+				margin: 0;
+				border: solid #fff;
+				border-width: 0 2px 2px 0;
+				transform: rotate(45deg);
+			}
+			&:focus {
+				outline: none;
+				box-shadow: 0 0 0 3px rgba($bl-blue, 0.15);
+			}
+		}
+	}
+	&__c-title {
+		width: auto;
+		// Safety net: even if the column is squeezed, clip instead of letting the
+		// title text overlap the next column.
+		overflow: hidden;
+	}
+	&__c-short {
+		width: 210px;
+	}
+	&__c-target {
+		width: 240px;
+	}
+	&__c-type {
+		width: 70px;
+	}
+	&__c-clicks {
+		width: 108px;
+	}
+	&__c-date {
+		width: 130px;
+		color: $bl-muted !important;
+		white-space: nowrap;
+	}
+	&__c-actions {
+		width: 190px;
+	}
+	&__sortable {
+		cursor: pointer;
+		user-select: none;
+		&:hover {
+			color: $bl-title;
+		}
+	}
+	&__caret {
+		color: $bl-blue;
+		font-size: 10px;
+	}
+}
+
+// ---- List row cells ------------------------------------------------------
+.bl-row {
+	&__title-wrap {
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
+
+		.btl-fav-link {
+			flex: none;
+			width: 26px;
+			height: 26px;
+			padding: 0;
+			border: none;
+			background: transparent;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			.favorite-svg {
+				width: 15px;
+				height: 15px;
+			}
+			&.unfavorated .fav-icon-svg-path {
+				fill: none;
+				stroke: $bl-muted;
+				stroke-width: 28px;
+			}
+			&.favorated .fav-icon-svg-path {
+				fill: $favorite-icon-yellow;
+				stroke: $favorite-icon-yellow;
+			}
+		}
+	}
+	&__dot {
+		flex: none;
+		width: 8px;
+		height: 8px;
+		margin-top: 7px;
+		border-radius: 50%;
+		background: #22c55e;
+		&--publish {
+			background: #22c55e;
+		}
+		&--draft {
+			background: #9ca3af;
+		}
+		&--expired {
+			background: #f59e0b;
+		}
+		&--broken {
+			background: #ef4444;
+		}
+	}
+	&__titles {
+		min-width: 0;
+
+		// Neutralise the wrapping <Link> button so the title reads as plain
+		// bold text, not an underlined link/button.
+		.dnd-link-button {
+			display: inline;
+			padding: 0;
+			margin: 0;
+			border: none;
+			background: none;
+			text-align: left;
+			cursor: pointer;
+
+			span {
+				text-decoration: none !important;
+			}
+		}
+	}
+	&__title {
+		display: inline;
+		font-size: 13px;
+		font-weight: 600;
+		color: $bl-title;
+		line-height: 1.4;
+		cursor: pointer;
+	}
+	&__meta {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px;
+		margin-top: 6px;
+	}
+	&__cat {
+		font-size: 12.5px;
+		color: $bl-muted;
+	}
+	&__tag {
+		font-size: 12px;
+		font-weight: 500;
+		color: $bl-muted;
+		background: rgba($bl-muted, 0.1);
+		padding: 2px 8px;
+		border-radius: 6px;
+	}
+
+	&__inline {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+	// Pills fill the column width so the trailing icons line up across rows, and
+	// long URLs wrap onto multiple lines instead of being truncated.
+	&__slug,
+	&__target {
+		flex: 1 1 auto;
+		min-width: 0;
+		padding: 7px 10px;
+		background: $bl-surface;
+		border: 1px solid $bl-border;
+		border-radius: 7px;
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 12px;
+		line-height: 1.45;
+		color: #3a465a;
+		white-space: normal;
+		word-break: break-all;
+	}
+	&__icon-btn {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 28px;
+		height: 28px;
+		border: none;
+		border-radius: 7px;
+		background: transparent;
+		color: $bl-muted;
+		cursor: pointer;
+		text-decoration: none;
+		transition: all 0.15s ease;
+		&:hover {
+			color: $bl-blue;
+			background: rgba($bl-blue, 0.1);
+		}
+		&.is-copied {
+			color: #16a34a;
+		}
+	}
+	&__type {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 44px;
+		padding: 3px 10px;
+		border: 1px solid $bl-border;
+		border-radius: 7px;
+		font-size: 12px;
+		font-weight: 600;
+		color: $bl-muted;
+		text-transform: capitalize;
+	}
+	&__clicks {
+		font-size: 13.5px;
+		font-weight: 700;
+		color: $bl-title;
+		white-space: nowrap;
+		em {
+			font-style: normal;
+			font-weight: 500;
+			color: $bl-muted;
+		}
+
+		// Clickable → opens this link's individual analytics.
+		&--link {
+			text-decoration: none;
+			cursor: pointer;
+			transition: color 0.15s ease;
+
+			&:hover,
+			&:hover em {
+				color: $bl-blue;
+			}
+		}
+	}
+	&__actions {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+
+		.btl-tooltip {
+			display: inline-flex;
+			margin: 0;
+		}
+		.dnd-link-button {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 30px;
+			height: 30px;
+			min-width: 30px;
+			padding: 0;
+			margin: 0;
+			border: none;
+			border-radius: 7px;
+			background: transparent;
+			color: $bl-muted;
+			cursor: pointer;
+			transition: all 0.15s ease;
+			.icon,
+			i {
+				font-size: 14px;
+			}
+			img {
+				width: 16px;
+			}
+			&:hover {
+				background: rgba($bl-blue, 0.1);
+				color: $bl-blue;
+			}
+		}
+		.delete-button {
+			order: 1;
+			color: #ef4444;
+			&:hover {
+				background: rgba(#ef4444, 0.12);
+				color: #ef4444;
+			}
+		}
+	}
+}
+
+// Compact density: one line per link, for scanning a long list at a glance.
+//
+// Row height in the default view is set by the slug/target pills, which wrap
+// (`white-space: normal; word-break: break-all`) so a long URL costs two or
+// three lines. Hiding the meta line alone therefore bought almost nothing —
+// and the old rule *raised* td padding from 6px to 11px, so "compact" actually
+// produced TALLER rows than comfortable. Compact now truncates instead of
+// wrapping, which is what collapses the row.
+.bl-manage.is-compact .bl-list {
+	// Category + tags line.
+	.bl-row__meta {
+		display: none;
+	}
+
+	.bl-list__table tbody td {
+		padding-top: 4px;
+		padding-bottom: 4px;
+	}
+
+	// Single line, ellipsis instead of wrapping. The full value stays available
+	// via the title attribute and the copy button.
+	.bl-row__slug,
+	.bl-row__target {
+		padding: 4px 8px;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		word-break: normal;
+	}
+
+	// Center everything on the single text line.
+	.bl-row__title-wrap {
+		align-items: center;
+	}
+	.bl-row__dot {
+		margin-top: 0;
+	}
+	.bl-row__title {
+		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	// Trim the control chrome so the buttons stop setting the row height.
+	.bl-row__title-wrap .btl-fav-link {
+		width: 20px;
+		height: 20px;
+	}
+	.bl-row__icon-btn {
+		width: 24px;
+		height: 24px;
+	}
+	.bl-row__actions .dnd-link-button,
+	.bl-row__actions .bl-viewlink {
+		height: 24px;
+	}
+}
+
+// ---- List pagination -----------------------------------------------------
+.bl-pagination {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	flex-wrap: wrap;
+	padding: 16px 4px 8px;
+
+	&__rows {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 13px;
+		color: $bl-muted;
+
+		select {
+			height: 36px;
+			padding: 0 32px 0 12px;
+			border: 1px solid $bl-border;
+			border-radius: 8px;
+			background: #fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>") no-repeat right 10px center;
+			font-size: 13px;
+			font-weight: 600;
+			color: $bl-title;
+			cursor: pointer;
+			appearance: none;
+			-webkit-appearance: none;
+			outline: none;
+		}
+	}
+	&__nav {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+	}
+	&__info {
+		font-size: 13px;
+		color: $bl-muted;
+		white-space: nowrap;
+	}
+	&__btns {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+
+		button {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 36px;
+			height: 36px;
+			border: 1px solid $bl-border;
+			border-radius: 8px;
+			background: #fff;
+			color: $bl-title;
+			font-size: 17px;
+			line-height: 1;
+			cursor: pointer;
+			transition: all 0.15s ease;
+
+			&:hover:not(:disabled) {
+				border-color: rgba($bl-blue, 0.5);
+				color: $bl-blue;
+			}
+			&:disabled {
+				opacity: 0.4;
+				cursor: not-allowed;
+			}
+		}
+	}
+}
+
+// ==========================================================================
+// Loading skeletons (Board + List)
+// NOTE: the root class is `bl-skeleton`, NOT `bl-skel` — Analytics defines
+// `.bl-skel` as a standalone shimmer *bar* (display:block; flex:none), which
+// would flatten the board's flex row into stacked columns.
+// ==========================================================================
+@keyframes bl-skel-shimmer {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
+}
+
+.bl-skeleton {
+	&__bar,
+	&__block,
+	&__check,
+	&__col-head span {
+		display: block;
+		height: 11px;
+		width: 100%;
+		border-radius: 6px;
+		background: #e9ebf0;
+		background-image: linear-gradient(90deg, #e9ebf0 0%, #f3f4f7 50%, #e9ebf0 100%);
+		background-size: 200% 100%;
+		animation: bl-skel-shimmer 1.4s linear infinite;
+	}
+	&__bar--40 {
+		width: 40%;
+	}
+	&__bar--50 {
+		width: 50%;
+	}
+	&__bar--60 {
+		width: 60%;
+	}
+	&__bar--65 {
+		width: 65%;
+	}
+	&__bar--70 {
+		width: 70%;
+	}
+
+	// ---- Board skeleton ----
+	&__col-head {
+		flex: none;
+		padding: 14px 14px 12px;
+		span {
+			height: 13px;
+		}
+	}
+	&__card {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		margin-bottom: 10px;
+		padding: 16px;
+		background: #fff;
+		border: 1px solid $bl-border;
+		border-radius: 14px;
+
+		.bl-skeleton__block {
+			height: 38px;
+			border-radius: 8px;
+		}
+	}
+
+	// ---- List skeleton ----
+	&__list {
+		padding: 4px 0;
+	}
+	&__row {
+		display: grid;
+		grid-template-columns: 22px minmax(180px, 2.2fr) 1.4fr 1.4fr 0.7fr 1fr;
+		align-items: center;
+		gap: 26px;
+		padding: 18px 20px;
+		border-bottom: 1px solid $bl-border;
+
+		&:last-child {
+			border-bottom: none;
+		}
+	}
+	&__check {
+		width: 18px;
+		height: 18px;
+		border-radius: 5px;
+	}
+}

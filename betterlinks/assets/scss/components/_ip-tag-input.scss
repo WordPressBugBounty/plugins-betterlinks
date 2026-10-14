@@ -1,0 +1,248 @@
+// IP Tag Input Component Styles
+.btl-ip-tag-input-wrapper {
+	width: 100%;
+
+	&.btl-ip-tag-input-disabled {
+		cursor: not-allowed;
+	}
+}
+
+.btl-ip-tag-input-container {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	width: 100%;
+	// Matches the shared Settings control box (42px / 8px radius / #e6e8ee) so
+	// this sits flush with the selects and text inputs above it. It may grow
+	// taller as tags wrap onto more lines.
+	min-height: 42px;
+	padding: 4px 10px;
+	border: 1px solid #e6e8ee;
+	border-radius: 8px;
+	background: #fff;
+	cursor: text;
+	transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+	&:focus-within {
+		border-color: #2f6bff;
+		box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.12);
+	}
+
+	&.disabled {
+		background: #f5f5f5;
+		cursor: not-allowed;
+		opacity: 0.7;
+
+		&:focus-within {
+			border-color: #ddd;
+			box-shadow: none;
+		}
+
+		.btl-ip-tag-input {
+			cursor: not-allowed;
+		}
+	}
+}
+
+// The field the user types into is a plain text input, so the Settings page's
+// generic `input[type=text]` rule (border + 42px height + 420px max-width) would
+// paint a second, narrower box INSIDE this container. That rule is
+// `.betterlinks-body .bl-settings__panel input[type=text]`, so this override
+// names `.bl-settings__panel` too and adds the element to outweigh it.
+.bl-settings__panel .btl-ip-tag-input-container input.btl-ip-tag-input,
+.btl-ip-tag-input-container input.btl-ip-tag-input {
+	width: auto;
+	max-width: none;
+	height: auto;
+	min-height: 0;
+	margin: 0;
+	padding: 4px 0;
+	border: 0;
+	border-radius: 0;
+	background: transparent;
+	box-shadow: none;
+
+	&:focus {
+		border: 0;
+		box-shadow: none;
+		outline: none;
+	}
+}
+
+.btl-ip-tags-list {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	width: 100%;
+}
+
+.btl-ip-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 2px 2px 6px;
+	background: linear-gradient(135deg, #f0f4ff 0%, #e8edff 100%);
+	border: 1px solid #c5d1ff;
+	border-radius: 16px;
+	font-size: 13px;
+	color: #3d5afe;
+	transition: all 0.2s ease;
+
+	&:hover {
+		background: linear-gradient(135deg, #e8edff 0%, #dde4ff 100%);
+		border-color: #a8b8ff;
+	}
+}
+
+.btl-ip-tag-text {
+	font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+	font-size: 12px;
+}
+
+.btl-ip-tag-remove {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: none;
+	background: transparent;
+	border-radius: 50%;
+	cursor: pointer;
+	color: #7986cb;
+	transition: all 0.2s ease;
+
+	&:hover {
+		background: rgba(207, 19, 34, 0.1);
+		color: #cf1322;
+	}
+
+	.dashicons {
+		font-size: 14px;
+		width: 14px;
+		height: 14px;
+		line-height: 14px;
+	}
+}
+
+.btl-ip-tag-input {
+	flex: 1;
+	min-width: 200px;
+	border: none;
+	outline: none;
+	padding: 4px 0;
+	font-size: 14px;
+	background: transparent;
+
+	&::placeholder {
+		color: #999;
+	}
+}
+
+.btl-ip-error {
+	display: flex;
+	align-items: flex-start;
+	gap: 5px;
+	margin-top: 8px;
+	padding: 8px 12px;
+	background-color: #fff2f0;
+	border: 1px solid #ffccc7;
+	border-radius: 4px;
+	color: #cf1322;
+	font-size: 13px;
+	line-height: 1.4;
+
+	.dashicons {
+		flex-shrink: 0;
+		font-size: 16px;
+		width: 16px;
+		height: 16px;
+		margin-top: 1px;
+	}
+}
+
+.btl-ip-tag-hint {
+	margin-top: 8px;
+	font-size: 12px;
+	color: #888;
+	font-style: italic;
+}
+
+// Dark mode support - using @at-root to escape .betterlinks-body nesting
+@at-root body.betterlinks-dark-mode .betterlinks-body {
+	.btl-ip-tag-input-container {
+		background-color: #36405a;
+		border-color: #4a5568;
+
+		&:focus-within {
+			border-color: #4c6fff;
+			box-shadow: 0 0 0 2px rgba(76, 111, 255, 0.25);
+		}
+
+		&.disabled {
+			background-color: #2a3347;
+			opacity: 0.6;
+
+			&:focus-within {
+				border-color: #4a5568;
+				box-shadow: none;
+			}
+		}
+	}
+
+	.btl-ip-tag-input {
+		color: #e2e8f0;
+
+		&::placeholder {
+			color: #718096;
+		}
+	}
+
+	.btl-ip-error {
+		background-color: #3d2024;
+		border-color: #5c2830;
+		color: #f5a7a7;
+	}
+
+	.btl-ip-tag {
+		background: linear-gradient(135deg, #2d3a5c 0%, #3d4a6c 100%);
+		border-color: #4a5a8c;
+		color: #8fa4ff;
+
+		&:hover {
+			background: linear-gradient(135deg, #3d4a6c 0%, #4d5a7c 100%);
+			border-color: #5a6a9c;
+		}
+	}
+
+	.btl-ip-tag-text {
+		color: #fff;
+	}
+
+	.btl-ip-tag-remove {
+		color: #8fa4ff;
+
+		&:hover {
+			background: rgba(245, 167, 167, 0.15);
+			color: #f5a7a7;
+		}
+	}
+
+	.btl-ip-tag-hint {
+		color: #718096;
+	}
+}
+
+// Responsive adjustments
+@media (max-width: 782px) {
+	.btl-ip-tag-input-wrapper {
+		max-width: 100%;
+	}
+
+	.btl-ip-tag-input {
+		font-size: 16px; // Prevent zoom on iOS
+		min-width: 150px;
+	}
+}

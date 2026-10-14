@@ -1,0 +1,946 @@
+// ==========================================================================
+// Custom Domain teaser (`components/Teasers/ShortLinkCustomDomain`).
+// A static, locked preview of the redesigned Pro Custom Domain screen, shown
+// to free users under the shared UpgradeToProSpecial overlay + modal.
+// Ported from Pro `_custom-domain.scss`; the `.bl-cd` rules are 1:1 with Pro so
+// the preview matches pixel-for-pixel, with teaser-only extras at the bottom.
+// ==========================================================================
+$cd-border: #e6e8ee;
+$cd-text: #1a2233;
+$cd-muted: #6b7280;
+$cd-blue: #2f6bff;
+$cd-blue-dark: #1f57e6;
+$cd-surface: #f7f8fa;
+$cd-white: #fff;
+$cd-err: #ef4444;
+$cd-warn: #d97706;
+$cd-radius: 12px;
+
+.bl-cd {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+	color: $cd-text;
+	font-size: 14px;
+	line-height: 1.5;
+	padding: 20px 40px;
+	border-radius: 8px;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	code {
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-size: 0.92em;
+		background: none;
+		padding: 0;
+	}
+
+	// ---- Page header -----------------------------------------------------
+	&__header {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 24px;
+	}
+	&__header-text {
+		min-width: 0;
+	}
+	&__title {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin: 0 0 6px;
+		padding: 0;
+		font-size: 26px;
+		font-weight: 700;
+		line-height: 1.2;
+		color: $cd-text;
+	}
+	&__pro {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		padding: 3px 9px;
+		border-radius: 999px;
+		background: rgba($cd-blue, 0.12);
+		color: $cd-blue;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+
+		svg {
+			flex: none;
+		}
+	}
+	&__subtitle {
+		max-width: 640px;
+		margin: 0;
+		color: $cd-muted;
+		font-size: 14px;
+	}
+	&__guide {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 10px 16px;
+		border: 1px solid $cd-border;
+		border-radius: 10px;
+		background: $cd-white;
+		color: $cd-text;
+		font-size: 14px;
+		font-weight: 600;
+		text-decoration: underline;
+		box-shadow: none;
+
+		&:hover,
+		&:focus {
+			border-color: $cd-blue;
+			color: $cd-blue;
+			box-shadow: none;
+			outline: none;
+		}
+	}
+
+	// ---- Buttons ---------------------------------------------------------
+	&__btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		height: 40px;
+		padding: 0 18px;
+		border: 1px solid transparent;
+		border-radius: 10px;
+		background: none;
+		font-size: 14px;
+		font-weight: 600;
+		line-height: 1;
+		cursor: pointer;
+		transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+		svg {
+			flex: none;
+		}
+
+		&:disabled {
+			opacity: 0.55;
+			cursor: not-allowed;
+		}
+
+		&--primary {
+			background: $cd-blue;
+			color: $cd-white;
+
+			&:hover:not(:disabled),
+			&:focus:not(:disabled) {
+				background: $cd-blue-dark;
+				color: $cd-white;
+				outline: none;
+			}
+		}
+
+		&--ghost {
+			border-color: $cd-border;
+			background: $cd-white;
+			color: $cd-text;
+
+			&:hover:not(:disabled),
+			&:focus:not(:disabled) {
+				border-color: $cd-blue;
+				color: $cd-blue;
+				outline: none;
+			}
+		}
+	}
+
+	// ---- Status card -----------------------------------------------------
+	&__status {
+		padding: 20px;
+		border: 1px solid $cd-border;
+		border-radius: 16px;
+		background: $cd-white;
+	}
+	&__status-head {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+	}
+	&__status-badge {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 46px;
+		height: 46px;
+		border-radius: 12px;
+		background: rgba($cd-warn, 0.12);
+		color: $cd-warn;
+	}
+	&__status-text {
+		flex: 1 1 auto;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	&__status-domain {
+		font-size: 18px;
+		font-weight: 700;
+		word-break: break-all;
+	}
+	&__status-note {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		color: $cd-err;
+		font-size: 13px;
+
+		svg {
+			flex: none;
+		}
+	}
+	&__flow {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 14px;
+		margin-top: 18px;
+		padding-top: 18px;
+		border-top: 1px solid $cd-border;
+	}
+	&__flow-node {
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+		font-size: 13px;
+		font-weight: 600;
+
+		code {
+			font-weight: 600;
+			word-break: break-all;
+		}
+	}
+	&__flow-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 30px;
+		height: 30px;
+		border-radius: 8px;
+		background: $cd-surface;
+		color: $cd-blue;
+		font-style: normal;
+	}
+	&__flow-arrow {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		color: $cd-muted;
+
+		em {
+			font-style: normal;
+			font-size: 11px;
+			font-weight: 700;
+			font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		}
+	}
+
+	// ---- Chips -----------------------------------------------------------
+	&__chip {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 5px 12px;
+		border-radius: 999px;
+		font-size: 12px;
+		font-weight: 600;
+		white-space: nowrap;
+
+		&--warn {
+			background: rgba($cd-warn, 0.12);
+			color: $cd-warn;
+		}
+	}
+	&__dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: currentColor;
+	}
+
+	// ---- Steps -----------------------------------------------------------
+	&__steps {
+		display: flex;
+		flex-direction: column;
+	}
+	&__step {
+		display: flex;
+		gap: 16px;
+
+		&:last-child .bl-cd__step-rail::after {
+			display: none;
+		}
+		&:last-child .bl-cd__step-main {
+			padding-bottom: 0;
+		}
+	}
+	&__step-rail {
+		position: relative;
+		flex: none;
+		display: flex;
+		justify-content: center;
+		width: 32px;
+
+		// Connector line to the next step.
+		&::after {
+			content: '';
+			position: absolute;
+			top: 38px;
+			bottom: -6px;
+			left: 50%;
+			width: 2px;
+			margin-left: -1px;
+			background: $cd-border;
+		}
+	}
+	&__step-marker {
+		position: relative;
+		z-index: 1;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border: 2px solid $cd-border;
+		border-radius: 50%;
+		background: $cd-white;
+		color: $cd-muted;
+		font-size: 13px;
+		font-weight: 700;
+	}
+	&__step-main {
+		flex: 1 1 auto;
+		min-width: 0;
+		padding: 0 0 32px;
+	}
+	&__step-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+		min-height: 32px;
+	}
+	&__step-title {
+		margin: 0 0 2px;
+		padding: 0;
+		font-size: 15px;
+		font-weight: 700;
+		line-height: 1.4;
+		color: $cd-text;
+	}
+	&__step-desc {
+		margin: 0;
+		color: $cd-muted;
+		font-size: 13px;
+
+		a {
+			color: $cd-blue;
+			font-weight: 600;
+			text-decoration: none;
+
+			&:hover {
+				text-decoration: underline;
+			}
+		}
+	}
+	&__step-body {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+		margin-top: 14px;
+	}
+
+	&__step.is-active {
+		.bl-cd__step-marker {
+			border-color: $cd-blue;
+			color: $cd-blue;
+		}
+	}
+
+	// ---- Step 1: domain input -------------------------------------------
+	&__domain {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+	&__domain-input {
+		position: relative;
+		flex: 1 1 auto;
+		max-width: 520px;
+		display: flex;
+		align-items: center;
+		border: 1px solid $cd-border;
+		border-radius: 10px;
+		background: $cd-white;
+		overflow: hidden;
+
+		&:focus-within {
+			border-color: $cd-blue;
+			box-shadow: 0 0 0 3px rgba($cd-blue, 0.12);
+		}
+
+		// Outspec the settings form's generic `.btl-text-field`-era input rules.
+		input[type='text'] {
+			flex: 1 1 auto;
+			min-width: 0;
+			height: 42px;
+			margin: 0;
+			padding: 0 12px;
+			border: 0;
+			border-radius: 0;
+			background: transparent;
+			box-shadow: none;
+			color: $cd-text;
+			font-size: 14px;
+			font-weight: 500;
+			cursor: pointer;
+
+			&:focus {
+				border: 0;
+				box-shadow: none;
+				outline: none;
+			}
+		}
+	}
+	&__domain-scheme {
+		flex: none;
+		align-self: stretch;
+		display: flex;
+		align-items: center;
+		padding: 0 12px;
+		border-right: 1px solid $cd-border;
+		background: $cd-surface;
+		color: $cd-muted;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-size: 13px;
+	}
+
+	// ---- Notes -----------------------------------------------------------
+	&__note {
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
+		margin: 0;
+		padding: 12px 14px;
+		border: 1px solid $cd-border;
+		border-radius: 10px;
+		background: $cd-surface;
+		color: $cd-muted;
+		font-size: 13px;
+
+		svg {
+			flex: none;
+			margin-top: 2px;
+		}
+		strong {
+			color: $cd-text;
+			font-weight: 700;
+		}
+	}
+
+	// ---- Step 2: DNS record ---------------------------------------------
+	&__record {
+		border: 1px solid $cd-border;
+		border-radius: $cd-radius;
+		background: $cd-white;
+		overflow: hidden;
+	}
+	&__record-row {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		padding: 14px 16px;
+
+		& + & {
+			border-top: 1px solid $cd-border;
+		}
+	}
+	&__record-label {
+		flex: none;
+		width: 150px;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		color: $cd-muted;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+
+		em {
+			font-style: normal;
+			font-size: 11px;
+			font-weight: 500;
+			letter-spacing: 0;
+			text-transform: none;
+		}
+	}
+	&__record-type {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 34px;
+		height: 30px;
+		padding: 0 10px;
+		border-radius: 8px;
+		background: rgba($cd-blue, 0.1);
+		color: $cd-blue;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-size: 13px;
+		font-weight: 700;
+	}
+	&__copyfield {
+		flex: 1 1 auto;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	&__copyfield-input {
+		flex: 1 1 auto;
+		min-width: 0;
+		height: 40px;
+		margin: 0;
+		padding: 0 12px;
+		border: 1px solid $cd-border;
+		border-radius: 8px;
+		background: $cd-surface;
+		box-shadow: none;
+		color: $cd-text;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-size: 13px;
+
+		&:focus {
+			border-color: $cd-blue;
+			box-shadow: none;
+			outline: none;
+		}
+	}
+	&__copyfield-btn {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		border: 1px solid $cd-border;
+		border-radius: 8px;
+		background: $cd-white;
+		color: $cd-muted;
+		cursor: pointer;
+
+		&:hover:not(:disabled),
+		&:focus:not(:disabled) {
+			border-color: $cd-blue;
+			color: $cd-blue;
+			outline: none;
+		}
+	}
+
+	// ---- Step 3: server config ------------------------------------------
+	&__server {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+	&__seg {
+		display: inline-flex;
+		gap: 4px;
+		padding: 4px;
+		border: 1px solid $cd-border;
+		border-radius: 10px;
+		background: $cd-surface;
+	}
+	&__seg-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		height: 32px;
+		padding: 0 14px;
+		border: 0;
+		border-radius: 7px;
+		background: transparent;
+		color: $cd-muted;
+		font-size: 13px;
+		font-weight: 600;
+		cursor: pointer;
+
+		&:hover {
+			color: $cd-text;
+		}
+		&.is-active {
+			background: $cd-white;
+			color: $cd-blue;
+			box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+		}
+		&:focus {
+			outline: none;
+		}
+	}
+	&__server-file {
+		color: $cd-muted;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-size: 13px;
+	}
+
+	// ---- Code block ------------------------------------------------------
+	&__code {
+		position: relative;
+		border-radius: $cd-radius;
+		background: #131a2b;
+		overflow: hidden;
+	}
+	&__code-body {
+		margin: 0;
+		padding: 18px 20px;
+		overflow-x: auto;
+		background: transparent;
+		color: #e5e9f2;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-size: 13px;
+		line-height: 1.9;
+		white-space: pre;
+
+		code {
+			display: block;
+			color: inherit;
+			font-size: inherit;
+		}
+	}
+	&__code-line {
+		display: block;
+	}
+	&__code-kw {
+		color: #7aa2ff;
+	}
+	&__code-host {
+		color: #5fd4a8;
+	}
+	&__code-copy {
+		position: absolute;
+		top: 12px;
+		right: 12px;
+		z-index: 1;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		height: 30px;
+		padding: 0 10px;
+		border: 1px solid rgba(255, 255, 255, 0.16);
+		border-radius: 8px;
+		background: rgba(255, 255, 255, 0.08);
+		color: #e5e9f2;
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+
+		&:hover,
+		&:focus {
+			background: rgba(255, 255, 255, 0.16);
+			color: #fff;
+			outline: none;
+		}
+	}
+
+	// ---- Footer ----------------------------------------------------------
+	&__footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		padding-top: 20px;
+		border-top: 1px solid $cd-border;
+	}
+	&__footer-left {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+}
+
+// ==========================================================================
+// Teaser-only chrome (not present in the Pro screen)
+// ==========================================================================
+.bl-cd-teaser {
+	// The locked preview is inert — dimmed and non-interactive behind the
+	// overlay, so it reads as "here's what you'd get" rather than a live form.
+	.bl-cd--teaser-locked {
+		pointer-events: none;
+		filter: saturate(0.92);
+		user-select: none;
+	}
+
+	// Pro-version-outdated hint, shown above the preview.
+	.bl-cd__update-note {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		margin: 0 0 20px;
+		padding: 12px 16px;
+		border: 1px solid rgba($cd-warn, 0.3);
+		border-radius: 10px;
+		background: rgba($cd-warn, 0.08);
+		color: #8a5a00;
+		font-size: 13px;
+		line-height: 1.5;
+
+		svg {
+			flex: none;
+			margin-top: 1px;
+			color: $cd-warn;
+		}
+		strong {
+			font-weight: 700;
+		}
+	}
+
+	// Selling points listed inside the UpgradeToProSpecial overlay card.
+	.bl-cd__sell {
+		margin: 14px 0 0;
+		padding: 0;
+		list-style: none;
+		text-align: left;
+
+		li {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin: 0 0 10px;
+			color: $cd-text;
+			font-size: 14px;
+			line-height: 1.4;
+
+			&:last-child {
+				margin-bottom: 0;
+			}
+
+			svg {
+				flex: none;
+				color: $cd-blue;
+			}
+		}
+	}
+}
+
+// ==========================================================================
+// Responsive (mirrors Pro breakpoints)
+// ==========================================================================
+@media screen and (max-width: 960px) {
+	.bl-cd {
+		&__header {
+			flex-direction: column;
+			gap: 14px;
+		}
+		&__record-row {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 8px;
+		}
+		&__record-label {
+			width: auto;
+		}
+		&__record-type {
+			align-self: flex-start;
+		}
+	}
+}
+
+@media screen and (max-width: 782px) {
+	.bl-cd {
+		gap: 20px;
+		padding: 20px;
+
+		&__title {
+			font-size: 22px;
+		}
+		&__status-head {
+			flex-wrap: wrap;
+		}
+		&__status-badge {
+			width: 40px;
+			height: 40px;
+		}
+		&__chip {
+			order: 3;
+		}
+		&__domain {
+			flex-direction: column;
+			align-items: stretch;
+		}
+		&__domain-input {
+			max-width: none;
+		}
+		&__step {
+			gap: 12px;
+		}
+		&__server {
+			flex-wrap: wrap;
+		}
+		&__seg {
+			width: 100%;
+		}
+		&__seg-btn {
+			flex: 1 1 0;
+			justify-content: center;
+		}
+		&__footer {
+			flex-direction: column;
+			align-items: stretch;
+		}
+		&__footer-left {
+			flex-direction: column;
+			align-items: stretch;
+		}
+		&__btn {
+			width: 100%;
+		}
+	}
+}
+
+// ==========================================================================
+// Dark mode — palette matches Pro `_custom-domain.scss`
+// ==========================================================================
+body.betterlinks-dark-mode {
+	.bl-cd {
+		color: #e5e9f2;
+
+		.bl-cd__title,
+		.bl-cd__status-domain,
+		.bl-cd__step-title {
+			color: #e5e9f2;
+		}
+
+		.bl-cd__subtitle,
+		.bl-cd__step-desc,
+		.bl-cd__note,
+		.bl-cd__record-label,
+		.bl-cd__server-file,
+		.bl-cd__flow-arrow {
+			color: #9aa5bd;
+		}
+
+		.bl-cd__guide,
+		.bl-cd__btn--ghost,
+		.bl-cd__copyfield-btn {
+			border-color: #36405a;
+			background: #252f47;
+			color: #e5e9f2;
+
+			&:hover,
+			&:focus {
+				border-color: #6f97ff;
+				color: #6f97ff;
+			}
+		}
+
+		.bl-cd__pro {
+			background: rgba(111, 151, 255, 0.16);
+			color: #6f97ff;
+		}
+
+		.bl-cd__status,
+		.bl-cd__record {
+			border-color: #36405a;
+			background: #1f283d;
+		}
+
+		.bl-cd__flow,
+		.bl-cd__record-row + .bl-cd__record-row {
+			border-color: #36405a;
+		}
+		.bl-cd__flow-icon {
+			background: #252f47;
+			color: #6f97ff;
+		}
+
+		.bl-cd__note,
+		.bl-cd__seg,
+		.bl-cd__copyfield-input,
+		.bl-cd__domain-scheme {
+			border-color: #36405a;
+			background: #252f47;
+		}
+		.bl-cd__note strong {
+			color: #e5e9f2;
+		}
+		.bl-cd__copyfield-input {
+			color: #e5e9f2;
+		}
+
+		.bl-cd__domain-input {
+			border-color: #36405a;
+			background: #1f283d;
+
+			input[type='text'] {
+				background: transparent;
+				color: #e5e9f2;
+			}
+			&:focus-within {
+				border-color: #6f97ff;
+				box-shadow: 0 0 0 3px rgba(111, 151, 255, 0.16);
+			}
+		}
+
+		.bl-cd__seg-btn.is-active {
+			background: #36405a;
+			color: #6f97ff;
+			box-shadow: none;
+		}
+
+		.bl-cd__step-marker {
+			border-color: #36405a;
+			background: #1f283d;
+			color: #9aa5bd;
+		}
+		.bl-cd__step-rail::after {
+			background: #36405a;
+		}
+		.bl-cd__step.is-active .bl-cd__step-marker {
+			border-color: #6f97ff;
+			color: #6f97ff;
+		}
+
+		.bl-cd__record-type {
+			background: rgba(111, 151, 255, 0.16);
+			color: #6f97ff;
+		}
+
+		.bl-cd__footer {
+			border-color: #36405a;
+		}
+
+		.bl-cd__code {
+			background: #131a2b;
+		}
+	}
+
+	.bl-cd-teaser {
+		.bl-cd__update-note {
+			border-color: rgba($cd-warn, 0.35);
+			background: rgba($cd-warn, 0.12);
+			color: #f0c07a;
+		}
+		.bl-cd__sell li {
+			color: #e5e9f2;
+
+			svg {
+				color: #6f97ff;
+			}
+		}
+	}
+}

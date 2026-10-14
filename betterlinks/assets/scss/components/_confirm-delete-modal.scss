@@ -1,0 +1,158 @@
+// ==========================================================================
+// Confirm-delete — shared danger dialog for every destructive action
+// (link / keyword / tag / category). Portaled to <body>, so root-level rules.
+// Mirrors `_term-modal.scss`.
+// ==========================================================================
+$cd-border: #e6e8ee;
+$cd-text: #1a2233;
+$cd-muted: #6b7280;
+$cd-surface: #f7f8fa;
+$cd-red: #ef4444;
+$cd-red-dark: #dc2626;
+
+.bl-confirm-modal {
+	width: 460px;
+	max-width: calc(100vw - 40px);
+	display: flex;
+	flex-direction: column;
+	background: #fff;
+	border-radius: 16px;
+	overflow: hidden;
+	box-shadow: 0 24px 60px rgba(15, 20, 30, 0.25);
+	color: $cd-text;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	// ---- Header (trash badge + title) ------------------------------------
+	&__header {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		padding: 22px 24px;
+	}
+	&__badge {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 46px;
+		height: 46px;
+		border-radius: 12px;
+		background: rgba($cd-red, 0.1);
+		color: $cd-red;
+	}
+	&__title {
+		margin: 0;
+		font-size: 21px;
+		font-weight: 700;
+		line-height: 1.2;
+		color: $cd-text;
+	}
+
+	// ---- Body ------------------------------------------------------------
+	&__body {
+		padding: 20px 24px 24px;
+		border-top: 1px solid $cd-border;
+	}
+	&__desc {
+		margin: 0;
+		font-size: 15px;
+		line-height: 1.6;
+		color: $cd-muted;
+
+		strong,
+		b {
+			color: $cd-text;
+			font-weight: 600;
+		}
+	}
+
+	// ---- Footer ----------------------------------------------------------
+	&__footer {
+		display: flex;
+		justify-content: flex-end;
+		gap: 12px;
+		padding: 16px 24px;
+		border-top: 1px solid $cd-border;
+		background: $cd-surface;
+	}
+	&__btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		height: 46px;
+		padding: 0 22px;
+		border: 1px solid transparent;
+		border-radius: 11px;
+		font-size: 15px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		svg {
+			display: block;
+		}
+		&--ghost {
+			background: #fff;
+			border-color: $cd-border;
+			color: $cd-text;
+			&:hover {
+				background: $cd-surface;
+				border-color: rgba($cd-muted, 0.4);
+			}
+		}
+		&--danger {
+			background: $cd-red;
+			border-color: $cd-red;
+			color: #fff;
+			box-shadow: 0 6px 16px rgba($cd-red, 0.28);
+			&:hover {
+				background: $cd-red-dark;
+				border-color: $cd-red-dark;
+			}
+			&:disabled {
+				opacity: 0.6;
+				cursor: not-allowed;
+				box-shadow: none;
+			}
+		}
+	}
+}
+
+// ---- Dark mode -----------------------------------------------------------
+body.betterlinks-dark-mode .bl-confirm-modal {
+	background: #2c3650;
+	color: #e5e9f2;
+
+	.bl-confirm-modal__body,
+	.bl-confirm-modal__footer {
+		border-color: #36405a;
+	}
+	.bl-confirm-modal__footer {
+		background: #252f47;
+	}
+	.bl-confirm-modal__title {
+		color: #e5e9f2;
+	}
+	.bl-confirm-modal__desc {
+		color: #9aa5bd;
+		strong,
+		b {
+			color: #e5e9f2;
+		}
+	}
+	.bl-confirm-modal__badge {
+		background: rgba($cd-red, 0.2);
+	}
+	.bl-confirm-modal__btn--ghost {
+		background: #252f47;
+		border-color: #36405a;
+		color: #e5e9f2;
+		&:hover {
+			color: #fff;
+		}
+	}
+}

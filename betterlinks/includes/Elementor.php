@@ -58,6 +58,23 @@ class Elementor {
 	}
 
 	/**
+	 * Redirect types offered for Instant Redirect. "Cloaked" needs BetterLinks Pro.
+	 *
+	 * @return array
+	 */
+	public function bl_get_redirect_type_options() {
+		$options = array(
+			'307' => esc_html__( '307 (Temporary)', 'betterlinks' ),
+			'302' => esc_html__( '302 (Temporary)', 'betterlinks' ),
+			'301' => esc_html__( '301 (Permanent)', 'betterlinks' ),
+		);
+		if ( Helper::is_pro_active() ) {
+			$options['cloak'] = esc_html__( 'Cloaked', 'betterlinks' );
+		}
+		return $options;
+	}
+
+	/**
 	 * Returns Category Options
 	 *
 	 * @param boolean $first_index - First Index.
@@ -172,12 +189,7 @@ class Elementor {
 				'type'      => Controls_Manager::SELECT,
 				'label'     => __( 'Redirect Type', 'betterlinks' ),
 				'default'   => $this->bl_get_link_options( 'redirect_type' ),
-				'options'   => array(
-					'307'   => esc_html__( '307 (Temporary)', 'betterlinks' ),
-					'302'   => esc_html__( '302 (Temporary)', 'betterlinks' ),
-					'301'   => esc_html__( '301 (Permanent)', 'betterlinks' ),
-					'cloak' => esc_html__( 'Cloaked', 'betterlinks' ),
-				),
+				'options'   => $this->bl_get_redirect_type_options(),
 				'condition' => array(
 					'bl_ir_active' => 'yes',
 				),

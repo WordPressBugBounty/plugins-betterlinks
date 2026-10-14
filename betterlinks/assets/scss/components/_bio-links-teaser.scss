@@ -1,0 +1,420 @@
+// ==========================================================================
+// Bio Links teaser (`pages/LinkInBioTeaser`).
+//
+// A static, locked preview of the Pro Bio Links screen, shown to free users
+// under the shared UpgradeToProSpecial overlay + UpgradeToPro modal.
+//
+// The `.btl-pd-*` / `.btl-lib-*` rules below are ported from Pro so the preview
+// matches the real screen — but they are nested under `.bl-libt`, because when
+// Pro IS installed its own (unscoped) copies load on the same screens. Scoping
+// keeps the two from fighting; only the list view is ported, since that is all
+// the teaser renders.
+//
+// Mirrors `_promo-cards-teaser.scss`; keep the two in step.
+// ==========================================================================
+$libt-blue: #2f6bff;
+$libt-ink: #1a2233;
+$libt-muted: #6b7280;
+$libt-border: #e6e8ee;
+
+.bl-libt {
+	// The overlay is absolutely positioned, so it needs a positioned ancestor.
+	&__stage {
+		position: relative;
+	}
+
+	// The replica is decoration, not a form — nothing in it should be
+	// clickable, focusable or selectable behind the overlay.
+	&__preview {
+		pointer-events: none;
+		user-select: none;
+		filter: saturate(0.92);
+	}
+
+	// Outdated-Pro users have no overlay, so the replica is made interactive:
+	// every action control accepts clicks (each surfaces the "update" toast).
+	&__preview.is-interactive {
+		pointer-events: auto;
+		user-select: auto;
+		filter: none;
+
+		.btl-pd-tab,
+		.btl-pd-btn,
+		.btl-pd-iconbtn,
+		.btl-pd-code__copy {
+			cursor: pointer;
+		}
+	}
+
+	// Selling points listed inside the UpgradeToProSpecial overlay card.
+	&__sell {
+		margin: 14px 0 0;
+		padding: 0;
+		list-style: none;
+		text-align: left;
+
+		li {
+			display: flex;
+			align-items: flex-start;
+			gap: 10px;
+			margin: 0 0 10px;
+			color: $libt-ink;
+			font-size: 14px;
+			line-height: 1.45;
+
+			&:last-child {
+				margin-bottom: 0;
+			}
+
+			svg {
+				flex: none;
+				margin-top: 1px;
+				color: $libt-blue;
+			}
+		}
+	}
+
+	// ---- Page shell ------------------------------------------------------
+	.btl-lib {
+		font-size: 14px;
+		color: $libt-ink;
+	}
+
+	// ---- Tabs row --------------------------------------------------------
+	.btl-pd-tabs {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		margin-bottom: 24px;
+
+		&__nav {
+			display: inline-flex;
+			gap: 4px;
+			padding: 4px;
+			border: 1px solid $libt-border;
+			border-radius: 10px;
+			background: #f7f8fa;
+		}
+
+		&__action {
+			flex: none;
+		}
+	}
+
+	.btl-pd-tab {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 9px 22px;
+		border: 0;
+		border-radius: 8px;
+		background: transparent;
+		box-shadow: none;
+		color: $libt-muted;
+		font-size: 14px;
+		font-weight: 600;
+		text-decoration: none;
+
+		&.is-active {
+			background: #fff;
+			color: $libt-blue;
+			box-shadow: 0 1px 3px rgba(15, 20, 30, 0.12);
+		}
+	}
+
+	// ---- Buttons ---------------------------------------------------------
+	.btl-pd-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 9px 16px;
+		border: 1px solid transparent;
+		border-radius: 7px;
+		background: none;
+		font-size: 14px;
+		font-weight: 600;
+		line-height: 1;
+
+		.btl-pd-icon {
+			flex: 0 0 auto;
+			width: 18px;
+			height: 18px;
+		}
+
+		&--outline {
+			border-color: $libt-blue;
+			background: #fff;
+			color: $libt-blue;
+		}
+	}
+
+	// ---- List ------------------------------------------------------------
+	.btl-pd-list {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+	}
+
+	.btl-pd-card {
+		border: 1px solid $libt-border;
+		border-radius: 12px;
+		background: #fff;
+		box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+
+		&--table {
+			overflow: hidden;
+		}
+	}
+
+	// ---- Table -----------------------------------------------------------
+	.btl-pd-table {
+		width: 100%;
+		border-collapse: separate;
+		border-spacing: 0;
+		background: #fff;
+		font-size: 14px;
+
+		th,
+		td {
+			padding: 16px 24px;
+			border-bottom: 1px solid #f0f1f3;
+			text-align: left;
+			vertical-align: middle;
+		}
+
+		thead th {
+			padding-top: 13px;
+			padding-bottom: 13px;
+			border-bottom: 1px solid #eceef2;
+			background: #f9fafb;
+			color: $libt-muted;
+			font-size: 14px;
+			font-weight: 500;
+		}
+
+		tbody td {
+			color: $libt-ink;
+		}
+
+		tbody tr:last-child td {
+			border-bottom: none;
+		}
+
+		&__name {
+			min-width: 0;
+			color: $libt-ink;
+			font-weight: 600;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		&__template {
+			color: $libt-muted;
+			white-space: nowrap;
+		}
+
+		&__actions-col {
+			text-align: right;
+			white-space: nowrap;
+		}
+	}
+
+	// ---- Product cell ----------------------------------------------------
+	.btl-pd-product {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		min-width: 0;
+	}
+
+	.btl-pd-thumb {
+		flex: 0 0 auto;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		border-radius: 8px;
+		background: #f2f4f7;
+		color: #98a2b3;
+		overflow: hidden;
+
+		&--orange {
+			background: #fff1e3;
+			color: #f59331;
+		}
+		&--blue {
+			background: #e8efff;
+			color: #3b76f6;
+		}
+		&--green {
+			background: #e6f8ee;
+			color: #1fa971;
+		}
+		&--purple {
+			background: #f0ebfe;
+			color: #8b5cf6;
+		}
+	}
+
+	// ---- Status badge (bio rows carry Live/Draft; promo cards do not) -----
+	.btl-pd-table__name {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.btl-lib-badge {
+		display: inline-block;
+		padding: 2px 8px;
+		border-radius: 999px;
+		font-size: 11px;
+		font-weight: 700;
+		line-height: 1.5;
+
+		&.is-live {
+			background: #e6f8ee;
+			color: #1fa971;
+		}
+		&.is-draft {
+			background: #f2f4f7;
+			color: #667085;
+		}
+	}
+
+	.btl-lib-avatar__initials {
+		font-size: 13px;
+		font-weight: 700;
+	}
+
+	// ---- Row actions -----------------------------------------------------
+	.btl-pd-actions {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.btl-pd-iconbtn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border: 1px solid #eaecf0;
+		border-radius: 8px;
+		background: #fff;
+		color: #667085;
+
+		&--danger {
+			color: #d92d20;
+		}
+	}
+}
+
+// ==========================================================================
+// Responsive
+// ==========================================================================
+@media screen and (max-width: 782px) {
+	.bl-libt {
+		.btl-pd-tabs {
+			flex-direction: column;
+			align-items: stretch;
+		}
+		.btl-pd-table {
+			th,
+			td {
+				padding: 12px 14px;
+			}
+		}
+	}
+}
+
+// ==========================================================================
+// Dark mode — palette matches Pro `_product-display-admin.scss`
+// ==========================================================================
+body.betterlinks-dark-mode {
+	.bl-libt {
+		&__sell li {
+			color: #e5e9f2;
+
+			svg {
+				color: #6f97ff;
+			}
+		}
+
+		.btl-lib {
+			color: #e5e9f2;
+		}
+
+		.btl-pd-tabs__nav {
+			border-color: #36405a;
+			background: #252f47;
+		}
+		.btl-pd-tab {
+			color: #9aa5bd;
+
+			&.is-active {
+				background: #36405a;
+				color: #6f97ff;
+				box-shadow: none;
+			}
+		}
+
+		.btl-pd-btn--outline {
+			background: transparent;
+		}
+
+		.btl-pd-card {
+			border-color: #36405a;
+			background: #252f47;
+		}
+
+		.btl-pd-table {
+			background: transparent;
+
+			thead th {
+				border-bottom-color: #36405a;
+				background: #1f283d;
+				color: #9aa5bd;
+			}
+
+			th,
+			td {
+				border-bottom-color: #36405a;
+			}
+
+			tbody td {
+				color: #d7dcea;
+			}
+
+			&__name {
+				color: #e5e9f2;
+			}
+			&__template {
+				color: #9aa5bd;
+			}
+		}
+
+		.btl-pd-iconbtn {
+			border-color: #36405a;
+			background: #252f47;
+			color: #9aa5bd;
+
+			&--danger {
+				color: #f87171;
+			}
+		}
+	}
+
+	// Draft badge on the dark card.
+	.btl-lib-badge.is-draft {
+		background: #333c50;
+		color: #9aa4b6;
+	}
+	.btl-lib-badge.is-live {
+		background: rgba(31, 169, 113, 0.18);
+		color: #6fdba4;
+	}
+}

@@ -177,7 +177,7 @@ class Settings extends Controller {
 	 * @return WP_Error|bool
 	 */
 	public function get_items_permissions_check( $request ) {
-		return apply_filters( 'betterlinks/api/settings_get_items_permissions_check', current_user_can( 'manage_options' ) );
+		return apply_filters( 'betterlinks/api/settings_get_items_permissions_check', current_user_can( 'manage_options' ) ) || \BetterLinks\Mcp\Mcp_Access::is_running_tool();
 	}
 
 	/**
@@ -187,6 +187,6 @@ class Settings extends Controller {
 	 * @return WP_Error|bool
 	 */
 	public function permissions_check( $request ) {
-		return apply_filters( 'betterlinks/api/settings_update_items_permissions_check', current_user_can( 'manage_options' ) );
+		return apply_filters( 'betterlinks/api/settings_update_items_permissions_check', current_user_can( 'manage_options' ) ) || \BetterLinks\Mcp\Mcp_Access::is_running_tool();
 	}
 }

@@ -1,0 +1,162 @@
+// ==========================================================================
+// Resource cards under Settings (`components/Docs`) — Documentation, Support,
+// Community, Review. Tokens mirror the redesigned Settings shell.
+//
+// NOTE: this partial is @imported INSIDE `.betterlinks-body { … }`, so a bare
+// `body.betterlinks-dark-mode { … }` would compile to a <body> nested inside a
+// <div>. Dark overrides use `body.betterlinks-dark-mode &` at the end instead.
+// ==========================================================================
+$doc-border: #e6e8ee;
+$doc-text: #1a2233;
+$doc-muted: #6b7280;
+$doc-surface: #fff;
+
+.bl-docs {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 20px;
+	margin-top: 30px;
+
+	@media screen and (max-width: 1400px) {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	@media screen and (max-width: 782px) {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.bl-doc {
+	// Per-card accent, overridden by the tone modifiers below.
+	--bl-doc-accent: #2f6bff;
+	--bl-doc-accent-soft: rgba(47, 107, 255, 0.1);
+
+	display: flex;
+	flex-direction: column;
+	padding: 22px;
+	border: 1px solid $doc-border;
+	border-radius: 14px;
+	background: $doc-surface;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+
+	&:hover,
+	&:focus-within {
+		border-color: var(--bl-doc-accent);
+		box-shadow: 0 8px 20px rgba(16, 24, 40, 0.08);
+		transform: translateY(-2px);
+	}
+
+	&--blue {
+		--bl-doc-accent: #2f6bff;
+		--bl-doc-accent-soft: rgba(47, 107, 255, 0.1);
+	}
+	&--violet {
+		--bl-doc-accent: #7c5cff;
+		--bl-doc-accent-soft: rgba(124, 92, 255, 0.1);
+	}
+	&--green {
+		--bl-doc-accent: #16a34a;
+		--bl-doc-accent-soft: rgba(22, 163, 74, 0.1);
+	}
+	&--rose {
+		--bl-doc-accent: #e0417f;
+		--bl-doc-accent-soft: rgba(224, 65, 127, 0.1);
+	}
+
+	&__icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		margin-bottom: 16px;
+		border-radius: 12px;
+		background: var(--bl-doc-accent-soft);
+		color: var(--bl-doc-accent);
+	}
+
+	&__title {
+		margin: 0 0 8px;
+		padding: 0;
+		color: $doc-text;
+		font-size: 16px;
+		font-weight: 700;
+		line-height: 1.3;
+	}
+
+	&__desc {
+		margin: 0 0 18px;
+		color: $doc-muted;
+		font-size: 13.5px;
+		line-height: 1.55;
+	}
+
+	&__link {
+		// Pins every CTA to the card bottom so they align across the row
+		// regardless of description length.
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		margin-top: auto;
+		color: var(--bl-doc-accent);
+		font-size: 14px;
+		font-weight: 600;
+		text-decoration: none;
+
+		&:hover,
+		&:focus-visible {
+			text-decoration: underline;
+
+			.bl-doc__arrow {
+				transform: translateX(3px);
+			}
+		}
+		&:focus-visible {
+			outline: 2px solid var(--bl-doc-accent);
+			outline-offset: 3px;
+			border-radius: 4px;
+		}
+	}
+
+	&__arrow {
+		flex: none;
+		transition: transform 0.15s ease;
+	}
+
+	// ---- Dark mode -------------------------------------------------------
+	// Palette mirrors the `body.betterlinks-dark-mode` block in _settings.scss.
+	body.betterlinks-dark-mode & {
+		border-color: #36405a;
+		background: #1f283d;
+
+		&:hover,
+		&:focus-within {
+			border-color: var(--bl-doc-accent);
+			box-shadow: 0 8px 20px rgba(0, 0, 0, 0.32);
+		}
+
+		.bl-doc__title {
+			color: #e5e9f2;
+		}
+		.bl-doc__desc {
+			color: #9aa5bd;
+		}
+	}
+
+	// Accents are tuned brighter so they stay legible on the dark surface.
+	body.betterlinks-dark-mode &--blue {
+		--bl-doc-accent: #6f97ff;
+		--bl-doc-accent-soft: rgba(111, 151, 255, 0.16);
+	}
+	body.betterlinks-dark-mode &--violet {
+		--bl-doc-accent: #a48bff;
+		--bl-doc-accent-soft: rgba(164, 139, 255, 0.16);
+	}
+	body.betterlinks-dark-mode &--green {
+		--bl-doc-accent: #4ade80;
+		--bl-doc-accent-soft: rgba(74, 222, 128, 0.16);
+	}
+	body.betterlinks-dark-mode &--rose {
+		--bl-doc-accent: #ff7aa8;
+		--bl-doc-accent-soft: rgba(255, 122, 168, 0.16);
+	}
+}

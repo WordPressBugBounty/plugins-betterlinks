@@ -1,0 +1,538 @@
+// ==========================================================================
+// Backward-compatibility: Pro v2.8.0 Dynamic Redirect modal
+// --------------------------------------------------------------------------
+// Old Pro ships the `.link-modal-options__dynamic-redirects` modal (generic
+// `.btl-modal-*` form markup) via the `linkOptionsDynamicRedirect` filter. The
+// redesigned Pro uses the `.bl-dr` drawer instead, so this legacy markup fell
+// back to default react-modal chrome + plain form styling next to the redesign.
+//
+// This restyles it to the ORIGINAL Pro v2.8.0 two-column layout — label on the
+// left (fixed column), field on the right — matching how old Pro renders it,
+// but with the redesign's polish (rounded controls, styled select/date-pickers,
+// gradient submit, gray sub-cards).
+//
+// EVERY rule here is scoped under `.link-modal-options__dynamic-redirects` — a
+// class ONLY old Pro v2.8.0 renders — so this touches nothing else (the generic
+// `.btl-modal-*` classes are shared by other modals) and never affects the new
+// `.bl-dr` UI. Reads the shared `--bl-m-*` tokens; `!important` out-ranks the
+// styles Pro v2.8.0 still ships.
+// ==========================================================================
+$drc-blu: var(--bl-m-accent, #2f6bff);
+$drc-blu-dark: var(--bl-m-accent-hover, #1f57e6);
+$drc-brd: var(--bl-m-border, #e6e8ee);
+$drc-ttl: var(--bl-m-text, #1a2233);
+$drc-mut: var(--bl-m-muted, #6b7280);
+$drc-surface: var(--bl-m-surface, #ffffff);
+$drc-surface-2: var(--bl-m-surface-2, #f7f8fa);
+$drc-input-bg: var(--bl-m-input-bg, #ffffff);
+$drc-err: var(--bl-m-danger, #ef4444);
+
+// Fixed width of the left-hand label column (the two-column old-Pro layout).
+$drc-label-col: 190px;
+
+// Strip react-modal chrome for the DR modal instance.
+.ReactModal__Content:has(.link-modal-options__dynamic-redirects) {
+	padding: 0 !important;
+	border: none !important;
+	border-radius: 16px !important;
+	overflow: visible !important;
+	background: $drc-surface !important;
+	width: 680px !important;
+	max-width: calc(100vw - 40px) !important;
+
+	// Legacy markup has no header close of its own — keep + restyle the shell's.
+	> .btl-close-modal {
+		position: absolute;
+		top: 14px;
+		right: 16px;
+		z-index: 4;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		margin: 0;
+		border-radius: 8px;
+		background: transparent;
+		color: $drc-mut;
+		cursor: pointer;
+		transition: background 0.15s ease, color 0.15s ease;
+
+		&:hover {
+			background: $drc-surface-2;
+			color: $drc-ttl;
+		}
+		.btl {
+			font-size: 15px;
+			line-height: 1;
+		}
+	}
+}
+
+.link-modal-options__dynamic-redirects {
+	box-sizing: border-box;
+	max-height: calc(100vh - 80px);
+	overflow-y: auto;
+	padding: 28px 30px 26px !important;
+	color: $drc-ttl;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	scrollbar-width: thin;
+	scrollbar-color: var(--bl-m-scroll, rgba(107, 114, 128, 0.3)) transparent;
+	&::-webkit-scrollbar {
+		width: 6px;
+	}
+	&::-webkit-scrollbar-thumb {
+		background: var(--bl-m-scroll, rgba(107, 114, 128, 0.3));
+		border-radius: 10px;
+	}
+
+	// ---- Field rows (two-column: label left, field right) ----------------
+	.btl-modal-form-group {
+		display: flex !important;
+		flex-direction: row !important;
+		align-items: center;
+		gap: 16px;
+		margin: 0 0 18px !important;
+		padding: 0 !important;
+	}
+
+	.btl-modal-form-label {
+		flex: 0 0 $drc-label-col;
+		max-width: $drc-label-col;
+		width: auto !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		font-size: 14px !important;
+		font-weight: 600 !important;
+		line-height: 1.4 !important;
+		color: $drc-ttl !important;
+
+		&.btl-small-label {
+			font-size: 13px !important;
+		}
+		&.btl-required::after {
+			content: '*';
+			margin-left: 2px;
+			color: $drc-err;
+		}
+	}
+
+	// Lone label with no field sibling = a section heading ("Time Based
+	// Target URLs"). Let it span the full width and read as a title.
+	.btl-modal-form-group > .btl-modal-form-label:only-child:not(:has(input)) {
+		flex: 1 1 100%;
+		max-width: none;
+		margin: 8px 0 0 !important;
+		font-size: 15px !important;
+		font-weight: 700 !important;
+		color: $drc-ttl !important;
+	}
+
+	// Checkbox rows (Enable Dynamic Redirect / Split Testing / Expire) — the
+	// outer label wraps its own checkbox; render inline, not in the label col.
+	label.btl-modal-form-label:has(> input[type='checkbox']) {
+		flex: 1 1 auto;
+		max-width: none;
+		display: inline-flex !important;
+		align-items: center;
+		gap: 10px;
+		cursor: pointer;
+
+		> .btl-modal-form-label {
+			flex: 0 0 auto;
+			max-width: none;
+			padding: 0 !important;
+			cursor: pointer;
+		}
+		input[type='checkbox'] {
+			margin: 0 !important;
+			flex: none;
+			width: 16px;
+			height: 16px;
+			accent-color: var(--bl-m-accent, #2f6bff);
+			cursor: pointer;
+		}
+	}
+
+	// ---- Text inputs ----------------------------------------------------
+	.btl-modal-form-control {
+		width: 100% !important;
+		height: 44px !important;
+		margin: 0 !important;
+		padding: 0 14px !important;
+		border: 1px solid $drc-brd !important;
+		border-radius: 10px !important;
+		background: $drc-input-bg !important;
+		font-size: 14px !important;
+		color: $drc-ttl !important;
+		box-shadow: none !important;
+		outline: none !important;
+
+		&:focus {
+			border-color: $drc-blu !important;
+			box-shadow: 0 0 0 3px var(--bl-m-accent-ring, rgba(47, 107, 255, 0.12)) !important;
+		}
+		&::placeholder {
+			color: var(--bl-m-placeholder, #9aa1ad);
+		}
+	}
+
+	// URL row: [url input][weight][delete] on one line.
+	.btl-modal-form-data-wrapper {
+		display: flex !important;
+		align-items: center;
+		gap: 10px;
+
+		.btl-width-input {
+			width: 90px !important;
+			flex: none !important;
+			text-align: center;
+		}
+	}
+
+	.btl-modal-target-url-group {
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+
+	// ---- react-select ---------------------------------------------------
+	// Fills the field column next to its label.
+	.btl-modal-select--full {
+		flex: 1 1 auto;
+		width: 100% !important;
+	}
+	.btl-react-select__control {
+		min-height: 46px !important;
+		border-radius: 10px !important;
+		border-color: $drc-brd !important;
+		background: $drc-surface-2 !important;
+		box-shadow: none !important;
+
+		&--is-focused {
+			border-color: $drc-blu !important;
+			background: $drc-input-bg !important;
+			box-shadow: 0 0 0 3px var(--bl-m-accent-ring, rgba(47, 107, 255, 0.12)) !important;
+		}
+	}
+	.btl-react-select__value-container {
+		padding-left: 14px !important;
+	}
+	.btl-option-with-icon {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		.btl {
+			color: $drc-blu;
+		}
+	}
+	.btl-react-select__single-value,
+	.btl-react-select__input-container {
+		color: $drc-ttl !important;
+		font-size: 14px !important;
+	}
+	.btl-react-select__indicator-separator {
+		background: $drc-brd !important;
+	}
+	.btl-react-select__dropdown-indicator {
+		color: $drc-mut !important;
+	}
+	.btl-react-select__menu {
+		border-radius: 10px !important;
+		overflow: hidden;
+		background: $drc-surface !important;
+		border: 1px solid $drc-brd !important;
+		box-shadow: 0 12px 28px var(--bl-m-shadow, rgba(16, 24, 40, 0.12)) !important;
+		z-index: 5;
+	}
+	.btl-react-select__option {
+		font-size: 14px !important;
+		color: $drc-ttl !important;
+		cursor: pointer !important;
+
+		&--is-focused {
+			background: var(--bl-m-accent-soft, rgba(47, 107, 255, 0.1)) !important;
+		}
+		&--is-selected {
+			background: $drc-blu !important;
+			color: #fff !important;
+			.btl {
+				color: #fff;
+			}
+		}
+	}
+
+	// ---- Add New Link ---------------------------------------------------
+	.btl-add-link-button {
+		display: inline-flex !important;
+		align-items: center;
+		gap: 8px;
+		width: auto !important;
+		min-height: 40px;
+		padding: 0 !important;
+		border: none !important;
+		background: transparent !important;
+		color: $drc-ttl !important;
+		font-size: 14px !important;
+		font-weight: 600 !important;
+		cursor: pointer;
+
+		.icon {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 26px;
+			height: 26px;
+			border-radius: 7px;
+			background: $drc-blu;
+			color: #fff;
+			font-size: 14px;
+			transition: background 0.15s ease;
+		}
+		.text {
+			color: $drc-ttl;
+		}
+		&:hover .icon {
+			background: $drc-blu-dark;
+		}
+	}
+
+	// ---- Delete row -----------------------------------------------------
+	.btl-delete-button {
+		display: inline-flex !important;
+		align-items: center;
+		justify-content: center;
+		flex: none;
+		width: 46px !important;
+		height: 46px !important;
+		padding: 0 !important;
+		border: 1px solid var(--bl-m-danger-border, #fbcacc) !important;
+		border-radius: 10px !important;
+		background: var(--bl-m-danger-soft, #fff1f2) !important;
+		color: $drc-err !important;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		&:hover {
+			border-color: $drc-err !important;
+			background: var(--bl-m-danger-soft-hover, #ffe4e6) !important;
+		}
+		.dashicons {
+			font-size: 18px;
+			width: 18px;
+			height: 18px;
+			line-height: 18px;
+		}
+	}
+
+	// ---- Save & Close ---------------------------------------------------
+	.btl-modal-submit-button {
+		display: inline-flex !important;
+		align-items: center;
+		justify-content: center;
+		width: auto !important;
+		min-height: 46px;
+		margin: 0 !important;
+		padding: 0 30px !important;
+		border: 1px solid $drc-blu !important;
+		border-radius: 10px !important;
+		background: $drc-blu !important;
+		color: #fff !important;
+		font-size: 14px !important;
+		font-weight: 600 !important;
+		box-shadow: 0 6px 16px var(--bl-m-accent-shadow, rgba(47, 107, 255, 0.28)) !important;
+		cursor: pointer;
+		transition: background 0.15s ease, border-color 0.15s ease;
+
+		&:hover {
+			background: $drc-blu-dark !important;
+			border-color: $drc-blu-dark !important;
+			box-shadow: none !important;
+		}
+	}
+
+	// ---- Misc -----------------------------------------------------------
+	.goal-link-notice {
+		margin: 4px 0 0 !important;
+		font-size: 12px;
+		line-height: 1.5;
+		color: $drc-mut;
+
+		a {
+			color: $drc-blu;
+		}
+	}
+
+	.btl-tooltip {
+		display: inline-flex;
+		align-items: center;
+		color: $drc-mut;
+	}
+}
+
+// ==========================================================================
+// Extras: Time sub-component, weight %, select width, gray sub-cards.
+// Still all scoped under `.link-modal-options__dynamic-redirects`.
+// ==========================================================================
+.link-modal-options__dynamic-redirects {
+	// Weighted "%" suffix — pin it inside the narrow weight input.
+	.btl-width-input {
+		padding-right: 28px !important;
+		text-align: right;
+	}
+	.btl-input-type {
+		position: absolute;
+		right: 12px;
+		top: 50%;
+		transform: translateY(-50%);
+		font-size: 13px;
+		font-weight: 600;
+		color: $drc-mut;
+		pointer-events: none;
+	}
+
+	// ---- Split-testing / gray sub-cards (also each Time URL row) --------
+	// These are ALSO `.btl-modal-form-group` rows, so keep the two-column
+	// flow (label left, content right) but top-align and add the card chrome.
+	.btl-bg-gray-light {
+		align-items: flex-start;
+		padding: 18px !important;
+		border: 1px solid $drc-brd;
+		border-radius: 12px;
+		background: $drc-surface-2 !important;
+	}
+
+	// ---- Time redirect --------------------------------------------------
+	.btl-modal-form-time-redirect-content {
+		flex: 1 1 auto;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+	}
+	.btl-time-date-picker-wrapper {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px;
+	}
+	// "Start Date" / "End Date" — the text node before each picker acts as the
+	// field's small label (the picker's own MUI label is hidden below).
+	//
+	// NOTE: every box-model rule here is `!important`. `@material-ui` v4 injects
+	// its component styles into <head> at RUNTIME, after this stylesheet, so on a
+	// single-class specificity tie MUI's default (tall, 18.5px-padded outlined
+	// input) wins — which pushed the value onto a second line and blew the box
+	// height up. `!important` is what pins the picker to a single 44px line.
+	.btl-time-date-picker {
+		flex: 1 1 180px;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		font-size: 12px;
+		font-weight: 600;
+		color: $drc-mut;
+
+		// Kill the reserved top margin MUI leaves for the (now hidden) label and
+		// let the control fill the column.
+		.MuiFormControl-root,
+		.MuiTextField-root {
+			width: 100% !important;
+			margin: 0 !important;
+			vertical-align: top;
+		}
+
+		// The DateTimePicker is inputVariant="outlined". Pin BOTH the base and
+		// outlined roots to a flat 44px single-line box (covers whichever class
+		// MUI actually stamps on the element).
+		.MuiInputBase-root,
+		.MuiOutlinedInput-root {
+			top: -23px;
+			// height: 44px !important;
+			// min-height: 44px !important;
+			// max-height: 44px !important;
+			// margin: 0 !important;
+			// padding: 0 !important;
+			// display: flex !important;
+			// align-items: center !important;
+			// border-radius: 10px !important;
+			// background: $drc-input-bg !important;
+			// box-sizing: border-box !important;
+			// font-family: inherit !important;
+		}
+		.MuiInputBase-input,
+		.MuiOutlinedInput-input {
+			height: 44px !important;
+			min-height: 0 !important;
+			margin: 0 !important;
+			padding: 0 14px !important;
+			box-sizing: border-box !important;
+			font-size: 14px !important;
+			line-height: 44px !important;
+			color: $drc-ttl !important;
+		}
+
+		// Flatten the notched outline to wrap the 44px box and drop the label notch.
+		.MuiOutlinedInput-notchedOutline {
+			top: 0 !important;
+			bottom: 0 !important;
+			height: auto !important;
+			padding: 0 !important;
+			border-color: $drc-brd !important;
+
+			legend {
+				display: none !important;
+				width: 0 !important;
+				max-width: 0 !important;
+			}
+		}
+		.MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+			border-color: $drc-blu !important;
+			border-width: 1px !important;
+		}
+
+		// Hide the picker's own floating "DateTimePicker" label, and any leftover
+		// standard-variant underline.
+		.MuiInputLabel-root,
+		.MuiFormLabel-root {
+			display: none !important;
+		}
+		.MuiInput-underline:before,
+		.MuiInput-underline:after {
+			display: none !important;
+		}
+	}
+	.btl-url-selector-wrapper {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+	.btl-dynamic-redirect-input {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+	.btl-required-field-warning {
+		display: block;
+		margin-top: 4px;
+		font-size: 12px;
+		color: $drc-err;
+	}
+}
+
+// ==========================================================================
+// Material-UI date/time picker dialog z-index.
+// The DR modal's react-modal overlay sits at z-index 999999 (set inline by Pro),
+// while MUI pickers portal to <body> at ~1300 — so the picker opened for the
+// "Time" redirect type rendered BEHIND the modal and was invisible. Scoped to
+// picker modals/popovers via :has() so only the pickers are lifted, nothing else.
+// ==========================================================================
+.MuiDialog-root:has(.MuiPickersModal-dialogRoot),
+.MuiPopover-root:has(.MuiPickersBasePicker),
+.MuiPickersModal-dialogRoot,
+.MuiPickersPopper {
+	z-index: 1000001 !important;
+}

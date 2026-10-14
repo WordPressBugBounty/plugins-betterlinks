@@ -1,0 +1,286 @@
+// ==========================================================================
+// Admin notices on BetterLinks screens.
+//
+// These live in `#wpbody-content`, OUTSIDE `.betterlinks-body`, so the rules
+// are root-level. Two notices are styled here:
+//   .btl-notice--new      the "what's new in Pro" bar (free plugin, Notice.php)
+//   .wpdeveloper-licensing-notice  the licensing SDK's notice (Pro)
+//
+// The licensing notice is printed by the VENDORED SDK with inline styles
+// (padding / background / border), which is why those declarations carry
+// `!important` — an inline style cannot be beaten any other way, and the SDK
+// file is not ours to edit.
+// ==========================================================================
+$btl-n-text: #1a2233;
+$btl-n-muted: #4b5565;
+$btl-n-blue: #2961ff;
+$btl-n-amber: #f59e0b;
+
+// Notices belong BELOW the navbar. WordPress prints them into `#wpbody-content`
+// (above `.betterlinks-body`, so above the navbar); `AppNavbar` moves the nodes
+// into `.bl-notice-area` on mount.
+//
+// Anything still sitting in `#wpbody-content` is hidden: that is either the
+// pre-move state — hiding it avoids a flash of notices above the brand bar while
+// the app boots — or a notice printed after the observer was torn down, which
+// would otherwise reappear in the wrong place. The app owns this screen, so if
+// it never mounts there is no correct layout to fall back to anyway.
+#wpbody-content > .notice,
+#wpbody-content > .updated,
+#wpbody-content > .error,
+#wpbody-content > .wpdeveloper-licensing-notice {
+	display: none;
+}
+
+// The relocated stack, directly under the navbar and aligned to the page gutter.
+.bl-notice-area {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+
+	&:not(:empty) {
+		margin: 0px 0 12px;
+	}
+
+	> .notice,
+	> .updated,
+	> .error,
+	> .wpdeveloper-licensing-notice {
+		display: flex;
+	}
+	.notice, div.error, div.updated {
+		margin: 5px 0px 2px;
+	}
+}
+
+.btl-notice {
+	position: relative;
+	display: flex;
+	align-items: center;
+	border-radius: 10px;
+	box-sizing: border-box;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	&__body {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		margin: 0;
+		padding: 0;
+		font-size: 14px;
+		line-height: 1.5;
+		color: $btl-n-text;
+	}
+
+	&__text {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	// Descendant selector, not `&__link`: WordPress core ships
+	// `div.error a, div.notice a, div.updated a { color: … }` at specificity
+	// (0,1,1), which a bare `.btl-notice__link` (0,1,0) loses to.
+	.btl-notice__link {
+		font-weight: 600;
+		color: $btl-n-blue;
+		text-decoration: underline;
+		text-underline-offset: 2px;
+
+		&:hover,
+		&:focus {
+			color: darken($btl-n-blue, 10%);
+		}
+	}
+}
+
+// ---- "What's new in Pro" ---------------------------------------------------
+.btl-notice--new {
+	padding: 8px 46px 8px 16px;
+	border: none !important;
+	border-left: none !important;
+	background: #eef1ff !important;
+	box-shadow: none;
+
+	&.notice {
+		// WP's default notice chrome (white bg + 4px left border) has to go.
+		border-left-width: 0 !important;
+	}
+
+	.btl-notice__pill {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		height: 22px;
+		padding: 0 10px;
+		border-radius: 999px;
+		background: $btl-n-blue;
+		color: #fff;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+	}
+
+	// WP injects the dismiss button; align it with the new padding.
+	.notice-dismiss {
+		top: 50% !important;
+		right: 8px;
+		transform: translateY(-50%);
+		padding: 8px;
+
+		&::before {
+			color: #7b8496;
+		}
+		&:hover::before {
+			color: $btl-n-text;
+		}
+	}
+}
+
+// ---- Licensing (Pro) -------------------------------------------------------
+// Matches the notice however the SDK renders it: the "not activated" body we
+// supply via `activation_notice`, and the bare-string error branch.
+.wpdeveloper-licensing-notice {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 7px 18px !important;
+	border: 1px solid #e6e8ee !important;
+	border-left: 3px solid $btl-n-amber !important;
+	border-radius: 10px;
+	background: #fff !important;
+	font-size: 14px;
+	line-height: 1.5;
+	color: $btl-n-text;
+	margin-bottom: 20px;
+
+	p {
+		margin: 0;
+		padding: 0;
+		font-size: 14px;
+	}
+
+	.btl-notice__body {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+	}
+
+	// Painted here rather than inlined in the markup: the licensing SDK passes the
+	// notice body through wp_kses_post(), which strips <svg> entirely.
+	.btl-notice__icon {
+		flex: none;
+		width: 18px;
+		height: 18px;
+		background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f59e0b' stroke-width='1.8' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7.6v5.2M12 16.2h.01'/%3E%3C/svg%3E")
+			center / 18px 18px no-repeat;
+	}
+
+	.btl-notice__text {
+		// flex: 1 1 auto;
+		min-width: 0;
+		color: $btl-n-muted;
+	}
+
+	.btl-notice__link {
+		font-weight: 600;
+		color: $btl-n-blue;
+		text-decoration: none;
+
+		&:hover,
+		&:focus {
+			text-decoration: underline;
+		}
+	}
+
+	// Rendered as an <a> because the SDK runs the body through wp_kses_post(),
+	// which strips <button>.
+	.btl-notice__action {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 7px 12px;
+		border: 1px solid #d7dae1;
+		border-radius: 9px;
+		background: #fff;
+		color: $btl-n-text;
+		font-size: 13px;
+		font-weight: 600;
+		text-decoration: none;
+		transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+
+		&:hover,
+		&:focus {
+			border-color: $btl-n-blue;
+			background: #f5f7ff;
+			color: $btl-n-blue;
+		}
+	}
+}
+
+@media screen and (max-width: 782px) {
+	.wpdeveloper-licensing-notice {
+		flex-wrap: wrap;
+
+		.btl-notice__body {
+			flex-wrap: wrap;
+		}
+		.btl-notice__action {
+			width: 100%;
+			margin-top: 10px;
+		}
+	}
+}
+
+// ---- Dark mode -------------------------------------------------------------
+body.betterlinks-dark-mode {
+	.btl-notice--new {
+		background: #2f3a55 !important;
+
+		.btl-notice__body {
+			color: #e5e9f2;
+		}
+		.btl-notice__link {
+			color: #8ba9ff;
+		}
+		.notice-dismiss::before {
+			color: #9aa5bd;
+		}
+		.notice-dismiss:hover::before {
+			color: #e5e9f2;
+		}
+	}
+
+	.wpdeveloper-licensing-notice {
+		border-color: #36405a !important;
+		border-left-color: $btl-n-amber !important;
+		background: #2c3650 !important;
+		color: #e5e9f2;
+
+		p,
+		.btl-notice__text {
+			color: #b6c0d4;
+		}
+		.btl-notice__link {
+			color: #8ba9ff;
+		}
+		.btl-notice__action {
+			border-color: #36405a;
+			background: #252f47;
+			color: #e5e9f2;
+
+			&:hover,
+			&:focus {
+				border-color: #8ba9ff;
+				background: #36405a;
+				color: #8ba9ff;
+			}
+		}
+	}
+}

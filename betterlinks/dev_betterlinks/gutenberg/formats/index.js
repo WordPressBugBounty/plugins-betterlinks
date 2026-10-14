@@ -1,0 +1,1 @@
+export { betterlinksFormat } from './betterlinks';

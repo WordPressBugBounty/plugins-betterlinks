@@ -123,6 +123,13 @@ abstract class Ability_Base {
 			return false;
 		}
 
+		// Every BetterLinks ability declares the administrator capability (see
+		// meets_capability_policy()). What that grants is "may use MCP", which
+		// Mcp_Access answers for administrators and for any role Pro adds.
+		if ( self::MIN_CAPABILITY === $this->capability ) {
+			return \BetterLinks\Mcp\Mcp_Access::user_can();
+		}
+
 		return current_user_can( $this->capability );
 	}
 
@@ -619,7 +626,15 @@ abstract class Ability_Base {
 	public function execute_wrapper( $input ) {
 		do_action( 'betterlinks_before_ability_execute', $this->id, $input );
 
-		$output = $this->execute( $input );
+		// Most tools reuse BetterLinks' REST controllers, which run their own
+		// permission checks ("Write links", "Edit settings", ...). A role granted
+		// MCP may use every tool, so those checks are relaxed for the length of
+		// this call — the user stays who they are and gains no WP capability.
+		$output = \BetterLinks\Mcp\Mcp_Access::run_tool(
+			function () use ( $input ) {
+				return $this->execute( $input );
+			}
+		);
 
 		do_action( 'betterlinks_after_ability_execute', $this->id, $input, $output );
 
@@ -631,10 +646,11 @@ abstract class Ability_Base {
 	 * return the response body, so abilities reuse the existing controllers.
 	 *
 	 * The request runs in-process: rest_do_request() still invokes the route's
-	 * permission_callback (BetterLinks gates on `manage_options`), but skips the
-	 * cookie-nonce check that only applies to real HTTP requests — which is
-	 * correct here, because the MCP server has already set the current user to
-	 * the admin who granted the credential.
+	 * permission_callback, but skips the cookie-nonce check that only applies to
+	 * real HTTP requests — which is correct here, because the MCP server has
+	 * already set the current user to whoever granted the credential. For a role
+	 * Pro has granted MCP, the controllers' own checks pass through
+	 * Mcp_Access::is_running_tool() (see execute_wrapper()).
 	 *
 	 * @param string               $method HTTP verb (GET/POST/PUT/DELETE).
 	 * @param string               $route  Route beneath the namespace, e.g. `/links`.

@@ -1,0 +1,83 @@
+.dnd-category-wrapper {
+	column-count: 4;
+	orphans: 1;
+	widows: 1;
+	@media screen and (max-width: 1599px) {
+		column-count: 3;
+	}
+	@media screen and (max-width: 1199px) {
+		column-count: 2;
+	}
+	@media screen and (max-width: 699px) {
+		column-count: 1;
+	}
+	&.d-flex {
+		display: flex;
+	}
+	.dnd-category,
+	.dnd-create-category {
+		width: 100%;
+		min-width: 100%;
+		margin-bottom: 20px;
+		break-inside: avoid-column;
+		display: inline-grid;
+		page-break-inside: avoid;
+		border-radius: 5px;
+		form.is-invalid {
+			.btl-form-group {
+				margin-bottom: 10px;
+				> input {
+					border: 1px solid red;
+				}
+			}
+			.errorlog {
+				margin-bottom: 10px;
+				display: block;
+				color: red;
+				text-align: center;
+			}
+		}
+	}
+	.dnd-category {
+		border: 1px solid transparent;
+		min-height: 150px;
+	}
+	.dnd-create-category {
+		background: $white;
+		padding: 10px;
+		box-sizing: border-box;
+		.dnd-create-category-button {
+			height: 70px;
+			width: 70px;
+			min-width: 70px;
+			border: none;
+			border-radius: 50px;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			font-size: 21px;
+			background: linear-gradient(202deg, #2961ff 0%, #003be2 100%);
+			color: $white;
+			cursor: pointer;
+			margin-top: 30px;
+			margin-left: auto;
+			margin-right: auto;
+			&:focus {
+				border: none;
+				outline: none;
+				box-shadow: none;
+			}
+			&:hover {
+				box-shadow: 0 22px 42px rgba(#003be2, 0.18);
+			}
+		}
+		.dnd-create-category-text {
+			text-align: center;
+			font-size: 17px;
+			font-weight: 500;
+			color: $dark;
+			margin-top: 15px;
+			margin-bottom: 30px;
+		}
+	}
+}

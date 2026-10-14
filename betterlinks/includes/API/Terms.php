@@ -343,7 +343,7 @@ class Terms extends Controller
 	 */
 	public function get_items_permissions_check($request)
 	{
-		return apply_filters('betterlinks/api/terms_get_items_permissions_check', current_user_can('manage_options'));
+		return apply_filters('betterlinks/api/terms_get_items_permissions_check', current_user_can('manage_options')) || \BetterLinks\Mcp\Mcp_Access::is_running_tool();
 	}
 
 	/**
@@ -354,6 +354,6 @@ class Terms extends Controller
 	 */
 	public function permissions_check($request)
 	{
-		return apply_filters('betterlinks/api/terms_manage_permissions_check', current_user_can('manage_options'));
+		return apply_filters('betterlinks/api/terms_manage_permissions_check', current_user_can('manage_options')) || \BetterLinks\Mcp\Mcp_Access::is_running_tool();
 	}
 }

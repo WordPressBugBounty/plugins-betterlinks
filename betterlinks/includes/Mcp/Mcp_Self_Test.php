@@ -40,23 +40,30 @@ if ( ! defined( 'ABSPATH' ) ) {
  * while every OAuth client is refused — the earlier version of this test only
  * exercised check 2 and so reported `ok` in exactly that situation.
  *
+ * Two more run when they can be measured: `user_agent` replays the challenge
+ * with AI-client User-Agents, and `ai_traffic` reads the OAuth records for apps
+ * that signed in but never reached the endpoint, the one failure no loopback
+ * can see.
+ *
  * The staged result names the first failing step: `disabled` → `not_connected`
  * → `unreachable` → `tls` → `redirect` → `auth` → `no_tools` → `rewrite` →
- * `discovery` → `challenge` → `ok`.
+ * `discovery` → `challenge` → `ua_filter` → `unreached` → `ok`.
  */
 final class Mcp_Self_Test {
 
 	/**
 	 * User agents to replay the challenge probe with, to detect a host that
-	 * filters by User-Agent. These are the shapes real MCP backends send —
-	 * none of them is a browser, which is exactly what "block bad bots" rules
-	 * key on. A site that answers WordPress's own UA but 403s these is
-	 * unreachable for every AI client while looking perfectly healthy from
-	 * inside.
+	 * filters by User-Agent. The generic ones are what "block bad bots" rules
+	 * key on; the named ones are what AI bot blockers match, in the formats
+	 * Anthropic and OpenAI publish for their user-initiated fetchers. A site
+	 * that answers WordPress's own UA but 403s these is unreachable for those
+	 * AI clients while looking perfectly healthy from inside.
 	 */
 	private const CLIENT_USER_AGENTS = [
 		'python-requests/2.32.3',
 		'node-fetch/3.3.2',
+		'Claude-User/1.0; +Claude-User@anthropic.com',
+		'Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko); compatible; ChatGPT-User/1.0; +https://openai.com/bot',
 	];
 
 	/**
@@ -129,6 +136,12 @@ final class Mcp_Self_Test {
 			$result['checks'][] = self::check( 'user_agent', __( 'Client access', 'betterlinks' ), $user_agent['stage'], $user_agent['detail'] );
 		}
 
+		// Same rule: skipped until a connected app can actually be measured.
+		$ai_traffic = self::probe_ai_traffic();
+		if ( null !== $ai_traffic ) {
+			$result['checks'][] = self::check( 'ai_traffic', __( 'AI client traffic', 'betterlinks' ), $ai_traffic['stage'], $ai_traffic['detail'] );
+		}
+
 		// Locked-out clients. The loopback below can pass while a REMOTE client
 		// is walled off by the failed-auth limiter — the exact state a connector
 		// still holding a rotated-away token produces. Reported only when the
@@ -167,7 +180,7 @@ final class Mcp_Self_Test {
 		}
 
 		// Otherwise report the first failing check in order.
-		foreach ( [ $pretty, $rest, $discovery, $challenge, $user_agent ] as $check ) {
+		foreach ( [ $pretty, $rest, $discovery, $challenge, $user_agent, $ai_traffic ] as $check ) {
 			if ( null === $check ) {
 				continue;
 			}
@@ -616,7 +629,55 @@ final class Mcp_Self_Test {
 
 		return [
 			'stage'  => 'ok',
-			'detail' => __( 'The endpoint answers AI-client User-Agents the same way it answers WordPress, so no bot filter is blocking them. This cannot see an IP-level block of the AI vendor.', 'betterlinks' ),
+			'detail' => __( 'The endpoint answered the AI-client User-Agents it was tested with (including Claude-User and ChatGPT-User) the same way it answers WordPress. This test runs from your own server, so it cannot see a block on the AI vendor\'s network; the AI client traffic check covers that once an app has connected.', 'betterlinks' ),
+		];
+	}
+
+	/**
+	 * Whether connected AI apps actually reached the endpoint after signing in.
+	 *
+	 * Built from the OAuth records rather than a probe, because this is the one
+	 * failure a loopback cannot see: an AI bot blocker or firewall that refuses
+	 * the AI vendor while trusting the server's own address.
+	 *
+	 * @return array{stage:string,detail:string}|null Null when no connected app can be measured.
+	 */
+	private static function probe_ai_traffic(): ?array {
+		// Administrators see every app; anyone else only their own (#127).
+		$traffic = Mcp_OAuth::unreached_apps( Mcp_Access::is_admin() ? 0 : get_current_user_id() );
+		if ( null === $traffic ) {
+			return null;
+		}
+
+		if ( ! empty( $traffic['unreached'] ) ) {
+			$names = array_values( array_unique( array_column( $traffic['unreached'], 'name' ) ) );
+			return [
+				'stage'  => 'unreached',
+				'detail' => sprintf(
+					/* translators: %s: comma-separated names of connected AI apps. */
+					_n(
+						'%s signed in but has not made a single request to the MCP endpoint since. Something between that AI client and this site is refusing it, usually a host or CDN "AI bot blocker" or a firewall rule. Allow the AI client (for example Claude-User or ChatGPT-User) or exempt the /betterlinks/mcp path, then remove the connector in the AI client and add it again.',
+						'%s signed in but have not made a single request to the MCP endpoint since. Something between those AI clients and this site is refusing them, usually a host or CDN "AI bot blocker" or a firewall rule. Allow the AI clients (for example Claude-User or ChatGPT-User) or exempt the /betterlinks/mcp path, then remove the connectors in the AI clients and add them again.',
+						count( $names ),
+						'betterlinks'
+					),
+					implode( ', ', $names )
+				),
+			];
+		}
+
+		return [
+			'stage'  => 'ok',
+			'detail' => sprintf(
+				/* translators: %d: number of connected AI apps. */
+				_n(
+					'%d connected AI app has made requests to the endpoint since it signed in.',
+					'%d connected AI apps have made requests to the endpoint since they signed in.',
+					(int) $traffic['reached'],
+					'betterlinks'
+				),
+				(int) $traffic['reached']
+			),
 		];
 	}
 

@@ -14,8 +14,9 @@
  * abilities registry (Mcp_Tools). Auth is the per-site connection token
  * (Mcp_Pairing) or an OAuth 2.1 access token (Mcp_OAuth).
  *
- * Admin-only management routes (manage_options) drive the MCP page:
- * /mcp/connection, /mcp/connect, /mcp/rotate, /mcp/disconnect.
+ * Management routes drive the MCP page: /mcp/enabled, /mcp/connection,
+ * /mcp/connect, /mcp/rotate, /mcp/disconnect. They are open to anyone
+ * Mcp_Access allows: administrators, plus any role BetterLinks Pro grants MCP.
  *
  * The token-only MCP + OAuth routes authenticate inside the handler (a
  * JSON-RPC 401 challenge, not a WP permission failure), so their
@@ -75,17 +76,53 @@ final class Mcp_Manager {
 	private const AUTHORIZE_QUERY_VAR = 'betterlinks_mcp_authorize';
 
 	/**
+	 * Rules earlier builds registered and this one never does. The stored
+	 * rewrite table keeps a rule until something flushes it, so the self-heal
+	 * in add_rewrite() flushes once while OUR copy of one is still there.
+	 *
+	 * Ownership is read from the rule's target, not its regex: another plugin
+	 * may still register the same regex for its own document, its copy comes
+	 * back from every flush, and treating that as ours would flush on every
+	 * request.
+	 *
+	 * The root-form rule used to end in `(?:/.*)?`, which matched every
+	 * plugin's path-suffixed discovery URL
+	 * (/.well-known/oauth-protected-resource/<their-plugin>/mcp). Registered
+	 * at `top` and early, it sat above their own rules, so their clients got
+	 * our query var, which we decline, and WordPress served a page and then
+	 * redirected it to a trailing slash instead of their metadata.
+	 */
+	private const RETIRED_REWRITE_RULES = [
+		'^\.well-known/oauth-(protected-resource|authorization-server)(?:/.*)?/?$',
+	];
+
+	/**
 	 * Initialize (called by the plugin's component container).
+	 *
+	 * Guard strategy: instead of scattering `is_enabled()` checks inside every
+	 * handler (fragile — the next added endpoint forgets it, and a stale
+	 * rewrite rule can leave a well-known URL responding after the admin flips
+	 * the toggle), gate at REGISTRATION. When MCP is off:
+	 *
+	 *   - MCP JSON-RPC, OAuth register/token routes are not registered
+	 *     (requests get a plain WP 404, not a leaky 403)
+	 *   - rewrite rules for the pretty endpoint, well-known discovery and the
+	 *     authorize page are not added, so those URLs simply don't route
+	 *   - discovery metadata is never served (no OAuth surface for a
+	 *     scanner to fingerprint)
+	 *
+	 * What always runs: the admin management REST routes (so the MCP page
+	 * loads and the toggle itself is reachable), the runtime-missing notice,
+	 * and the option-change watcher that flushes rewrites when the toggle
+	 * flips. Ability registration is decoupled from this gate on purpose —
+	 * see {@see \BetterLinks\Abilities\Abilities_Registrar}.
 	 *
 	 * @return void
 	 */
 	public function init(): void {
-		add_action( 'rest_api_init', [ $this, 'register_rest' ] );
-
-		// Pretty per-site endpoint: /betterlinks/mcp → MCP JSON-RPC handler.
-		add_action( 'init', [ $this, 'add_rewrite' ] );
-		add_filter( 'query_vars', [ $this, 'register_query_var' ] );
-		add_action( 'parse_request', [ $this, 'maybe_handle_pretty_endpoint' ] );
+		// Admin routes are always present — the MCP page needs to load even
+		// when MCP is off (that is how the user turns it ON).
+		add_action( 'rest_api_init', [ $this, 'register_admin_rest' ] );
 
 		// The one broken state the server can't see from inside a request:
 		// MCP enabled but the bundled Abilities runtime absent. Everything
@@ -96,6 +133,111 @@ final class Mcp_Manager {
 		// connects and offers nothing, with no signal anywhere. Say it loudly
 		// where an admin will look.
 		add_action( 'admin_notices', [ $this, 'warn_when_runtime_missing' ] );
+
+		// Roles other than administrator get MCP only through BetterLinks Pro.
+		// When Pro goes, so do their connections (#127). Registered before the
+		// enable_mcp gate below, so it also runs while MCP is switched off.
+		add_action( 'deactivated_plugin', [ $this, 'end_role_connections_with_pro' ] );
+
+		// Watch the settings option so the rewrite table stays in step with the
+		// enable_mcp toggle: turning MCP on adds the /betterlinks/mcp + OAuth
+		// well-known rules, turning it off removes them. Without this, a
+		// disabled MCP still routes discovery URLs from the stored rewrite
+		// table until the next manual permalink resave.
+		//
+		// WordPress fires `update_option_{$option}` (before write) with old and
+		// new — NOT `updated_option_{$option}` (that specific-after hook does
+		// not exist in core). We hook the before-write variant.
+		add_action( 'update_option_' . BETTERLINKS_LINKS_OPTION_NAME, [ $this, 'on_settings_updated' ], 10, 2 );
+
+		// MCP surface: only when the admin has turned it on.
+		if ( ! self::is_enabled() ) {
+			// One-time self-heal for sites upgrading from a build that
+			// unconditionally added MCP rewrites: if the stored rewrite table
+			// still has our rules while MCP is off, drop it so the next
+			// request regenerates a clean table without them. Cheap: reads a
+			// single option and does a substring check.
+			$this->prune_stale_rewrites_if_needed();
+			return;
+		}
+		add_action( 'rest_api_init', [ $this, 'register_public_rest' ] );
+		add_action( 'init', [ $this, 'add_rewrite' ] );
+		add_filter( 'query_vars', [ $this, 'register_query_var' ] );
+		add_action( 'parse_request', [ $this, 'maybe_handle_pretty_endpoint' ] );
+	}
+
+	/**
+	 * Drop the stored rewrite table if it still contains MCP query vars while
+	 * MCP is disabled. Handles the upgrade case: pre-fix builds added the
+	 * rules unconditionally, and a fresh boot that gates registration would
+	 * still serve the old rules from `wp_options['rewrite_rules']` until the
+	 * admin re-saved permalinks. This makes that healing automatic.
+	 *
+	 * @return void
+	 */
+	private function prune_stale_rewrites_if_needed(): void {
+		$rules = get_option( 'rewrite_rules' );
+		if ( empty( $rules ) || ! is_array( $rules ) ) {
+			return;
+		}
+		foreach ( $rules as $target ) {
+			if ( is_string( $target ) && false !== strpos( $target, self::QUERY_VAR ) ) {
+				delete_option( 'rewrite_rules' );
+				return;
+			}
+		}
+	}
+
+	/**
+	 * Flush rewrite rules when the enable_mcp toggle changes.
+	 *
+	 * Fires after the settings option is updated (from any source: the admin
+	 * screen, the MCP `update-settings` ability, WP-CLI). Only flushes when
+	 * the toggle value actually changed — a settings save that leaves
+	 * enable_mcp untouched is a no-op here.
+	 *
+	 * @param mixed $old Previous option value.
+	 * @param mixed $new New option value.
+	 * @return void
+	 */
+	public function on_settings_updated( $old, $new ): void {
+		$as_bool = static function ( $value ): bool {
+			if ( is_array( $value ) ) {
+				return ! empty( $value['enable_mcp'] );
+			}
+			if ( is_string( $value ) ) {
+				$decoded = json_decode( $value, true );
+				return is_array( $decoded ) && ! empty( $decoded['enable_mcp'] );
+			}
+			return false;
+		};
+		if ( $as_bool( $old ) === $as_bool( $new ) ) {
+			return;
+		}
+		// The JSON settings cache is what is_enabled() reads; without this
+		// rebuild the on-disk copy would still say "off" and the rewrite rules
+		// would be added or removed against a stale is_enabled() reading.
+		Cache::write_json_settings();
+
+		// Clear the stored rewrite table so the next request regenerates it
+		// against the freshly-decided registered-rules set. flush_rewrite_rules()
+		// alone rebuilds from the CURRENT process's registered rules, which
+		// were locked in at init before this option changed — so on a toggle
+		// flip from on to off the MCP rules would linger. delete_option forces
+		// WP to rebuild on the next init cycle from the correct new state.
+		delete_option( 'rewrite_rules' );
+	}
+
+	/**
+	 * End non-administrator MCP connections when BetterLinks Pro is deactivated.
+	 *
+	 * @param string $plugin Basename of the plugin being deactivated.
+	 * @return void
+	 */
+	public function end_role_connections_with_pro( $plugin ): void {
+		if ( 'betterlinks-pro/betterlinks-pro.php' === $plugin ) {
+			Mcp_OAuth::revoke_non_admins();
+		}
 	}
 
 	/**
@@ -166,10 +308,12 @@ final class Mcp_Manager {
 			'top'
 		);
 		// Root-form fallback for clients that only try the bare well-known
-		// URL. Harmless when another plugin also registers this exact regex —
-		// last registrant wins, and our clients use the path-suffixed form.
+		// URL, and only the bare URL: a path after it belongs to whichever
+		// plugin owns that path (see RETIRED_REWRITE_RULES). Harmless when
+		// another plugin also registers this exact regex — last registrant
+		// wins, and our clients use the path-suffixed form.
 		add_rewrite_rule(
-			'^\.well-known/oauth-(protected-resource|authorization-server)(?:/.*)?/?$',
+			'^\.well-known/oauth-(protected-resource|authorization-server)/?$',
 			'index.php?' . self::WELLKNOWN_QUERY_VAR . '=$matches[1]',
 			'top'
 		);
@@ -196,9 +340,14 @@ final class Mcp_Manager {
 
 		// Self-heal: flush once if ANY of our rules is missing from the stored
 		// rewrite table, so the endpoints work without a manual permalink
-		// re-save (and newly added rules trigger a re-flush on upgrade).
+		// re-save (and newly added rules trigger a re-flush on upgrade), or if
+		// our copy of a retired rule is still in it.
+		//
+		// Only rules registered above belong in $expected. A rule that is not
+		// registered is never in a freshly flushed table, so listing one makes
+		// every request flush — which the token-in-path rule did after it was
+		// removed.
 		$expected = [
-			'^betterlinks/mcp/([a-f0-9]{64})/?$',
 			'^betterlinks/mcp/?$',
 			'^\.well-known/oauth-(protected-resource|authorization-server)/betterlinks/mcp/?$',
 			'^betterlinks/mcp/\.well-known/oauth-(protected-resource|authorization-server)/?$',
@@ -207,6 +356,12 @@ final class Mcp_Manager {
 		];
 		$rules = get_option( 'rewrite_rules' );
 		if ( is_array( $rules ) ) {
+			foreach ( self::RETIRED_REWRITE_RULES as $rule ) {
+				if ( isset( $rules[ $rule ] ) && 'index.php?' . self::WELLKNOWN_QUERY_VAR . '=$matches[1]' === $rules[ $rule ] ) {
+					flush_rewrite_rules( false );
+					return;
+				}
+			}
 			foreach ( $expected as $rule ) {
 				if ( ! isset( $rules[ $rule ] ) ) {
 					flush_rewrite_rules( false );
@@ -240,14 +395,16 @@ final class Mcp_Manager {
 	public function maybe_handle_pretty_endpoint( $wp ): void {
 		// OAuth discovery documents (served at the site root).
 		if ( ! empty( $wp->query_vars[ self::WELLKNOWN_QUERY_VAR ] ) ) {
-			// The root-form rule matches any /.well-known/oauth-* URL, including
-			// one that belongs to another plugin or to a future core feature.
+			// A stored table from before RETIRED_REWRITE_RULES can still route
+			// any /.well-known/oauth-* URL here, including one that belongs to
+			// another plugin or to a future core feature, until it is flushed.
 			// Answering 404 + exit there made BetterLinks break their discovery
-			// even with MCP switched off, and with it on it handed a client
-			// looking for someone else's authorization server our metadata.
-			// Claim only requests for this site's own MCP resource; otherwise
-			// fall through and let WordPress serve the URL as it normally would.
-			if ( ! self::is_enabled() || ! self::wellknown_request_is_ours() ) {
+			// with it on it handed a client looking for someone else's
+			// authorization server our metadata. Claim only requests for this
+			// site's own MCP resource; otherwise fall through and let WordPress
+			// serve the URL as it normally would. (The disabled-MCP case is
+			// handled at registration — this hook is not wired then.)
+			if ( ! self::wellknown_request_is_ours() ) {
 				return;
 			}
 			$doc  = (string) $wp->query_vars[ self::WELLKNOWN_QUERY_VAR ];
@@ -264,10 +421,6 @@ final class Mcp_Manager {
 
 		// Browser-facing OAuth consent page (cookie auth applies here).
 		if ( ! empty( $wp->query_vars[ self::AUTHORIZE_QUERY_VAR ] ) ) {
-			if ( ! self::is_enabled() ) {
-				status_header( 404 );
-				exit;
-			}
 			$this->handle_authorize_page();
 			return;
 		}
@@ -276,10 +429,34 @@ final class Mcp_Manager {
 			return;
 		}
 
+		$auth = self::server_header( 'authorization' );
+
+		// MCP Streamable HTTP: a server that offers no SSE stream answers GET
+		// with 405, and DELETE ends a session this server never creates. Without
+		// this, both were run as an empty POST and answered "Parse error". A
+		// request without credentials still gets the 401 challenge below, which
+		// is where OAuth discovery starts.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- compared against fixed method names only.
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( (string) wp_unslash( $_SERVER['REQUEST_METHOD'] ) ) : 'POST';
+		if ( null !== $auth && in_array( $method, [ 'GET', 'DELETE' ], true ) ) {
+			$response = new \WP_REST_Response(
+				[
+					'jsonrpc' => '2.0',
+					'id'      => null,
+					'error'   => [
+						'code'    => -32000,
+						'message' => 'Method not allowed: this endpoint accepts POST only.',
+					],
+				],
+				405
+			);
+			$response->header( 'Allow', 'POST' );
+			$this->emit_json( $response );
+		}
+
 		$request = new \WP_REST_Request( 'POST', '/' . self::NS . '/mcp' );
 		$request->set_header( 'content-type', 'application/json' );
 		// Carry the auth header + raw body from the live PHP request.
-		$auth = self::server_header( 'authorization' );
 		if ( null !== $auth ) {
 			$request->set_header( 'authorization', $auth );
 		}
@@ -292,26 +469,17 @@ final class Mcp_Manager {
 	// -- REST registration --
 
 	/**
-	 * Register the REST routes: the MCP JSON-RPC fallback, the admin
-	 * management routes, and the OAuth registration/token endpoints.
+	 * Always-on management routes that back the MCP admin screen. The screen
+	 * must load with MCP off too — that is where the user turns it on — so
+	 * these are registered on every request.
+	 *
+	 * State-changing routes still refuse to mint or issue tokens for a
+	 * disabled MCP (see {@see self::rest_connect}, {@see self::rest_rotate}).
+	 * Read-only routes always respond so the admin page can report state.
 	 *
 	 * @return void
 	 */
-	public function register_rest(): void {
-		// --- MCP JSON-RPC endpoint (fallback path via wp-json) -----------
-		// permission_callback is __return_true because Mcp_Server does its own
-		// token auth and must reply with a JSON-RPC 401 + WWW-Authenticate,
-		// not a bare WP permission failure.
-		register_rest_route(
-			self::NS,
-			'/mcp',
-			[
-				'methods'             => 'POST',
-				'callback'            => [ $this, 'rest_mcp' ],
-				'permission_callback' => '__return_true',
-			]
-		);
-
+	public function register_admin_rest(): void {
 		// Read-only integration health report backing the Connection health card.
 		register_rest_route(
 			self::NS,
@@ -323,7 +491,33 @@ final class Mcp_Manager {
 			]
 		);
 
-		// --- Admin-only management routes (the MCP page) ------------------
+		// --- Management routes (the MCP page), gated by Mcp_Access ---------
+		// The master switch has its own route so a role with MCP but without
+		// BetterLinks' "Edit settings" permission can still turn MCP on and off.
+		// Going through PUT /settings would require that permission.
+		register_rest_route(
+			self::NS,
+			'/mcp/enabled',
+			[
+				[
+					'methods'             => 'GET',
+					'callback'            => [ $this, 'rest_get_enabled' ],
+					'permission_callback' => [ $this, 'admin_permission' ],
+				],
+				[
+					'methods'             => 'POST',
+					'callback'            => [ $this, 'rest_set_enabled' ],
+					// The switch cuts everyone off, so it stays with administrators.
+					'permission_callback' => [ $this, 'administrator_permission' ],
+					'args'                => [
+						'enabled' => [
+							'type'     => 'boolean',
+							'required' => true,
+						],
+					],
+				],
+			]
+		);
 		register_rest_route(
 			self::NS,
 			'/mcp/connection',
@@ -339,7 +533,8 @@ final class Mcp_Manager {
 			[
 				'methods'             => 'POST',
 				'callback'            => [ $this, 'rest_connect' ],
-				'permission_callback' => [ $this, 'admin_permission' ],
+				// The shared token acts as the administrator who owns it (#127).
+				'permission_callback' => [ $this, 'administrator_permission' ],
 				'args'                => [
 					'read_only' => [
 						'type'        => 'boolean',
@@ -356,7 +551,8 @@ final class Mcp_Manager {
 			[
 				'methods'             => 'POST',
 				'callback'            => [ $this, 'rest_rotate' ],
-				'permission_callback' => [ $this, 'admin_permission' ],
+				// The shared token acts as the administrator who owns it (#127).
+				'permission_callback' => [ $this, 'administrator_permission' ],
 				'args'                => [
 					'read_only' => [
 						'type'        => 'boolean',
@@ -372,7 +568,8 @@ final class Mcp_Manager {
 			[
 				'methods'             => 'POST',
 				'callback'            => [ $this, 'rest_disconnect' ],
-				'permission_callback' => [ $this, 'admin_permission' ],
+				// The shared token acts as the administrator who owns it (#127).
+				'permission_callback' => [ $this, 'administrator_permission' ],
 			]
 		);
 
@@ -415,11 +612,36 @@ final class Mcp_Manager {
 				],
 			]
 		);
+	}
 
-		// --- OAuth 2.1 authorization server (the "paste a URL only" path) -
-		// Discovery, dynamic client registration, and the token endpoint are
-		// all public (permission enforced inside): a client must reach them
-		// BEFORE it holds any credential.
+	/**
+	 * The public MCP surface — JSON-RPC endpoint and OAuth register/token.
+	 * Only registered when {@see self::is_enabled()} is true; a disabled MCP
+	 * returns plain WP 404 for these paths, not a "disabled" leak.
+	 *
+	 * @return void
+	 */
+	public function register_public_rest(): void {
+		// MCP JSON-RPC endpoint (the always-on wp-json fallback path).
+		// permission_callback is __return_true because Mcp_Server does its own
+		// token auth and must reply with a JSON-RPC 401 + WWW-Authenticate,
+		// not a bare WP permission failure.
+		register_rest_route(
+			self::NS,
+			'/mcp',
+			[
+				'methods'             => 'POST',
+				'callback'            => [ $this, 'rest_mcp' ],
+				'permission_callback' => '__return_true',
+			]
+		);
+
+		// OAuth 2.1 authorization server. Discovery, dynamic client
+		// registration and the token endpoint are all public (permission
+		// enforced inside): a client must reach them BEFORE it holds any
+		// credential. NOTE: /authorize is deliberately NOT a REST route — it
+		// is served as a normal front-end page at /betterlinks/authorize (see
+		// handle_authorize_page) so cookie auth works after wp-login.
 		register_rest_route(
 			self::NS,
 			'/mcp/oauth/register',
@@ -429,9 +651,6 @@ final class Mcp_Manager {
 				'permission_callback' => '__return_true',
 			]
 		);
-		// NOTE: /authorize is deliberately NOT a REST route — it is served as
-		// a normal front-end page at /betterlinks/authorize (see
-		// handle_authorize_page) so cookie auth works after wp-login.
 		register_rest_route(
 			self::NS,
 			'/mcp/oauth/token',
@@ -444,12 +663,44 @@ final class Mcp_Manager {
 	}
 
 	/**
-	 * Capability gate for the admin-only management routes.
+	 * Permission gate for the MCP management routes.
+	 *
+	 * Kept under its old name because it is a public callback, but it no longer
+	 * means "administrator": it means "may use MCP" ({@see Mcp_Access}).
 	 *
 	 * @return bool
 	 */
 	public function admin_permission(): bool {
-		return current_user_can( 'manage_options' );
+		return Mcp_Access::user_can();
+	}
+
+	/**
+	 * Gate for the site-wide controls: the shared connection token (create,
+	 * reset, disconnect everything) and the MCP on/off switch. These stay with
+	 * administrators even when Pro grants MCP to other roles (#127).
+	 *
+	 * @return bool
+	 */
+	public function administrator_permission(): bool {
+		return Mcp_Access::is_admin();
+	}
+
+	/**
+	 * Shared response for admin state-changing routes ({@see self::rest_connect},
+	 * {@see self::rest_rotate}) when MCP is switched off. Read-only management
+	 * routes still answer so the admin page can render the "off" state.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	private function mcp_disabled_response(): \WP_REST_Response {
+		return new \WP_REST_Response(
+			[
+				'code'    => 'betterlinks_mcp_disabled',
+				'message' => __( 'MCP is disabled on this site.', 'betterlinks' ),
+				'data'    => [ 'status' => 409 ],
+			],
+			409
+		);
 	}
 
 	// -- Handlers ----------------------------------------------------------
@@ -469,6 +720,44 @@ final class Mcp_Manager {
 	}
 
 	/**
+	 * GET /mcp/enabled — whether the MCP master switch is on.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function rest_get_enabled(): \WP_REST_Response {
+		return rest_ensure_response( [ 'enabled' => self::is_enabled() ] );
+	}
+
+	/**
+	 * POST /mcp/enabled — turn the MCP master switch on or off.
+	 *
+	 * Writes only `enable_mcp` into the stored settings, leaving every other
+	 * setting exactly as it was, then refreshes the JSON settings cache the
+	 * redirect path reads.
+	 *
+	 * @param \WP_REST_Request $request Carries `enabled`.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function rest_set_enabled( \WP_REST_Request $request ) {
+		$enabled  = (bool) $request->get_param( 'enabled' );
+		$settings = json_decode( (string) get_option( BETTERLINKS_LINKS_OPTION_NAME, '{}' ), true );
+		if ( ! is_array( $settings ) ) {
+			// Refuse rather than overwrite every other setting with a one-key blob.
+			return new \WP_Error(
+				'betterlinks_settings_unreadable',
+				__( 'BetterLinks could not read its settings, so MCP was left unchanged.', 'betterlinks' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		$settings['enable_mcp'] = $enabled;
+		update_option( BETTERLINKS_LINKS_OPTION_NAME, wp_json_encode( $settings ) );
+		Cache::write_json_settings();
+
+		return rest_ensure_response( [ 'enabled' => self::is_enabled() ] );
+	}
+
+	/**
 	 * GET /connection-status — the read-only health report.
 	 *
 	 * @return \WP_REST_Response
@@ -483,6 +772,11 @@ final class Mcp_Manager {
 	 * @return \WP_REST_Response
 	 */
 	public function rest_connection(): \WP_REST_Response {
+		// Only administrators ever receive the shared token. Everyone else gets
+		// sign-in recipes, which connect as themselves (#127).
+		if ( ! Mcp_Access::is_admin() ) {
+			return rest_ensure_response( Mcp_Pairing::member_status() );
+		}
 		$this->ensure_connected();
 		return rest_ensure_response( Mcp_Pairing::public_status() );
 	}
@@ -497,7 +791,9 @@ final class Mcp_Manager {
 	 * @return void
 	 */
 	private function ensure_connected(): void {
-		if ( self::is_enabled() && ! Mcp_Pairing::is_connected() ) {
+		// The token is created by, and acts as, an administrator. A
+		// non-administrator opening the page must never create it (#127).
+		if ( self::is_enabled() && Mcp_Access::is_admin() && ! Mcp_Pairing::is_connected() ) {
 			Mcp_Pairing::connect();
 		}
 	}
@@ -509,6 +805,9 @@ final class Mcp_Manager {
 	 * @return \WP_REST_Response
 	 */
 	public function rest_connect( \WP_REST_Request $request ): \WP_REST_Response {
+		if ( ! self::is_enabled() ) {
+			return $this->mcp_disabled_response();
+		}
 		$read_only = (bool) $request->get_param( 'read_only' );
 		return rest_ensure_response( Mcp_Pairing::connect( $read_only ) );
 	}
@@ -520,6 +819,9 @@ final class Mcp_Manager {
 	 * @return \WP_REST_Response
 	 */
 	public function rest_rotate( \WP_REST_Request $request ): \WP_REST_Response {
+		if ( ! self::is_enabled() ) {
+			return $this->mcp_disabled_response();
+		}
 		$read_only = null;
 		if ( null !== $request->get_param( 'read_only' ) ) {
 			$read_only = (bool) $request->get_param( 'read_only' );
@@ -552,7 +854,14 @@ final class Mcp_Manager {
 	 */
 	public function rest_apps(): \WP_REST_Response {
 		$this->ensure_connected();
-		return rest_ensure_response( $this->apps_payload() );
+		if ( Mcp_Access::is_admin() ) {
+			// Sweep grants left by users who have since lost MCP, so they are
+			// neither listed nor able to come back if MCP is given back.
+			Mcp_OAuth::revoke_unauthorized();
+			return rest_ensure_response( $this->apps_payload() );
+		}
+		// Everyone else sees only the apps they connected themselves.
+		return rest_ensure_response( $this->apps_payload( get_current_user_id() ) );
 	}
 
 	/**
@@ -573,9 +882,21 @@ final class Mcp_Manager {
 				[ 'status' => 400 ]
 			);
 		}
-		Mcp_OAuth::revoke_client( $client_id );
+		if ( Mcp_Access::is_admin() ) {
+			Mcp_OAuth::revoke_client( $client_id );
+			return rest_ensure_response( $this->apps_payload() );
+		}
 
-		return rest_ensure_response( $this->apps_payload() );
+		// A non-administrator may only remove apps they connected themselves.
+		$user_id = get_current_user_id();
+		if ( ! Mcp_OAuth::revoke_client( $client_id, $user_id ) ) {
+			return new \WP_Error(
+				'betterlinks_mcp_not_your_app',
+				__( 'You can only remove AI apps you connected yourself.', 'betterlinks' ),
+				[ 'status' => 403 ]
+			);
+		}
+		return rest_ensure_response( $this->apps_payload( $user_id ) );
 	}
 
 	/**
@@ -585,9 +906,9 @@ final class Mcp_Manager {
 	 *
 	 * @return array<string,mixed>
 	 */
-	private function apps_payload(): array {
+	private function apps_payload( int $only_user = 0 ): array {
 		$oauth_apps = [];
-		foreach ( Mcp_OAuth::connected_apps() as $app ) {
+		foreach ( Mcp_OAuth::connected_apps( $only_user ) as $app ) {
 			$user         = $app['user_id'] > 0 ? get_userdata( $app['user_id'] ) : false;
 			$oauth_apps[] = [
 				'client_id'    => $app['client_id'],
@@ -613,27 +934,34 @@ final class Mcp_Manager {
 	 * @return \WP_REST_Response|\WP_Error
 	 */
 	public function rest_oauth_register( \WP_REST_Request $request ) {
-		if ( ! self::is_enabled() ) {
-			return new \WP_Error( 'betterlinks_mcp_disabled', __( 'MCP is disabled on this site.', 'betterlinks' ), [ 'status' => 403 ] );
-		}
+		// Route is only registered when MCP is enabled (see init), so a
+		// disabled MCP returns WP's own 404 here — no OAuth surface for a
+		// scanner to fingerprint.
+		//
 		// Unauthenticated by design (a client registers before it has any
 		// credential), and every call rewrites the whole client option. Without a
 		// ceiling that is an anonymous write loop, and a flood past the client cap
 		// evicts registrations that admins are part-way through approving.
-		if ( Mcp_Rate_Limiter::is_locked() ) {
+		//
+		// That ceiling is its own counter. Counting every registration as a
+		// failed authentication locked the token endpoint after about ten
+		// connect attempts, even when every one of them succeeded.
+		if ( Mcp_Rate_Limiter::is_locked() || ! Mcp_Rate_Limiter::registration_allowed() ) {
 			return new \WP_Error(
 				'betterlinks_mcp_rate_limited',
 				__( 'Too many registration attempts. Try again later.', 'betterlinks' ),
 				[ 'status' => 429 ]
 			);
 		}
-		Mcp_Rate_Limiter::record_failure();
+		Mcp_Rate_Limiter::record_registration();
 		$body = $request->get_json_params();
 		if ( ! is_array( $body ) ) {
 			$body = [];
 		}
 		$result = Mcp_OAuth::register_client( $body );
 		if ( is_wp_error( $result ) ) {
+			// A malformed registration is a failed attempt.
+			Mcp_Rate_Limiter::record_failure();
 			return $result;
 		}
 		return new \WP_REST_Response( $result, 201 );
@@ -646,9 +974,10 @@ final class Mcp_Manager {
 	 * @return \WP_REST_Response
 	 */
 	public function rest_oauth_token( \WP_REST_Request $request ): \WP_REST_Response {
-		// Same reasoning as registration: unauthenticated, and each call reads and
-		// rewrites the shared OAuth option.
-		if ( self::is_enabled() && Mcp_Rate_Limiter::is_locked() ) {
+		// Route is only registered when MCP is enabled (see init). Rate limit
+		// stays: same reasoning as registration — unauthenticated, and each
+		// call reads and rewrites the shared OAuth option.
+		if ( Mcp_Rate_Limiter::is_locked() ) {
 			$response = new \WP_REST_Response(
 				[
 					'error'             => 'invalid_request',
@@ -657,17 +986,6 @@ final class Mcp_Manager {
 				429
 			);
 			$response->header( 'Retry-After', (string) Mcp_Rate_Limiter::retry_after() );
-			return $response;
-		}
-		if ( ! self::is_enabled() ) {
-			$response = new \WP_REST_Response(
-				[
-					'error'             => 'invalid_request',
-					'error_description' => 'MCP is disabled on this site.',
-				],
-				403
-			);
-			$response->header( 'Cache-Control', 'no-store' );
 			return $response;
 		}
 
@@ -746,22 +1064,24 @@ final class Mcp_Manager {
 			$data         = $req->get_error_data();
 			$redirectable = is_array( $data ) && ! empty( $data['redirectable'] );
 			// Only redirect the error back when redirect_uri is verified valid and
-			// an administrator is present; otherwise show a page. Client
+			// a user who may use MCP is present; otherwise show a page. Client
 			// registration is public, so bouncing anonymous visitors to a
 			// registered redirect_uri would be an open redirect.
-			if ( $redirectable && '' !== $params['redirect_uri'] && is_user_logged_in() && current_user_can( 'manage_options' ) ) {
+			if ( $redirectable && '' !== $params['redirect_uri'] && is_user_logged_in() && Mcp_Access::user_can() ) {
 				$this->redirect_error( $params['redirect_uri'], $req->get_error_code(), $req->get_error_message(), $params['state'] );
 			}
 			$this->emit_oauth_error_page( $req->get_error_message() );
 		}
 
-		// Require a logged-in admin. Anonymous → wp-login, back to this URL.
+		// Require a logged-in user who may use MCP. Anonymous → wp-login, back
+		// to this URL. The code is issued to that user, so the assistant later
+		// acts as them, never as an administrator.
 		if ( ! is_user_logged_in() ) {
 			$this->redirect_to_login();
 		}
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! Mcp_Access::user_can() ) {
 			$this->emit_oauth_error_page(
-				__( 'You must be an administrator to authorize an AI assistant to manage links on this site.', 'betterlinks' )
+				__( 'Your account is not allowed to connect AI assistants to BetterLinks on this site. Ask an administrator for MCP access.', 'betterlinks' )
 			);
 		}
 
@@ -971,7 +1291,9 @@ final class Mcp_Manager {
 	 * site's MCP resource, rather than some other plugin's.
 	 *
 	 * The bare form carries no resource path, so it stays ours: it is the
-	 * fallback clients try when they cannot build the path-suffixed URL.
+	 * fallback clients try when they cannot build the path-suffixed URL. So
+	 * are the documents appended to our own endpoint path, which add_rewrite()
+	 * routes here for clients built on an OpenID Connect library.
 	 *
 	 * @return bool
 	 */
@@ -987,6 +1309,10 @@ final class Mcp_Manager {
 		}
 
 		if ( preg_match( '#^/\.well-known/oauth-(protected-resource|authorization-server)$#', $path ) ) {
+			return true;
+		}
+
+		if ( preg_match( '#^/betterlinks/mcp/\.well-known/(oauth-protected-resource|oauth-authorization-server|openid-configuration)$#', $path ) ) {
 			return true;
 		}
 

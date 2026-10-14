@@ -1,0 +1,177 @@
+.btl-dnd-link {
+	margin: 8px 8px 0px 8px;
+	background-color: $white;
+	border-left: 1px solid $success;
+	.btl-dnd-link-body {
+		padding: 5px;
+		display: flex;
+		align-items: center;
+		min-height: 35px;
+		justify-content: space-between;
+		column-gap: 2px;
+
+		.dnd-link-title {
+			display: flex;
+			align-items: center;
+			margin-top: 0;
+			margin-bottom: 0;
+			font-size: 12px;
+			font-weight: 500;
+			line-height: 1.1;
+			color: $secondary-darken;
+			word-break: break-word;
+			padding-left: 3px;
+
+			.icon {
+				margin-right: 4px;
+				display: inline-flex;
+				svg,
+				img {
+					width: 8px;
+				}
+				&.error {
+					color: $danger;
+				}
+			}
+			.btl-tooltip {
+				margin-left: 0;
+			}
+
+			.dnd-link-button {
+				border: none;
+				width: auto;
+				overflow: visible;
+				text-align: left;
+
+				background: transparent;
+				font: inherit;
+				line-height: normal;
+				-webkit-font-smoothing: inherit;
+				-moz-osx-font-smoothing: inherit;
+				-webkit-appearance: none;
+			}
+		}
+		.btl-dnd-link-button-group {
+			position: relative;
+			display: flex;
+			align-items: center;
+			min-height: 25px;
+			column-gap: 2px;
+
+			.btl-tooltip {
+				margin-left: 0;
+			}
+		}
+	}
+	.btl-confirm-message {
+		display: flex;
+		align-items: center;
+		background: $white;
+		padding-left: 10px;
+		position: absolute;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		.action-text {
+			color: $secondary;
+			font-weight: 500;
+			margin-right: 7px;
+			white-space: nowrap;
+		}
+		.action-set {
+			display: flex;
+			.action {
+				padding: 3px 5px;
+				border: 0;
+				outline: 0;
+				box-shadow: 0;
+				color: $white;
+				width: 45%;
+				border-radius: 2px;
+				cursor: pointer;
+				text-transform: uppercase;
+				font-size: 13px;
+				font-weight: 500;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				margin: 0 2px;
+				&.yes {
+					background: $success-lighten;
+				}
+				&.no {
+					background: $danger;
+				}
+			}
+		}
+	}
+}
+
+.btl-dnd-link .btl-dnd-link-body .btl-dnd-link-button-group .dnd-link-button,
+.btl-tooltip.btl-fav-link .dnd-link-button {
+	padding: 5px;
+	border: none;
+	background: none;
+	color: $secondary-lighten;
+	font-size: 12px;
+	cursor: pointer;
+	transition: color 0.2s ease 0s;
+	text-decoration: none;
+	&:focus {
+		border: none;
+		outline: none;
+		box-shadow: none;
+	}
+	&:hover {
+		color: $success;
+	}
+	&.delete-button:hover {
+		color: $danger;
+	}
+	span.icon {
+		a {
+			color: #b0b2ba;
+			text-decoration: none;
+		}
+	}
+}
+
+// common css start
+.no-btn {
+	border: none;
+	background: none;
+}
+.c-pointer {
+	cursor: pointer;
+}
+.c-default {
+	cursor: default;
+}
+// common css end
+
+// favorite icon css start
+.btl-tooltip.btl-fav-link {
+	svg.favorite-svg .fav-icon-svg-path {
+		transition: 0.3s !important;
+	}
+	&:focus {
+		border: none;
+		outline: none;
+		box-shadow: none;
+	}
+}
+.btl-tooltip.btl-fav-link svg.favorite-svg {
+	width: 16px;
+	.fav-icon-svg-path {
+		fill: $favorite-icon-grey !important;
+	}
+}
+.btl-tooltip.btl-fav-link.favorated svg.favorite-svg .fav-icon-svg-path {
+	fill: $favorite-icon-yellow !important;
+}
+.btl-tooltip.btl-fav-link:not(.no-edit) {
+	&:hover svg.favorite-svg .fav-icon-svg-path {
+		fill: $favorite-icon-yellow !important;
+	}
+}
+// favorite icon css start

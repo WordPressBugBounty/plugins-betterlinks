@@ -1,0 +1,464 @@
+// ==========================================================================
+// Analytics "Reset clicks" dialog.
+//
+// Self-contained: the markup is a plain React portal (see
+// `components/ResetClicksModal`), NOT react-modal, so none of the global
+// `.ReactModal__*` rules apply and every declaration needed is here. That is
+// deliberate — the previous version inherited a hard 870x380 content box, a
+// 600px white ghost panel and an `inset: 40px`, and each state broke a
+// different one.
+//
+// Everything lives under `.bl-rc`. No legacy class names in this subtree.
+// ==========================================================================
+$rc-border: #e6e8ee;
+$rc-text: #131b2e;
+$rc-muted: #55607a;
+$rc-surface: #f7f8fa;
+$rc-blue: #2f6bff;
+$rc-red: #ef4444;
+$rc-amber: #f59e0b;
+$rc-green: #16a34a;
+
+.bl-rc {
+	position: fixed;
+	inset: 0;
+	z-index: 100001;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 20px;
+	background: rgba(15, 20, 30, 0.5);
+	overflow-y: auto;
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+
+	// ---- Card --------------------------------------------------------------
+	// Sizes to its content, which is how one shell holds both the ~950px
+	// calendar and the ~460px confirm panel.
+	&__card {
+		position: relative;
+		width: 460px;
+		max-width: 100%;
+		max-height: calc(100vh - 40px);
+		margin: auto;
+		border-radius: 16px;
+		background: #fff;
+		box-shadow: 0 24px 60px rgba(15, 20, 30, 0.28);
+		color: $rc-text;
+		overflow: auto;
+
+		&:focus {
+			outline: none;
+		}
+		// The date-picker state needs room for two months side by side.
+		&--wide {
+			width: max-content;
+		}
+	}
+
+	&__close {
+		position: absolute;
+		top: 14px;
+		right: 14px;
+		z-index: 2;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 30px;
+		height: 30px;
+		padding: 0;
+		border: none;
+		border-radius: 9px;
+		background: transparent;
+		color: #98a2b3;
+		cursor: pointer;
+		transition: background 0.15s ease, color 0.15s ease;
+
+		&:hover {
+			background: $rc-surface;
+			color: $rc-text;
+		}
+		&:focus-visible {
+			outline: 2px solid rgba($rc-blue, 0.4);
+			outline-offset: 1px;
+		}
+	}
+
+	// ---- Centred states (confirm / progress / result) -----------------------
+	&__body {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 32px 32px 26px;
+		text-align: center;
+	}
+
+	&__mark {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 56px;
+		height: 56px;
+		margin-bottom: 14px;
+		border-radius: 50%;
+
+		&--warn {
+			background: rgba($rc-amber, 0.14);
+			color: #d97706;
+		}
+		&--done {
+			background: rgba($rc-green, 0.14);
+			color: $rc-green;
+		}
+		&--empty {
+			background: rgba(107, 114, 128, 0.12);
+			color: #6b7280;
+		}
+	}
+
+	// A ring, not an icon — the deleting state has nothing to show yet.
+	&__spinner {
+		width: 40px;
+		height: 40px;
+		margin-bottom: 16px;
+		border: 3px solid rgba($rc-blue, 0.18);
+		border-top-color: $rc-blue;
+		border-radius: 50%;
+		animation: bl-rc-spin 0.8s linear infinite;
+	}
+
+	&__title {
+		margin: 0;
+		padding: 0;
+		font-family: inherit;
+		font-size: 20px;
+		font-weight: 700;
+		line-height: 1.3;
+		text-align: center;
+		color: $rc-text;
+
+		&--left {
+			text-align: left;
+		}
+	}
+
+	&__text {
+		margin: 8px 0 0;
+		max-width: 340px;
+		font-size: 14px;
+		line-height: 1.55;
+		color: $rc-muted;
+	}
+
+	&__range {
+		margin: 6px 0 0;
+		font-size: 15px;
+		font-weight: 700;
+		color: $rc-blue;
+	}
+
+	&__note {
+		margin: 12px 0 0;
+		font-size: 13px;
+		color: #7b8496;
+	}
+
+	// ---- Impact callout ----------------------------------------------------
+	&__callout {
+		width: 100%;
+		margin-top: 18px;
+		padding: 12px 16px;
+		border: 1px solid rgba($rc-red, 0.24);
+		border-radius: 10px;
+		background: rgba($rc-red, 0.06);
+		font-size: 14px;
+		line-height: 1.5;
+		color: #b42318;
+
+		strong {
+			font-weight: 700;
+		}
+	}
+
+	// ---- Type-to-confirm ---------------------------------------------------
+	&__confirm {
+		display: block;
+		width: 100%;
+		margin-top: 18px;
+	}
+	&__confirm-label {
+		display: block;
+		margin-bottom: 6px;
+		font-size: 13px;
+		color: $rc-muted;
+
+		b {
+			color: $rc-text;
+			letter-spacing: 0.02em;
+		}
+	}
+	&__input {
+		width: 100%;
+		height: 44px;
+		margin: 0;
+		padding: 0 14px;
+		border: 1px solid $rc-border;
+		border-radius: 10px;
+		background: #fff;
+		font-size: 14px;
+		color: $rc-text;
+		text-align: center;
+		letter-spacing: 0.02em;
+		outline: none;
+		box-shadow: none;
+
+		&::placeholder {
+			color: #9aa3b2;
+			letter-spacing: 0.06em;
+		}
+		&:focus {
+			border-color: $rc-blue;
+			box-shadow: 0 0 0 3px rgba($rc-blue, 0.12);
+		}
+	}
+
+	// ---- Footer ------------------------------------------------------------
+	&__footer {
+		display: flex;
+		justify-content: center;
+		gap: 12px;
+		width: 100%;
+		margin-top: 24px;
+
+		&--single {
+			justify-content: center;
+		}
+	}
+
+	&__btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		min-width: 104px;
+		height: 46px;
+		padding: 0 20px;
+		border: 1px solid transparent;
+		border-radius: 10px;
+		font-family: inherit;
+		font-size: 14px;
+		font-weight: 600;
+		line-height: 1;
+		text-decoration: none;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		&:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+		&:focus-visible {
+			outline: 2px solid rgba($rc-blue, 0.4);
+			outline-offset: 2px;
+		}
+
+		&--ghost {
+			border-color: $rc-border;
+			background: #fff;
+			color: $rc-text;
+
+			&:hover:not(:disabled) {
+				background: $rc-surface;
+				border-color: rgba($rc-muted, 0.4);
+			}
+		}
+		&--primary {
+			border-color: $rc-blue;
+			background: $rc-blue;
+			color: #fff;
+
+			&:hover:not(:disabled) {
+				background: darken($rc-blue, 7%);
+				border-color: darken($rc-blue, 7%);
+			}
+		}
+		&--danger {
+			border-color: $rc-red;
+			background: $rc-red;
+			color: #fff;
+
+			&:hover:not(:disabled) {
+				background: darken($rc-red, 7%);
+				border-color: darken($rc-red, 7%);
+			}
+		}
+	}
+
+	// ---- Date-picker state -------------------------------------------------
+	&__picker {
+		display: flex;
+		flex-direction: column;
+	}
+	&__title--left {
+		padding: 22px 58px 18px 24px;
+		border-bottom: 1px solid $rc-border;
+		font-size: 18px;
+	}
+	&__calendar {
+		padding: 8px 0 0;
+
+		// react-date-range paints its own chrome; strip what clashes with the card.
+		.rdrDateRangePickerWrapper,
+		.rdrCalendarWrapper,
+		.rdrDefinedRangesWrapper,
+		.rdrDateDisplayWrapper,
+		.rdrMonthAndYearWrapper {
+			background: transparent;
+		}
+		.rdrDefinedRangesWrapper {
+			border-right: 1px solid $rc-border;
+		}
+		.rdrStaticRange {
+			border-bottom: none;
+			background: transparent;
+
+			&:hover .rdrStaticRangeLabel {
+				background: $rc-surface;
+			}
+		}
+		.rdrStaticRangeLabel {
+			font-size: 13px;
+			color: $rc-text;
+		}
+		.rdrDateDisplayItem {
+			border-radius: 8px;
+			box-shadow: none;
+			border: 1px solid $rc-border;
+
+			input {
+				height: 38px;
+				color: $rc-text;
+			}
+			&--active {
+				border-color: $rc-blue;
+			}
+		}
+	}
+	.bl-rc__picker .bl-rc__footer {
+		justify-content: flex-end;
+		padding: 0 24px 22px;
+		margin-top: 8px;
+	}
+
+	@media screen and (max-width: 900px) {
+		&__card--wide {
+			width: 100%;
+		}
+		&__calendar .rdrDateRangePickerWrapper {
+			flex-direction: column;
+		}
+		&__calendar .rdrDefinedRangesWrapper {
+			width: 100%;
+			border-right: none;
+			border-bottom: 1px solid $rc-border;
+		}
+	}
+
+	@media screen and (max-width: 600px) {
+		&__footer {
+			flex-direction: column-reverse;
+		}
+		&__btn {
+			width: 100%;
+		}
+	}
+}
+
+@keyframes bl-rc-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+// ---- Dark mode -------------------------------------------------------------
+body.betterlinks-dark-mode .bl-rc {
+	&__card {
+		background: #2c3650;
+		color: #e5e9f2;
+	}
+	&__title {
+		color: #e5e9f2;
+	}
+	&__text,
+	&__confirm-label,
+	&__note {
+		color: #b6c0d4;
+	}
+	&__range,
+	&__confirm-label b {
+		color: #8ba9ff;
+	}
+	&__title--left {
+		border-bottom-color: #36405a;
+	}
+	&__callout {
+		border-color: rgba($rc-red, 0.4);
+		background: rgba($rc-red, 0.14);
+		color: #ffb4ab;
+	}
+	&__input {
+		border-color: #36405a;
+		background: #252f47;
+		color: #e5e9f2;
+	}
+	&__close {
+		color: #9aa5bd;
+
+		&:hover {
+			background: #36405a;
+			color: #e5e9f2;
+		}
+	}
+	&__btn--ghost {
+		border-color: #36405a;
+		background: #2c3650;
+		color: #e5e9f2;
+
+		&:hover:not(:disabled) {
+			background: #36405a;
+		}
+	}
+	&__calendar {
+		.rdrDefinedRangesWrapper {
+			border-right-color: #36405a;
+		}
+		.rdrStaticRangeLabel,
+		.rdrMonthName,
+		.rdrWeekDay,
+		.rdrDayNumber span {
+			color: #e5e9f2;
+		}
+		.rdrStaticRange:hover .rdrStaticRangeLabel {
+			background: #36405a;
+		}
+		.rdrDateDisplayItem {
+			border-color: #36405a;
+			background: #252f47;
+
+			input {
+				background: transparent;
+				color: #e5e9f2;
+			}
+		}
+		.rdrDayPassive .rdrDayNumber span {
+			color: #6b7280;
+		}
+		.rdrNextPrevButton {
+			background: #252f47;
+		}
+	}
+}

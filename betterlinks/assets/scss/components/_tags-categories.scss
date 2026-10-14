@@ -1,0 +1,803 @@
+// ==========================================================================
+// Tags & Categories — page redesign (bl-* design system)
+// Tabs swap the dataset/actions; the layout is shared.
+// ==========================================================================
+$tc-border: #e6e8ee;
+$tc-muted: #6b7280;
+$tc-title: #1a2233;
+$tc-surface: #f7f8fa;
+$tc-blue: #2f6bff;
+$tc-blue-dark: #1f57e6;
+$tc-radius: 12px;
+
+.bl-tc {
+	color: $tc-title;
+	padding-bottom: 40px;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	// ---- Header ----------------------------------------------------------
+	&__header {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+		flex-wrap: wrap;
+		margin-bottom: 22px;
+	}
+	&__heading {
+		min-width: 0;
+	}
+	// Override global `.betterlinks-body h1` (Dosis / centered).
+	&__title {
+		margin: 0 0 4px !important;
+		padding: 0 !important;
+		font-family: inherit !important;
+		font-size: 28px !important;
+		line-height: 1.15 !important;
+		font-weight: 700 !important;
+		color: $tc-title !important;
+		text-align: left !important;
+	}
+	&__subtitle {
+		margin: 0;
+		font-size: 14px;
+		color: $tc-muted;
+	}
+	&__actions {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+	&__icon-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		border: 1px solid $tc-border;
+		border-radius: 10px;
+		background: #fff;
+		color: $tc-muted;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		&:hover {
+			color: $tc-blue;
+			border-color: rgba($tc-blue, 0.5);
+		}
+		&.is-spinning svg {
+			animation: bl-tc-spin 0.7s linear infinite;
+		}
+	}
+	&__btn-ghost {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		height: 44px;
+		padding: 0 16px;
+		border: 1px solid $tc-border;
+		border-radius: 10px;
+		background: #fff;
+		color: $tc-title;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		&:hover {
+			border-color: rgba($tc-blue, 0.5);
+			color: $tc-blue;
+		}
+		&:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+	}
+	// Add New Tag / Category (injected component button)
+	.btl-create-autolinks {
+		display: inline-flex;
+	}
+	.btl-create-autolink-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		height: 44px;
+		padding: 0 20px;
+		border: none;
+		border-radius: 10px;
+		background: $tc-blue;
+		color: #fff;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+		box-shadow: 0 6px 16px rgba($tc-blue, 0.28);
+		transition: background 0.15s ease;
+
+		&:hover {
+			background: $tc-blue-dark;
+		}
+		svg {
+			display: block;
+		}
+	}
+
+	// ---- Stats -----------------------------------------------------------
+	&__stats {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+		border: 1px solid $tc-border;
+		border-radius: $tc-radius;
+		background: #fff;
+		margin-bottom: 18px;
+		overflow: hidden;
+
+		@media (max-width: 900px) {
+			grid-template-columns: repeat(2, 1fr);
+		}
+		@media (max-width: 520px) {
+			grid-template-columns: 1fr;
+		}
+	}
+	&__stat {
+		padding: 16px 24px;
+		border-left: 1px solid $tc-border;
+
+		&:first-child {
+			border-left: none;
+		}
+		@media (max-width: 900px) {
+			&:nth-child(odd) {
+				border-left: none;
+			}
+		}
+		@media (max-width: 520px) {
+			border-left: none;
+			border-top: 1px solid $tc-border;
+			&:first-child {
+				border-top: none;
+			}
+		}
+	}
+	&__stat-head {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 10px;
+		color: $tc-muted;
+	}
+	&__stat-icon {
+		display: inline-flex;
+		svg {
+			width: 16px;
+			height: 16px;
+		}
+	}
+	&__stat-label {
+		font-size: 12px;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+	}
+	&__stat-value {
+		font-size: 28px;
+		font-weight: 700;
+		line-height: 1;
+		color: $tc-title;
+	}
+	&__stat-sub {
+		margin-left: 8px;
+		font-size: 14px;
+		font-weight: 500;
+		color: $tc-muted;
+	}
+
+	// ---- Toolbar (tabs + search + sort) ---------------------------------
+	&__toolbar {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		flex-wrap: wrap;
+		margin-bottom: 16px;
+	}
+	&__tabs {
+		display: inline-flex;
+		gap: 4px;
+		padding: 4px;
+		border: 1px solid $tc-border;
+		border-radius: 10px;
+		background: #fff;
+	}
+	&__tab {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		height: 36px;
+		padding: 0 14px;
+		border: none;
+		border-radius: 7px;
+		background: transparent;
+		color: $tc-muted;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		&:hover {
+			color: $tc-title;
+		}
+		&.is-active {
+			background: rgba($tc-blue, 0.1);
+			color: $tc-blue;
+		}
+	}
+	&__tab-count {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 20px;
+		height: 20px;
+		padding: 0 6px;
+		border-radius: 20px;
+		background: rgba($tc-muted, 0.15);
+		color: $tc-muted;
+		font-size: 12px;
+		font-weight: 700;
+	}
+	&__tab.is-active &__tab-count {
+		background: rgba($tc-blue, 0.18);
+		color: $tc-blue;
+	}
+
+	&__search {
+		position: relative;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex: 1 1 280px;
+		min-width: 220px;
+		height: 44px;
+		padding: 0 14px;
+		border: 1px solid $tc-border;
+		border-radius: 10px;
+		background: #fff;
+		color: $tc-muted;
+
+		input {
+			flex: 1;
+			border: none !important;
+			outline: none !important;
+			box-shadow: none !important;
+			background: transparent;
+			font-size: 14px;
+			color: $tc-title;
+			padding: 0;
+			margin: 0;
+			min-height: auto;
+
+			&::placeholder {
+				color: $tc-muted;
+			}
+			&:focus {
+				border: none !important;
+				box-shadow: none !important;
+			}
+			&::-webkit-search-cancel-button {
+				-webkit-appearance: none;
+			}
+		}
+	}
+
+	&__sort {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		height: 44px;
+		padding: 0 34px 0 12px;
+		border: 1px solid $tc-border;
+		border-radius: 10px;
+		background: #fff;
+		color: $tc-muted;
+		font-size: 14px;
+
+		&-icon {
+			display: inline-flex;
+		}
+		&-label {
+			font-weight: 600;
+			color: $tc-muted;
+		}
+		&-select {
+			border: none !important;
+			outline: none !important;
+			box-shadow: none !important;
+			background: transparent !important;
+			font-size: 14px;
+			font-weight: 600;
+			color: $tc-title;
+			cursor: pointer;
+			padding: 0 4px 0 0 !important;
+			margin: 0 !important;
+			min-height: auto !important;
+			height: auto !important;
+			appearance: none;
+			-webkit-appearance: none;
+			-moz-appearance: none;
+		}
+		&-caret {
+			position: absolute;
+			right: 12px;
+			display: inline-flex;
+			color: $tc-muted;
+			pointer-events: none;
+		}
+	}
+
+	// ---- Bulk bar --------------------------------------------------------
+	&__bulk {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		flex-wrap: wrap;
+		padding: 12px 16px;
+		margin-bottom: 12px;
+		border: 1px solid rgba($tc-blue, 0.3);
+		border-radius: 10px;
+		background: rgba($tc-blue, 0.05);
+
+		&-count {
+			font-size: 13px;
+			font-weight: 700;
+			color: $tc-blue;
+		}
+		&-btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			height: 36px;
+			padding: 0 14px;
+			border: 1px solid $tc-border;
+			border-radius: 8px;
+			background: #fff;
+			color: $tc-title;
+			font-size: 13px;
+			font-weight: 600;
+			cursor: pointer;
+
+			&--danger:hover {
+				border-color: rgba(#ef4444, 0.5);
+				color: #ef4444;
+			}
+		}
+	}
+
+	// ---- Table -----------------------------------------------------------
+	&__table-wrap {
+		border: 1px solid $tc-border;
+		border-radius: $tc-radius;
+		background: #fff;
+		overflow-x: auto;
+	}
+	&__table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 14px;
+
+		thead th {
+			text-align: left;
+			padding: 14px 18px;
+			font-size: 12px;
+			font-weight: 700;
+			letter-spacing: 0.04em;
+			text-transform: uppercase;
+			color: $tc-muted;
+			border-bottom: 1px solid $tc-border;
+			white-space: nowrap;
+			background: #fff;
+		}
+		tbody td {
+			padding: 13px 18px;
+			border-bottom: 1px solid $tc-border;
+			vertical-align: middle;
+		}
+		tbody tr:last-child td {
+			border-bottom: none;
+		}
+		tbody tr {
+			transition: background 0.12s ease;
+		}
+		tbody tr:nth-child(even) {
+			background: rgba($tc-surface, 0.6);
+		}
+		tbody tr:hover {
+			background: rgba($tc-blue, 0.05);
+		}
+		tbody tr.is-selected {
+			background: rgba($tc-blue, 0.08);
+		}
+	}
+	&__empty-row td {
+		text-align: center;
+		color: $tc-muted;
+		padding: 40px 18px !important;
+	}
+
+	&__cell-check {
+		width: 46px;
+	}
+	&__cell-links {
+		width: 130px;
+	}
+	&__cell-clicks {
+		width: 170px;
+	}
+	&__cell-action {
+		width: 130px;
+
+		// Row-action tooltips (`.btl-tooltip` from the global stylesheet) are
+		// absolutely positioned and centred on their button — `left: 50%` +
+		// `translateX(-50%)`. On this last column that pushed a 200px tooltip ~30px
+		// past the table's right edge, and since `&__table-wrap` is
+		// `overflow-x: auto`, that was enough to give the table a horizontal
+		// scrollbar even though the tooltip is invisible (a `visibility: hidden`
+		// element still contributes to scrollWidth).
+		//
+		// Anchoring to the right edge keeps it inside the wrapper.
+		.btl-tooltip .btl-tooltiptext {
+			left: auto;
+			right: 0;
+			transform: none;
+
+			&::after {
+				left: auto;
+				right: 12px;
+				margin-left: 0;
+			}
+		}
+	}
+
+	// Checkbox
+	&__check {
+		display: inline-flex;
+		cursor: pointer;
+
+		input {
+			position: absolute;
+			opacity: 0;
+			width: 0;
+			height: 0;
+		}
+		input:checked + .bl-tc__check-box {
+			background: $tc-blue;
+			border-color: $tc-blue;
+
+			&::after {
+				content: '';
+				position: absolute;
+				left: 5px;
+				top: 2px;
+				width: 5px;
+				height: 9px;
+				border: solid #fff;
+				border-width: 0 2px 2px 0;
+				transform: rotate(45deg);
+			}
+		}
+		input:disabled + .bl-tc__check-box {
+			opacity: 0.4;
+			cursor: not-allowed;
+		}
+	}
+	&__check-box {
+		width: 18px;
+		height: 18px;
+		border: 1.5px solid $tc-border;
+		border-radius: 5px;
+		background: #fff;
+		transition: all 0.15s ease;
+		position: relative;
+	}
+
+	// Name cell
+	&__name {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		min-width: 0;
+	}
+	&__name-badge {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		border-radius: 9px;
+		background: rgba($tc-blue, 0.1);
+		color: $tc-blue;
+	}
+	&__name-text {
+		font-size: 14px;
+		font-weight: 700;
+		color: $tc-title;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 360px;
+	}
+
+	// Links pill
+	&__links {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 4px 11px;
+		border-radius: 20px;
+		background: rgba($tc-muted, 0.1);
+		color: $tc-muted;
+		font-size: 13px;
+		font-weight: 600;
+	}
+
+	// Clicks
+	&__clicks {
+		font-size: 14px;
+		white-space: nowrap;
+
+		strong {
+			color: $tc-title;
+			font-weight: 700;
+		}
+		em {
+			font-style: normal;
+			font-weight: 500;
+			color: $tc-muted;
+			margin-left: 4px;
+		}
+	}
+
+	// Action cell
+	&__row-actions {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		justify-content: flex-end;
+	}
+	.btl-tooltip .dnd-link-button,
+	&__action-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border: none;
+		border-radius: 7px;
+		background: transparent;
+		color: $tc-muted;
+		cursor: pointer;
+		text-decoration: none;
+		transition: all 0.15s ease;
+
+		svg {
+			display: block;
+		}
+		.icon,
+		i {
+			display: inline-flex;
+		}
+		&:hover {
+			background: rgba($tc-muted, 0.12);
+			color: $tc-blue;
+		}
+	}
+	&__action-btn--danger:hover {
+		color: #ef4444;
+		background: rgba(#ef4444, 0.1);
+	}
+
+	// Inline delete confirm
+	&__confirm {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		justify-content: flex-end;
+		font-size: 12px;
+		color: $tc-muted;
+
+		button {
+			border: none;
+			border-radius: 6px;
+			padding: 4px 9px;
+			font-size: 12px;
+			font-weight: 600;
+			cursor: pointer;
+		}
+	}
+	&__confirm-yes {
+		background: #ef4444;
+		color: #fff;
+	}
+	&__confirm-no {
+		background: rgba($tc-muted, 0.15);
+		color: $tc-title;
+	}
+
+	// ---- Footer / pagination --------------------------------------------
+	&__foot {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 14px;
+		flex-wrap: wrap;
+		padding: 14px 4px 0;
+	}
+	&__rows {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 13px;
+		color: $tc-muted;
+
+		select {
+			height: 36px;
+			border: 1px solid $tc-border;
+			border-radius: 8px;
+			background: #fff;
+			color: $tc-title;
+			font-size: 13px;
+			padding: 0 8px;
+			cursor: pointer;
+		}
+	}
+	&__pager {
+		display: inline-flex;
+		align-items: center;
+		gap: 14px;
+
+		&-range {
+			font-size: 13px;
+			color: $tc-muted;
+		}
+		&-btns {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+
+			button {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 34px;
+				height: 34px;
+				border: 1px solid $tc-border;
+				border-radius: 8px;
+				background: #fff;
+				color: $tc-muted;
+				cursor: pointer;
+				transition: all 0.15s ease;
+
+				&:hover:not(:disabled) {
+					color: $tc-blue;
+					border-color: rgba($tc-blue, 0.4);
+				}
+				&:disabled {
+					opacity: 0.45;
+					cursor: not-allowed;
+				}
+			}
+		}
+	}
+	&__flip {
+		display: inline-flex;
+		transform: rotate(180deg);
+	}
+}
+
+// ---- Loading skeleton ----------------------------------------------------
+.bl-tc-skel {
+	&__label,
+	&__value,
+	&__tabs,
+	&__search,
+	&__sort,
+	&__check,
+	&__badge,
+	&__bar,
+	&__pill,
+	&__icon {
+		display: block;
+		border-radius: 6px;
+		background: #e9ebf0;
+		background-image: linear-gradient(90deg, #e9ebf0 0%, #f3f4f7 50%, #e9ebf0 100%);
+		background-size: 200% 100%;
+		animation: bl-skel-shimmer 1.4s linear infinite;
+	}
+	&__label {
+		width: 92px;
+		height: 12px;
+		margin-bottom: 12px;
+	}
+	&__value {
+		width: 60px;
+		height: 26px;
+	}
+	&__tabs {
+		width: 220px;
+		height: 44px;
+		border-radius: 10px;
+	}
+	&__search {
+		flex: 1 1 280px;
+		min-width: 220px;
+		height: 44px;
+		border-radius: 10px;
+	}
+	&__sort {
+		width: 170px;
+		height: 44px;
+		border-radius: 10px;
+	}
+	&__row {
+		display: grid;
+		grid-template-columns: 46px minmax(200px, 2.4fr) 130px 170px 130px;
+		align-items: center;
+		gap: 18px;
+		padding: 15px 18px;
+		border-bottom: 1px solid $tc-border;
+
+		&:last-child {
+			border-bottom: none;
+		}
+	}
+	&__check {
+		width: 18px;
+		height: 18px;
+		border-radius: 5px;
+	}
+	&__name {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		min-width: 0;
+	}
+	&__badge {
+		width: 36px;
+		height: 36px;
+		border-radius: 9px;
+		flex: none;
+	}
+	&__bar {
+		width: 55%;
+		height: 13px;
+
+		&--sm {
+			width: 80px;
+		}
+	}
+	&__pill {
+		width: 60px;
+		height: 24px;
+		border-radius: 20px;
+	}
+	&__actions {
+		display: flex;
+		gap: 8px;
+		justify-content: flex-end;
+	}
+	&__icon {
+		width: 30px;
+		height: 30px;
+		border-radius: 7px;
+		flex: none;
+	}
+}
+
+@keyframes bl-tc-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}

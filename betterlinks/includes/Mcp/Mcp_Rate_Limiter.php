@@ -52,6 +52,17 @@ final class Mcp_Rate_Limiter {
 	private const DEFAULT_LOCKOUT = 900; // 15 minutes.
 
 	/**
+	 * Transient key prefix for the client-registration counter.
+	 */
+	private const REGISTER_PREFIX = 'betterlinks_mcp_reg_';
+
+	/**
+	 * Default: client registrations allowed per IP per window. A real connect
+	 * needs one; this leaves room for an AI client retrying a failed connect.
+	 */
+	private const DEFAULT_MAX_REGISTRATIONS = 30;
+
+	/**
 	 * Is the current client currently locked out? Call BEFORE comparing the
 	 * token so a locked IP never even reaches the (constant-time) compare.
 	 *
@@ -77,8 +88,43 @@ final class Mcp_Rate_Limiter {
 	 */
 	public static function record_failure(): bool {
 		list( $max, $window ) = self::limits();
+		return self::bump( self::key(), $window ) >= $max;
+	}
 
-		$key   = self::key();
+	/**
+	 * Whether the current client may register another OAuth client.
+	 *
+	 * Registration is unauthenticated (RFC 7591) and rewrites the shared OAuth
+	 * option, so it needs a ceiling — but a successful registration is not a
+	 * failed authentication. It has its own counter, which never locks the
+	 * token endpoint: an AI client retrying a connect a few times must not
+	 * lose its token exchange and refresh for 15 minutes.
+	 *
+	 * @return bool
+	 */
+	public static function registration_allowed(): bool {
+		list( $max ) = self::registration_limits();
+		return self::count( self::registration_key() ) < $max;
+	}
+
+	/**
+	 * Count one registration from the current client.
+	 *
+	 * @return void
+	 */
+	public static function record_registration(): void {
+		list( , $window ) = self::registration_limits();
+		self::bump( self::registration_key(), $window );
+	}
+
+	/**
+	 * Increment a fixed-window counter and return the new count.
+	 *
+	 * @param string $key    Transient key.
+	 * @param int    $window Window length in seconds, from the first hit.
+	 * @return int
+	 */
+	private static function bump( string $key, int $window ): int {
 		$entry = get_transient( $key );
 
 		if ( is_array( $entry ) && isset( $entry['count'], $entry['until'] ) ) {
@@ -86,17 +132,17 @@ final class Mcp_Rate_Limiter {
 			// Preserve the ORIGINAL window end: TTL = remaining time only.
 			$remaining = max( 1, (int) $entry['until'] - time() );
 			set_transient( $key, $entry, $remaining );
-			return $entry['count'] >= $max;
+			return (int) $entry['count'];
 		}
 
-		// First failure in a window (also migrates any legacy integer entry —
+		// First hit in a window (also migrates any legacy integer entry —
 		// a stale int simply restarts as a fresh window of 1).
 		$entry = [
 			'count' => 1,
 			'until' => time() + $window,
 		];
 		set_transient( $key, $entry, $window );
-		return 1 >= $max;
+		return 1;
 	}
 
 	/**
@@ -179,7 +225,17 @@ final class Mcp_Rate_Limiter {
 	 * @return int
 	 */
 	private static function attempts(): int {
-		$v = get_transient( self::key() );
+		return self::count( self::key() );
+	}
+
+	/**
+	 * Current count stored under a counter key (0 when none).
+	 *
+	 * @param string $key Transient key.
+	 * @return int
+	 */
+	private static function count( string $key ): int {
+		$v = get_transient( $key );
 		if ( is_array( $v ) && isset( $v['count'] ) ) {
 			return (int) $v['count'];
 		}
@@ -194,6 +250,33 @@ final class Mcp_Rate_Limiter {
 	 */
 	private static function key(): string {
 		return self::PREFIX . md5( self::client_ip() );
+	}
+
+	/**
+	 * Registration counter key. A separate prefix, so active_lockouts() never
+	 * counts registrations as locked-out clients.
+	 *
+	 * @return string
+	 */
+	private static function registration_key(): string {
+		return self::REGISTER_PREFIX . md5( self::client_ip() );
+	}
+
+	/**
+	 * Resolve [ max_registrations, window_seconds ], then filter.
+	 *
+	 * @return array{0:int,1:int}
+	 */
+	private static function registration_limits(): array {
+		/**
+		 * Filter the MCP client-registration limit per client IP.
+		 *
+		 * @param array{0:int,1:int} $limits [ max_registrations, window_seconds ].
+		 */
+		$limits = (array) apply_filters( 'betterlinks_mcp_registration_limit', [ self::DEFAULT_MAX_REGISTRATIONS, self::DEFAULT_LOCKOUT ] );
+		$max    = isset( $limits[0] ) ? max( 1, (int) $limits[0] ) : self::DEFAULT_MAX_REGISTRATIONS;
+		$window = isset( $limits[1] ) ? max( 1, (int) $limits[1] ) : self::DEFAULT_LOCKOUT;
+		return [ $max, $window ];
 	}
 
 	/**

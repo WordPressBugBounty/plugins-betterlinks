@@ -1,0 +1,2240 @@
+// ==========================================================================
+// Settings — sidebar redesign (`components/Settings/*`, `pages/Settings.js`).
+// New `bl-settings-*` / `bl-toggle` / `bl-module-*` design system. Tokens mirror
+// the other redesigned admin surfaces (border #e6e8ee, blue #2f6bff, surface
+// #f7f8fa). Dark overrides live in the `body.betterlinks-dark-mode` block below.
+// ==========================================================================
+$set-border: #e6e8ee;
+$set-text: #1a2233;
+$set-muted: #6b7280;
+$set-blue: #2f6bff;
+$set-blue-dark: #1f57e6;
+$set-surface: #f7f8fa;
+$set-white: #fff;
+$set-danger: #ef4444;
+// Shared control widths — every settings field lines up to these.
+$set-field: 420px;
+$set-field-wide: 620px;
+
+.bl-settings {
+	display: grid;
+	grid-template-columns: 264px minmax(0, 1fr);
+	gap: 24px;
+	align-items: start;
+	color: $set-text;
+	font-size: 14px;
+	line-height: 1.5;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	// ---- Header ----------------------------------------------------------
+	&__head {
+		grid-column: 1 / -1;
+		margin-bottom: 4px;
+	}
+	&__title {
+		margin: 0 0 4px;
+		padding: 0;
+		font-size: 28px;
+		font-weight: 800;
+		line-height: 1.2;
+		color: $set-text;
+	}
+	&__subtitle {
+		margin: 0;
+		color: $set-muted;
+		font-size: 14px;
+	}
+
+	// ---- Mobile nav toggle (hidden on desktop) --------------------------
+	&__mobilebar {
+		display: none;
+	}
+
+	// ---- Sidebar ---------------------------------------------------------
+	&__sidebar {
+		position: sticky;
+		top: 32px;
+		align-self: start;
+		padding: 14px;
+		border: 1px solid $set-border;
+		border-radius: 16px;
+		background: $set-white;
+	}
+	&__group {
+		& + & {
+			margin-top: 18px;
+		}
+	}
+	&__group-title {
+		margin: 0 0 8px;
+		padding: 0 10px;
+		font-size: 11px;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: #9aa2b1;
+	}
+	&__nav {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+	&__navitem {
+		margin: 2px 0;
+	}
+	&__navlink {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		width: 100%;
+		padding: 9px 10px;
+		border: 0;
+		border-radius: 10px;
+		background: transparent;
+		color: #414b5a;
+		font-size: 14px;
+		font-weight: 600;
+		text-align: left;
+		cursor: pointer;
+		transition: background-color 0.15s ease, color 0.15s ease;
+
+		svg {
+			flex: none;
+			color: #8a93a3;
+			transition: color 0.15s ease;
+		}
+
+		&:hover {
+			background: $set-surface;
+			color: $set-text;
+		}
+		&:focus {
+			outline: none;
+		}
+
+		&.is-active {
+			background: rgba($set-blue, 0.1);
+			color: $set-blue;
+
+			svg {
+				color: $set-blue;
+			}
+		}
+	}
+	&__navlabel {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+	// Active accent bar on the left edge.
+	&__navitem.is-active > .bl-settings__navlink {
+		position: relative;
+
+		&::before {
+			content: '';
+			position: absolute;
+			left: -14px;
+			top: 50%;
+			transform: translateY(-50%);
+			width: 3px;
+			height: 20px;
+			border-radius: 0 3px 3px 0;
+			background: $set-blue;
+		}
+	}
+	&__chev {
+		flex: none;
+		color: #b6bdc9;
+		transition: transform 0.18s ease;
+
+		&.is-open {
+			transform: rotate(90deg);
+		}
+	}
+	// Submenu
+	&__subnav {
+		list-style: none;
+		margin: 2px 0 6px;
+		padding: 0 0 0 30px;
+		overflow: hidden;
+	}
+	&__sublink {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		padding: 7px 10px;
+		border: 0;
+		border-left: 2px solid $set-border;
+		border-radius: 0 8px 8px 0;
+		background: transparent;
+		color: $set-muted;
+		font-size: 13px;
+		font-weight: 600;
+		text-align: left;
+		cursor: pointer;
+
+		&:hover {
+			color: $set-text;
+			background: $set-surface;
+		}
+		&:focus {
+			outline: none;
+		}
+		&.is-active {
+			border-left-color: $set-blue;
+			color: $set-blue;
+			background: rgba($set-blue, 0.08);
+		}
+	}
+	.pro-badge-new {
+		flex: none;
+	}
+	.pro-badge-new svg {
+		width: 40px;
+		height: auto;
+	}
+
+	// ---- Content pane ----------------------------------------------------
+	&__content {
+		min-width: 0;
+		min-height: 400px;
+	}
+	&__panel {
+		border: 1px solid $set-border;
+		border-radius: 16px;
+		background: $set-white;
+		padding: 28px 32px;
+	}
+	&__panel-head {
+		margin-bottom: 20px;
+		padding-bottom: 18px;
+		border-bottom: 1px solid $set-border;
+
+		// Title/description on the left, a control (e.g. Role Management's role
+		// filter) on the right of the same row.
+		&--split {
+			display: flex;
+			align-items: flex-start;
+			justify-content: space-between;
+			gap: 16px;
+			flex-wrap: wrap;
+		}
+	}
+	&__panel-heading {
+		min-width: 0;
+	}
+	&__panel-title {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin: 0 0 4px;
+		padding: 0;
+		font-size: 20px;
+		font-weight: 700;
+		color: $set-text;
+	}
+	&__panel-desc {
+		margin: 0;
+		color: $set-muted;
+		font-size: 13.5px;
+	}
+}
+
+// ==========================================================================
+// Settings rows (redesigned form fields, shared by the general sections)
+// ==========================================================================
+.bl-set-row {
+	display: grid;
+	grid-template-columns: 240px minmax(0, 1fr);
+	gap: 18px 24px;
+	align-items: start;
+	padding: 16px 0;
+
+	&__label {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 6px;
+		font-size: 14px;
+		font-weight: 600;
+		color: $set-text;
+		padding-top: 2px;
+
+		.btl-tooltip {
+			margin-left: 2px;
+		}
+		.dashicons {
+			color: #9aa2b1;
+			font-size: 16px;
+			width: 16px;
+			height: 16px;
+		}
+	}
+	&__field {
+		min-width: 0;
+	}
+	&__desc {
+		margin: 8px 0 0;
+		color: $set-muted;
+		font-size: 12.5px;
+		line-height: 1.5;
+
+		strong,
+		b {
+			color: $set-text;
+			font-weight: 700;
+		}
+	}
+	&__control {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	// A single toggle line: [switch] label + tooltip
+	&__switch {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		cursor: pointer;
+
+		.text {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			font-size: 14px;
+			font-weight: 500;
+			color: $set-text;
+		}
+	}
+
+	// Pro-teaser rows
+	&.is-teaser {
+		cursor: pointer;
+	}
+}
+
+// Group of stacked toggle rows inside one field cell
+.bl-set-togglelist {
+	display: flex;
+	flex-direction: column;
+	gap: 14px;
+}
+
+// ==========================================================================
+// Toggle switch
+// ==========================================================================
+.bl-toggle {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	padding: 0;
+	border: 0;
+	background: none;
+	cursor: pointer;
+
+	&__track {
+		position: relative;
+		display: inline-block;
+		width: 40px;
+		height: 22px;
+		border-radius: 999px;
+		background: #cbd2dd;
+		transition: background-color 0.18s ease;
+	}
+	&__thumb {
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: #fff;
+		box-shadow: 0 1px 2px rgba(16, 24, 40, 0.2);
+		transition: transform 0.18s ease;
+	}
+	&.is-on .bl-toggle__track {
+		background: $set-blue;
+	}
+	&.is-on .bl-toggle__thumb {
+		transform: translateX(18px);
+	}
+	&.is-locked {
+		cursor: pointer;
+
+		.bl-toggle__track {
+			background: #dde2ea;
+		}
+	}
+	&:focus-visible .bl-toggle__track {
+		box-shadow: 0 0 0 3px rgba($set-blue, 0.25);
+	}
+}
+
+// The Pro "AI Link Assistant" switch is authored with content-box geometry
+// (track 36x13 + 5px padding = 46x23, with a 20px thumb). The shell's
+// `* { box-sizing: border-box }` reset collapses that track to 36x13 total,
+// leaving a 26x3 content box the thumb spills out of. Restore content-box for
+// its parts so it renders as designed.
+.bl-settings {
+	.btl-ai-toggle,
+	.btl-ai-toggle__track,
+	.btl-ai-toggle__thumb {
+		box-sizing: content-box;
+	}
+}
+
+// ==========================================================================
+// Footer save bar (shared by the general Formik sections)
+// ==========================================================================
+.bl-set-footer {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 12px;
+	margin-top: 8px;
+	padding-top: 20px;
+	border-top: 1px solid $set-border;
+
+	.bl-set-save {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		height: 42px;
+		padding: 0 22px;
+		border: 0;
+		border-radius: 10px;
+		background: $set-blue;
+		color: #fff;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: background-color 0.15s ease;
+
+		&:hover {
+			background: $set-blue-dark;
+		}
+	}
+}
+
+// ==========================================================================
+// Fast-mode status pill (Redirects / Tracking)
+// ==========================================================================
+.bl-set-status {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+
+	&__pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		padding: 5px 12px;
+		border-radius: 999px;
+		font-size: 12.5px;
+		font-weight: 700;
+
+		&::before {
+			content: '';
+			width: 7px;
+			height: 7px;
+			border-radius: 50%;
+			background: currentColor;
+		}
+
+		&.is-active {
+			background: rgba(#16a34a, 0.12);
+			color: #16a34a;
+		}
+		&.is-disabled {
+			background: rgba(#d97706, 0.14);
+			color: #b45309;
+		}
+	}
+	&__btn {
+		height: 34px;
+		padding: 0 16px;
+		border: 1px solid $set-border;
+		border-radius: 9px;
+		background: $set-white;
+		color: $set-text;
+		font-size: 13px;
+		font-weight: 600;
+		cursor: pointer;
+
+		&:hover {
+			border-color: $set-blue;
+			color: $set-blue;
+		}
+	}
+}
+
+// ==========================================================================
+// Feature Modules grid
+// ==========================================================================
+.bl-module-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: 16px;
+}
+.bl-module-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 18px;
+	border: 1px solid $set-border;
+	border-radius: 14px;
+	background: $set-white;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+	&:hover {
+		border-color: #cfd6e4;
+		box-shadow: 0 6px 20px -12px rgba(16, 24, 40, 0.25);
+	}
+
+	&__head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 10px;
+	}
+	&__icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 42px;
+		height: 42px;
+		border-radius: 11px;
+		background: rgba($set-blue, 0.1);
+		color: $set-blue;
+	}
+	&__title {
+		margin: 0;
+		font-size: 15px;
+		font-weight: 700;
+		color: $set-text;
+	}
+	&__desc {
+		margin: 0;
+		color: $set-muted;
+		font-size: 12.5px;
+		line-height: 1.5;
+	}
+	&__foot {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		margin-top: auto;
+		padding-top: 6px;
+	}
+	&__state {
+		font-size: 12px;
+		font-weight: 700;
+		color: #9aa2b1;
+
+		&.is-on {
+			color: #16a34a;
+		}
+	}
+	&__link {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		border: 0;
+		background: none;
+		padding: 0;
+		color: $set-blue;
+		font-size: 13px;
+		font-weight: 600;
+		cursor: pointer;
+
+		&:hover {
+			text-decoration: underline;
+		}
+	}
+
+	&.is-locked {
+		cursor: pointer;
+
+		.bl-module-card__icon {
+			background: rgba(#d97706, 0.12);
+			color: #d97706;
+		}
+	}
+
+	// Back link on the module detail view
+	&--detail {
+		padding: 0;
+		border: 0;
+		background: none;
+
+		&:hover {
+			box-shadow: none;
+		}
+	}
+}
+.bl-module-back {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 16px;
+	border: 0;
+	background: none;
+	padding: 0;
+	color: $set-muted;
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+
+	&:hover {
+		color: $set-blue;
+	}
+}
+
+// ==========================================================================
+// License upgrade teaser (free)
+// ==========================================================================
+.bl-license-teaser {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	gap: 16px;
+	padding: 40px 32px;
+
+	&__badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 64px;
+		height: 64px;
+		border-radius: 18px;
+		background: linear-gradient(135deg, #ffe9a6 0%, #ffc94d 100%);
+		color: #92610a;
+	}
+	&__title {
+		margin: 0;
+		font-size: 24px;
+		font-weight: 800;
+		color: $set-text;
+	}
+	&__text {
+		max-width: 540px;
+		margin: 0;
+		color: $set-muted;
+		font-size: 14.5px;
+	}
+	&__list {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 10px 24px;
+		margin: 8px 0 4px;
+		padding: 0;
+		list-style: none;
+		text-align: left;
+
+		li {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			font-size: 13.5px;
+			font-weight: 500;
+			color: $set-text;
+
+			svg {
+				flex: none;
+				color: #16a34a;
+			}
+		}
+	}
+	&__cta {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		height: 48px;
+		margin-top: 8px;
+		padding: 0 28px;
+		border-radius: 12px;
+		background: $set-blue;
+		color: #fff;
+		font-size: 15px;
+		font-weight: 700;
+		text-decoration: none;
+
+		&:hover {
+			background: $set-blue-dark;
+			color: #fff;
+		}
+	}
+}
+
+// A small "please update Pro" inline notice.
+.bl-set-updatenotice {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	margin-bottom: 20px;
+	padding: 12px 16px;
+	border: 1px solid rgba(#d97706, 0.3);
+	border-radius: 10px;
+	background: rgba(#d97706, 0.08);
+	color: #8a5a00;
+	font-size: 13px;
+
+	strong {
+		font-weight: 700;
+	}
+}
+
+// ==========================================================================
+// Legacy panel compatibility skin
+// The Pro settings panels (AI Configuration, Auto Post Link Generator, the
+// Automation panels, Role Management, License, etc.) and the free detail panels
+// (Custom Fields, Quick Link Creation, Password Protection…) still render the
+// legacy `.btl-*` form markup. This restyles that markup to the new design when
+// it renders inside a `.bl-settings__panel`, so every panel looks consistent and
+// its checkboxes become toggle switches — with no JS rewrite.
+// ==========================================================================
+// ==========================================================================
+// Unified field sizing — one consistent control width across the whole
+// Settings page (new `bl-set-row` markup AND the legacy `.btl-form-group`
+// markup from the Pro panels). Without this, react-selects and inputs stretch
+// edge-to-edge (Redirect Type, Uncloaked Categories, Select Custom Post Types,
+// the Auto-Link Keywords selects, Shortcode, etc.).
+// ==========================================================================
+.bl-settings__panel {
+	// Selects (react-select containers) + text-ish inputs share one width.
+	[class*='btl-modal-select'],
+	.btl-text-field,
+	input[type='text'],
+	input[type='url'],
+	input[type='email'],
+	input[type='search'],
+	input[type='number'],
+	input[type='password'],
+	select {
+		max-width: $set-field;
+	}
+
+	// Textareas get a little more room but stay bounded.
+	textarea {
+		max-width: $set-field-wide;
+		width: 100%;
+	}
+
+	// A select sitting inside a legacy checkbox/field wrapper should fill the
+	// available width up to the shared max, not shrink to its content.
+	.btl-form-field,
+	.link-options__body,
+	.btl-checkbox-field {
+		> [class*='btl-modal-select'] {
+			width: 100%;
+		}
+	}
+	.btl-form-field,
+	.link-options__body {
+		min-width: 0;
+	}
+
+	// Exceptions — controls that must keep their own size.
+	.betterlinks-single-input input.btl-text-field {
+		max-width: none;
+	}
+	.betterlinks-multi-input [class*='btl-modal-select'],
+	.betterlinks-input-select-fields [class*='btl-modal-select'] {
+		max-width: none;
+	}
+
+	// ---- Consistent control appearance ----------------------------------
+	// Text inputs, native selects and react-select all resolve to the SAME box:
+	// 42px tall, 8px radius, $set-border. Without the explicit border the inputs
+	// fall back to WP admin's #8c8f94, which reads noticeably darker and heavier
+	// than the selects sitting next to them.
+	.btl-text-field,
+	input[type='text'],
+	input[type='url'],
+	input[type='email'],
+	input[type='search'],
+	input[type='number'],
+	input[type='password'],
+	select {
+		width: 100%;
+		height: 42px;
+		min-height: 42px;
+		margin: 0;
+		border: 1px solid #d1d5db;
+		border-radius: 8px;
+		background-color: $set-white;
+		box-shadow: none;
+		color: $set-text;
+		font-size: 14px;
+		line-height: 1.4;
+
+		&:focus {
+			border-color: $set-blue;
+			box-shadow: 0 0 0 3px rgba($set-blue, 0.12);
+			outline: none;
+		}
+	}
+
+	.btl-text-field,
+	input[type='text'],
+	input[type='url'],
+	input[type='email'],
+	input[type='search'],
+	input[type='number'],
+	input[type='password'] {
+		padding: 0 12px;
+	}
+
+	// Native select keeps WP's arrow graphic, so it needs room on the right.
+	select {
+		padding: 0 28px 0 12px;
+	}
+
+	textarea {
+		padding: 10px 12px;
+		border: 1px solid $set-border;
+		border-radius: 8px;
+		background: $set-white;
+		box-shadow: none;
+		color: $set-text;
+		font-size: 14px;
+
+		&:focus {
+			border-color: $set-blue;
+			box-shadow: 0 0 0 3px rgba($set-blue, 0.12);
+			outline: none;
+		}
+	}
+
+	// react-select controls match the native inputs exactly — same height, same
+	// border, and the inner padding trimmed so the control cannot grow past 42px
+	// on a single-value field.
+	.btl-react-select__control {
+		min-height: 42px;
+		border: 1px solid $set-border;
+		border-radius: 8px;
+		background-color: $set-white;
+		box-shadow: none;
+
+		&:hover {
+			border-color: $set-border;
+		}
+	}
+	.btl-react-select__value-container {
+		padding: 0 4px 0 10px;
+	}
+	.btl-react-select__single-value,
+	.btl-react-select__placeholder,
+	.btl-react-select__input-container {
+		margin: 0;
+		font-size: 14px;
+	}
+	.btl-react-select__indicator {
+		padding: 0 8px;
+	}
+	// The 1px divider before the caret has no counterpart on a text input, and
+	// it is what makes the two controls read as different widgets.
+	.btl-react-select__indicator-separator {
+		display: none;
+	}
+	.btl-react-select__control--is-focused {
+		border-color: $set-blue !important;
+		box-shadow: 0 0 0 3px rgba($set-blue, 0.12) !important;
+	}
+}
+
+.bl-settings__panel {
+	// ---- Heading hierarchy ----------------------------------------------
+	// Each panel has exactly ONE main heading (`.bl-settings__panel-title`).
+	// Any heading a panel renders internally (e.g. "API Configuration",
+	// "Dynamic UTM Templates") is demoted to a consistent subsection title so
+	// the page never reads as having two primary headings.
+	.bl-set-subhead,
+	h2:not(.bl-settings__panel-title):not(.bl-license-teaser__title),
+	h3:not(.bl-module-card__title):not(.btl-progress-title),
+	.btl-d-title,
+	.btl-utm-templates-title {
+		margin: 28px 0 12px;
+		padding: 0;
+		border: 0;
+		font-size: 15px;
+		font-weight: 700;
+		line-height: 1.4;
+		color: $set-text;
+		letter-spacing: 0;
+
+		&:first-child {
+			margin-top: 0;
+		}
+	}
+
+	// Descriptions that follow a heading.
+	.btl-header .btl-description {
+		margin: 0 0 8px;
+		color: $set-muted;
+		font-size: 13.5px;
+	}
+
+	// Neutralize legacy fixed-width / padded wrappers.
+	.btl-tab-panel-inner {
+		width: auto !important;
+		max-width: none !important;
+		height: auto !important;
+		margin: 0;
+		padding: 0;
+	}
+	.betterlinks-options-tabs-wrapper {
+		width: auto;
+	}
+	.btl-tab-inner-divider,
+	.btl-tab-inner-divider-2,
+	.btl-tab-inner-divider-3 {
+		margin: 0;
+		padding: 0;
+	}
+
+	// Legacy row → new two-column row.
+	.btl-form-group {
+		display: grid;
+		grid-template-columns: 240px minmax(0, 1fr);
+		gap: 12px 24px;
+		align-items: start;
+		margin: 0;
+		padding: 16px 0;
+
+		// A group with a single child (no label column) spans full width.
+		> *:only-child {
+			grid-column: 1 / -1;
+		}
+	}
+
+	.btl-form-label {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 6px;
+		margin: 0;
+		padding-top: 2px;
+		font-size: 14px;
+		font-weight: 600;
+		color: $set-text;
+	}
+	.btl-form-field {
+		min-width: 0;
+	}
+	// Inline hint/notice ("Note: …", often prefixed with a dashicons info icon).
+	.short-description,
+	.btl-note {
+		// Block, NOT flex. These notes are a run of inline siblings —
+		// `<b>Note:</b><span>…sentence…</span><a>Click here</a>` — and as flex
+		// items the trailing link became its own column pinned to the right,
+		// breaking the sentence in half.
+		display: block;
+		margin: 10px 0 0;
+		padding: 10px 12px;
+		border: 1px solid $set-border;
+		border-radius: 8px;
+		background: $set-surface;
+		color: $set-muted;
+		font-size: 12.5px;
+		line-height: 1.55;
+
+		// Some notes lead with a dashicon instead of a "Note:" label — keep it on
+		// the first line, at text size rather than the oversized default.
+		.dashicons {
+			display: inline-block;
+			width: 16px;
+			height: 16px;
+			margin-right: 6px;
+			font-size: 16px;
+			line-height: 1;
+			vertical-align: -3px;
+			color: #9aa2b1;
+		}
+		b,
+		strong {
+			color: $set-text;
+			font-weight: 700;
+		}
+		a {
+			color: $set-blue;
+			font-weight: 600;
+			text-decoration: none;
+
+			&:hover {
+				text-decoration: underline;
+			}
+		}
+	}
+
+	// Stack toggle rows vertically.
+	.link-options__body {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+		align-items: flex-start;
+	}
+	// BetterLinks hides the native checkbox (`.btl-check { display:none }`) and
+	// draws the box as an icon-font glyph on `.text::before`. So the toggle is
+	// built on `.text` (::before = track, ::after = thumb), driven by
+	// `.btl-check:checked`. `!important` overrides the icon-font checkbox skin.
+	.btl-checkbox-field {
+		display: inline-flex;
+		align-items: center;
+		margin: 0;
+		cursor: pointer;
+
+		&.block {
+			display: flex;
+		}
+
+		.btl-check {
+			display: none;
+		}
+
+		.text {
+			position: relative;
+			display: inline-flex;
+			align-items: center;
+			min-height: 24px;
+			padding-left: 52px;
+			font-size: 14px;
+			font-weight: 500;
+			color: $set-text;
+
+			&::before {
+				content: '' !important;
+				font-family: inherit !important;
+				position: absolute;
+				left: 0;
+				top: 50%;
+				transform: translateY(-50%);
+				width: 42px !important;
+				height: 24px !important;
+				padding: 0 !important;
+				border-radius: 999px !important;
+				background: #cbd2dd !important;
+				color: transparent !important;
+				box-shadow: none !important;
+				transition: background-color 0.18s ease;
+			}
+			&::after {
+				content: '';
+				position: absolute;
+				left: 3px;
+				top: 50%;
+				transform: translateY(-50%);
+				width: 18px;
+				height: 18px;
+				border-radius: 50%;
+				background: #fff;
+				box-shadow: 0 1px 2px rgba(16, 24, 40, 0.25);
+				transition: transform 0.18s ease;
+			}
+
+			// Empty label (switch only) — reserve just the track width.
+			&:empty {
+				padding-left: 42px;
+			}
+		}
+
+		.btl-check:checked + .text::before {
+			content: '' !important;
+			background: $set-blue !important;
+			color: transparent !important;
+		}
+		.btl-check:checked + .text::after {
+			transform: translateY(-50%) translateX(18px);
+		}
+		.btl-check:disabled + .text {
+			opacity: 0.55;
+			cursor: not-allowed;
+		}
+	}
+
+	// Any remaining visible native checkbox (not the icon-font pattern) also
+	// becomes a toggle — except inside multiselect dropdowns, and except inputs
+	// belonging to a component's OWN custom switch (e.g. `.btl-ai-toggle__input`,
+	// which is hidden behind its own track/thumb — restyling it would render a
+	// second, broken toggle next to the real one).
+	// NOTE: pseudo-elements are NOT reliable on `<input>` elements, so the knob is
+	// painted as a background-image circle and slid via `background-position`.
+	// A `::before` knob here renders as a track with no knob (broken toggle).
+	input[type='checkbox']:not(.btl-check):not([class*='toggle']):not([class*='switch']) {
+		appearance: none;
+		-webkit-appearance: none;
+		flex: none;
+		width: 42px;
+		height: 24px;
+		min-width: 42px;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		border-radius: 999px;
+		background-color: #cbd2dd;
+		background-image: radial-gradient(circle, #fff 0 48%, transparent 50%);
+		background-repeat: no-repeat;
+		background-size: 18px 18px;
+		background-position: 3px center;
+		cursor: pointer;
+		transition: background-color 0.18s ease, background-position 0.18s ease;
+
+		// WP core paints a dashicons checkmark via `input:checked::before` —
+		// suppress it, otherwise it renders inside the track next to the knob.
+		&::before,
+		&::after {
+			content: none !important;
+			display: none !important;
+		}
+
+		&:checked {
+			background-color: $set-blue;
+			background-position: calc(100% - 3px) center;
+		}
+		&:disabled {
+			opacity: 0.55;
+			cursor: not-allowed;
+		}
+	}
+	.rmsc input[type='checkbox']:not(.btl-check):not([class*='toggle']):not([class*='switch']) {
+		appearance: auto;
+		-webkit-appearance: auto;
+		width: auto;
+		height: auto;
+		min-width: 0;
+		border-radius: 0;
+		background: none;
+
+		&::before {
+			content: none;
+		}
+	}
+
+	// Hide the per-option divider rules some Pro panels render (e.g. External
+	// Analytics `<hr class="btl-settings-devider">`).
+	hr.btl-settings-devider,
+	.btl-settings-devider,
+	.btl-external-analytics-devider {
+		display: none;
+	}
+
+	// ---- Affiliate Link Disclosure compound controls --------------------
+	// (Font Size / Width = input + unit; Padding / Border Size / Border Radius =
+	// four box-model inputs + unit). Their unit dropdown was stretching full
+	// width and overlapping the inputs — lay them out as a tidy row.
+	.betterlinks-input-select-fields {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+
+		input.btl-text-field {
+			flex: 1 1 auto;
+			min-width: 0;
+			height: 42px;
+			border: 1px solid $set-border;
+			border-radius: 8px;
+		}
+	}
+	.betterlinks-multi-input {
+		display: flex;
+		align-items: flex-start;
+		flex-wrap: wrap;
+		gap: 10px;
+	}
+	.betterlinks-single-input {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 5px;
+		width: 62px;
+
+		input.btl-text-field {
+			width: 100%;
+			height: 42px;
+			text-align: center;
+			border: 1px solid $set-border;
+			border-radius: 8px;
+		}
+		span {
+			font-size: 11px;
+			font-weight: 500;
+			color: $set-muted;
+			text-transform: lowercase;
+		}
+	}
+
+	// Constrain the unit dropdown inside the compound controls so it sits beside
+	// the inputs instead of stretching full width.
+	.betterlinks-multi-input .btl-modal-select-full--affiliate-disclosure,
+	.betterlinks-input-select-fields .btl-modal-select-full--affiliate-disclosure {
+		width: 88px !important;
+		min-width: 88px !important;
+		flex: none;
+	}
+	// The unit dropdown must be exactly as tall as the inputs beside it and
+	// aligned to their top edge (the box-model inputs sit above their labels).
+	.betterlinks-multi-input,
+	.betterlinks-input-select-fields {
+		.btl-react-select__control {
+			height: 42px;
+			min-height: 42px;
+		}
+		.btl-react-select__value-container {
+			padding: 0 8px;
+		}
+		.btl-react-select__indicator {
+			padding: 0 6px;
+		}
+		.btl-react-select__indicator-separator {
+			margin: 9px 0;
+		}
+		[class*='btl-modal-select'] {
+			margin: 0;
+			align-self: flex-start;
+		}
+	}
+
+	// Color swatch rows align their swatch + hex neatly.
+	.btl-color-field {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	// The Shortcode row renders a `<code flex:1>` via inline styles, so bound
+	// its container instead of the element.
+	.btl-shortcode-info-box .btl-form-field {
+		max-width: $set-field-wide;
+	}
+
+	// Legacy save buttons → primary button.
+	.btn-save-settings,
+	button.button-primary.btn-save-settings {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		height: 42px;
+		margin-top: 8px;
+		padding: 0 22px;
+		border: 0;
+		border-radius: 10px;
+		background: $set-blue;
+		color: #fff;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+
+		&:hover {
+			background: $set-blue-dark;
+		}
+	}
+}
+
+// ==========================================================================
+// Role Management (`bl-rm-*`)
+// Used by BOTH the Pro Role Management panel and the free teaser so they match.
+// Each capability is a row: an aside (title / count / enable-all) beside a
+// two-column grid of role cards, each card carrying its own switch.
+// ==========================================================================
+.bl-rm {
+	// ---- Role filter (view-only; narrows what each section renders) --------
+	// Lives in the panel head, opposite the title.
+	&__filter {
+		position: relative;
+		flex: none;
+	}
+	&__filter-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		height: 40px;
+		padding: 0 14px;
+		border: 1px solid $set-border;
+		border-radius: 10px;
+		background: $set-white;
+		color: $set-text;
+		font-size: 13px;
+		cursor: pointer;
+		transition: border-color 0.15s ease, color 0.15s ease;
+
+		&:hover,
+		&.is-active {
+			border-color: rgba($set-blue, 0.55);
+			color: $set-blue;
+		}
+		strong {
+			font-weight: 600;
+		}
+		svg {
+			color: $set-muted;
+		}
+	}
+	&__filter-label {
+		color: $set-muted;
+	}
+	&__filter-menu {
+		position: absolute;
+		top: calc(100% + 8px);
+		right: 0;
+		z-index: 30;
+		width: 240px;
+		padding: 6px;
+		border: 1px solid $set-border;
+		border-radius: 12px;
+		background: $set-white;
+		box-shadow: 0 12px 32px rgba(16, 24, 40, 0.14);
+	}
+	&__filter-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		padding: 6px 8px 8px;
+		border-bottom: 1px solid $set-border;
+		color: $set-muted;
+		font-size: 11.5px;
+		font-weight: 700;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+	}
+	&__filter-clear {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: $set-blue;
+		font-size: 11.5px;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		cursor: pointer;
+
+		&:hover {
+			text-decoration: underline;
+		}
+	}
+	&__filter-list {
+		max-height: min(50vh, 280px);
+		overflow-y: auto;
+		padding-top: 4px;
+
+		scrollbar-width: thin;
+		scrollbar-color: rgba($set-muted, 0.3) transparent;
+		&::-webkit-scrollbar {
+			width: 6px;
+		}
+		&::-webkit-scrollbar-thumb {
+			background: rgba($set-muted, 0.3);
+			border-radius: 10px;
+		}
+	}
+	&__filter-item {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 7px 8px;
+		border-radius: 8px;
+		font-size: 13px;
+		color: $set-text;
+		cursor: pointer;
+
+		&:hover {
+			background: $set-surface;
+		}
+		input {
+			margin: 0;
+		}
+	}
+	&__count-note {
+		margin-left: 6px;
+		padding: 1px 6px;
+		border-radius: 999px;
+		background: rgba($set-blue, 0.1);
+		color: $set-blue;
+		font-size: 10.5px;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	&__section {
+		display: grid;
+		grid-template-columns: 240px minmax(0, 1fr);
+		gap: 24px;
+		align-items: start;
+		padding: 24px 0;
+		border-bottom: 1px solid $set-border;
+
+		&:first-child {
+			padding-top: 4px;
+		}
+	}
+
+	// Hidden by the role filter. Kept in the DOM on purpose — the form is saved
+	// by reading FormData off it, so removing a checked box would wipe that
+	// role's permission on the next save.
+	&__role.is-filtered-out {
+		display: none;
+	}
+
+	&__title {
+		margin: 0 0 4px;
+		padding: 0;
+		font-size: 15px;
+		font-weight: 700;
+		line-height: 1.4;
+		color: $set-text;
+	}
+	&__count {
+		margin: 0 0 10px;
+		color: $set-muted;
+		font-size: 12.5px;
+	}
+	&__all {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: $set-blue;
+		font-size: 13.5px;
+		font-weight: 600;
+		cursor: pointer;
+
+		&:hover {
+			text-decoration: underline;
+		}
+		&:focus {
+			outline: none;
+		}
+	}
+
+	&__grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 12px;
+	}
+
+	&__role {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		margin: 0;
+		padding: 12px 16px;
+		border: 1px solid $set-border;
+		border-radius: 10px;
+		background: $set-white;
+		cursor: pointer;
+		transition: border-color 0.15s ease, background-color 0.15s ease;
+
+		&:hover {
+			border-color: #cfd6e4;
+		}
+	}
+	&__role-name {
+		min-width: 0;
+		font-size: 14px;
+		font-weight: 500;
+		color: $set-text;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	// The real checkbox stays in the DOM (the form is serialized with FormData)
+	// but is visually hidden; the `switch` in its class name also keeps the
+	// global checkbox->toggle skin from touching it.
+	&__switch-input {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: 0;
+		padding: 0;
+		opacity: 0;
+		pointer-events: none;
+	}
+	&__switch {
+		position: relative;
+		flex: none;
+		display: inline-block;
+		width: 40px;
+		height: 22px;
+		border-radius: 999px;
+		background: #dfe3ea;
+		transition: background-color 0.18s ease;
+	}
+	&__switch-thumb {
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background: #fff;
+		box-shadow: 0 1px 2px rgba(16, 24, 40, 0.25);
+		transition: transform 0.18s ease;
+	}
+	// NOTE: use literal class names after the combinator — a second `&` would
+	// expand to the whole parent selector (incl. `.betterlinks-body`) and break.
+	&__switch-input:checked ~ .bl-rm__switch {
+		background: $set-blue;
+	}
+	&__switch-input:checked ~ .bl-rm__switch .bl-rm__switch-thumb {
+		transform: translateX(18px);
+	}
+	&__switch-input:disabled ~ .bl-rm__switch {
+		opacity: 0.6;
+	}
+
+	// The last section's bottom border already separates the footer.
+	&__footer {
+		padding-top: 20px;
+	}
+}
+
+// ==========================================================================
+// License (`bl-lic-*`) — used by the Pro License panel.
+// States: inactive (hero + instructions + key field), valid (activated hero +
+// masked key + deactivate) and required_otp (verification code step).
+// ==========================================================================
+.bl-lic {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+
+	// ---- Hero -----------------------------------------------------------
+	&__hero {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		padding: 20px;
+		border: 1px solid $set-border;
+		border-radius: 14px;
+		background: $set-surface;
+	}
+	&__hero-badge {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 48px;
+		height: 48px;
+		border-radius: 14px;
+		background: rgba($set-blue, 0.12);
+		color: $set-blue;
+	}
+	&__hero-text {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+	&__hero-title {
+		margin: 0 0 4px;
+		padding: 0;
+		font-size: 16px;
+		font-weight: 700;
+		line-height: 1.4;
+		color: $set-text;
+	}
+	&__hero-desc {
+		margin: 0;
+		color: $set-muted;
+		font-size: 13.5px;
+	}
+	&__status {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 5px 12px;
+		border-radius: 999px;
+		background: rgba(#6b7280, 0.12);
+		color: $set-muted;
+		font-size: 12px;
+		font-weight: 700;
+		white-space: nowrap;
+	}
+
+	&__hero.is-active {
+		border-color: rgba(#16a34a, 0.3);
+		background: rgba(#16a34a, 0.06);
+
+		.bl-lic__hero-badge {
+			background: rgba(#16a34a, 0.14);
+			color: #16a34a;
+		}
+	}
+	&__status.is-active {
+		background: rgba(#16a34a, 0.12);
+		color: #16a34a;
+	}
+
+	// ---- Key field ------------------------------------------------------
+	&__field {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+	&__input {
+		flex: 1 1 auto;
+		min-width: 0;
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		height: 46px;
+		padding: 0 14px;
+		border: 1px solid $set-border;
+		border-radius: 10px;
+		background: $set-white;
+
+		&:focus-within {
+			border-color: $set-blue;
+			box-shadow: 0 0 0 3px rgba($set-blue, 0.12);
+		}
+		&.is-error {
+			border-color: $set-danger;
+		}
+	}
+	&__input-icon {
+		flex: none;
+		display: inline-flex;
+		color: #9aa2b1;
+	}
+	// Outspec the panel's generic input styling. NOTE: literal class name after
+	// the descendant combinator — a second `&` expands to the whole parent
+	// selector (incl. `.betterlinks-body`) and would never match.
+	&__input .bl-lic__input-field {
+		flex: 1 1 auto;
+		min-width: 0;
+		height: auto;
+		margin: 0;
+		padding: 0;
+		border: 0 !important;
+		border-radius: 0;
+		background: transparent;
+		box-shadow: none;
+		color: $set-text;
+		font-size: 14px;
+
+		&:focus {
+			border: 0;
+			box-shadow: none;
+			outline: none;
+		}
+		&:disabled {
+			color: $set-muted;
+		}
+	}
+
+	&__btn {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		height: 46px;
+		padding: 0 22px;
+		border: 1px solid transparent;
+		border-radius: 10px;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+		&:disabled,
+		&.disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+		&--primary {
+			background: $set-blue;
+			color: #fff;
+
+			&:hover:not(:disabled) {
+				background: $set-blue-dark;
+				color: #fff;
+			}
+		}
+		&--danger {
+			border-color: $set-border;
+			background: $set-white;
+			color: $set-danger;
+
+			&:hover:not(:disabled) {
+				border-color: $set-danger;
+				background: rgba($set-danger, 0.06);
+			}
+		}
+		&--warn {
+			background: rgba(#d97706, 0.12);
+			color: #b45309;
+		}
+	}
+
+	// ---- Messages -------------------------------------------------------
+	&__msg {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: -8px 0 0;
+		font-size: 13px;
+		font-weight: 500;
+
+		&--error {
+			color: $set-danger;
+		}
+		&--info {
+			color: #b45309;
+		}
+	}
+
+	// ---- Instructions ---------------------------------------------------
+	&__help {
+		border: 1px solid $set-border;
+		border-radius: 12px;
+		background: $set-white;
+		overflow: hidden;
+	}
+	&__help-toggle {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		width: 100%;
+		padding: 14px 16px;
+		border: 0;
+		background: none;
+		color: $set-text;
+		font-size: 14px;
+		font-weight: 600;
+		text-align: left;
+		cursor: pointer;
+
+		&:focus {
+			outline: none;
+		}
+		svg {
+			flex: none;
+			color: #9aa2b1;
+			transition: transform 0.18s ease;
+		}
+		&.is-open svg {
+			transform: rotate(180deg);
+		}
+	}
+	&__steps {
+		list-style: none;
+		margin: 0;
+		padding: 0 16px 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 12px;
+
+		li {
+			display: flex;
+			align-items: flex-start;
+			gap: 10px;
+			margin: 0;
+			color: $set-muted;
+			font-size: 13.5px;
+			line-height: 1.5;
+		}
+		a {
+			color: $set-blue;
+			font-weight: 600;
+			text-decoration: none;
+
+			&:hover {
+				text-decoration: underline;
+			}
+		}
+	}
+	&__step-num {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 22px;
+		height: 22px;
+		border-radius: 50%;
+		background: rgba($set-blue, 0.1);
+		color: $set-blue;
+		font-size: 12px;
+		font-weight: 700;
+	}
+
+	// ---- OTP verification ----------------------------------------------
+	&__otp {
+		padding: 18px;
+		border: 1px solid rgba($set-blue, 0.25);
+		border-radius: 12px;
+		background: rgba($set-blue, 0.04);
+	}
+	&__otp-text {
+		margin: 0 0 12px;
+		color: $set-text;
+		font-size: 13.5px;
+		line-height: 1.5;
+
+		strong {
+			font-weight: 700;
+		}
+	}
+	&__otp-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+	&__otp-input {
+		flex: 1 1 auto;
+		min-width: 0;
+		max-width: 280px;
+		height: 44px;
+		padding: 0 14px;
+		border: 1px solid $set-border;
+		border-radius: 10px;
+		background: $set-white;
+		font-size: 14px;
+
+		&:focus {
+			border-color: $set-blue;
+			box-shadow: 0 0 0 3px rgba($set-blue, 0.12);
+			outline: none;
+		}
+		&.is-error {
+			border-color: $set-danger;
+		}
+	}
+	&__otp-hint {
+		margin: 12px 0 0;
+		color: $set-muted;
+		font-size: 12.5px;
+		line-height: 1.5;
+
+		a {
+			color: $set-blue;
+			font-weight: 600;
+		}
+	}
+}
+
+// ==========================================================================
+// Responsive
+// ==========================================================================
+@media screen and (max-width: 960px) {
+	.bl-settings {
+		grid-template-columns: 1fr;
+
+		&__mobilebar {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding: 10px 14px;
+			border: 1px solid $set-border;
+			border-radius: 12px;
+			background: $set-white;
+			color: $set-text;
+			font-weight: 700;
+			cursor: pointer;
+
+			svg {
+				color: $set-blue;
+			}
+		}
+		&__sidebar {
+			position: static;
+			display: none;
+
+			&.is-open {
+				display: block;
+			}
+		}
+		&__panel {
+			padding: 22px;
+		}
+	}
+	// Stack both the new rows and the legacy Pro rows.
+	.bl-set-row,
+	.bl-settings__panel .btl-form-group,
+	.bl-rm__section {
+		grid-template-columns: 1fr;
+		gap: 10px;
+	}
+	.bl-rm__section {
+		gap: 14px;
+	}
+}
+
+@media screen and (max-width: 782px) {
+	.bl-settings {
+		&__title {
+			font-size: 22px;
+		}
+	}
+	.bl-module-grid {
+		grid-template-columns: 1fr;
+	}
+	.bl-license-teaser__list {
+		grid-template-columns: 1fr;
+	}
+	.bl-rm__grid {
+		grid-template-columns: 1fr;
+	}
+
+	// License: stack the key field, hero and OTP row.
+	.bl-lic {
+		&__field,
+		&__otp-row {
+			flex-direction: column;
+			align-items: stretch;
+		}
+		&__input,
+		&__otp-input {
+			max-width: none;
+		}
+		&__btn {
+			width: 100%;
+		}
+		&__hero {
+			flex-wrap: wrap;
+		}
+		&__status {
+			order: 3;
+		}
+	}
+
+	// Let every control use the full available width on small screens.
+	.bl-settings__panel {
+		[class*='btl-modal-select'],
+		.btl-text-field,
+		input[type='text'],
+		input[type='url'],
+		input[type='email'],
+		input[type='search'],
+		input[type='number'],
+		input[type='password'],
+		select,
+		textarea {
+			max-width: 100%;
+		}
+
+		.betterlinks-single-input {
+			width: 56px;
+		}
+	}
+}
+
+// ==========================================================================
+// Dark mode — palette matches the other redesigned admin surfaces
+// ==========================================================================
+// NOTE: this partial is @imported INSIDE `.betterlinks-body { … }`, so a bare
+// `body.betterlinks-dark-mode { … }` would compile to
+// `.betterlinks-body body.betterlinks-dark-mode …` — a <body> nested inside
+// `.betterlinks-body`, which never matches. Appending `&` puts the parent
+// AFTER the body selector: `body.betterlinks-dark-mode .betterlinks-body …`.
+body.betterlinks-dark-mode & {
+	.bl-settings {
+		color: #e5e9f2;
+
+		&__title,
+		&__panel-title {
+			color: #e5e9f2;
+		}
+		&__subtitle,
+		&__panel-desc {
+			color: #9aa5bd;
+		}
+
+		&__sidebar,
+		&__panel,
+		&__mobilebar {
+			border-color: #36405a;
+			background: #1f283d;
+		}
+		&__group-title {
+			color: #7a8398;
+		}
+		&__navlink {
+			color: #c3cce0;
+
+			svg {
+				color: #8a93a3;
+			}
+			&:hover {
+				background: #252f47;
+				color: #fff;
+			}
+			&.is-active {
+				background: rgba(111, 151, 255, 0.16);
+				color: #6f97ff;
+
+				svg {
+					color: #6f97ff;
+				}
+			}
+		}
+		&__navitem.is-active > .bl-settings__navlink::before {
+			background: #6f97ff;
+		}
+		&__sublink {
+			border-left-color: #36405a;
+			color: #9aa5bd;
+
+			&:hover {
+				background: #252f47;
+				color: #fff;
+			}
+			&.is-active {
+				border-left-color: #6f97ff;
+				color: #6f97ff;
+				background: rgba(111, 151, 255, 0.14);
+			}
+		}
+		&__panel-head {
+			border-color: #36405a;
+		}
+	}
+
+	.bl-set-row {
+		&__label,
+		&__switch .text {
+			color: #e5e9f2;
+		}
+		&__desc {
+			color: #9aa5bd;
+
+			strong,
+			b {
+				color: #e5e9f2;
+			}
+		}
+	}
+
+	.bl-toggle__track {
+		background: #4a5570;
+	}
+	.bl-toggle.is-on .bl-toggle__track {
+		background: #6f97ff;
+	}
+
+	.bl-set-footer {
+		border-color: #36405a;
+	}
+	.bl-set-status__btn {
+		border-color: #36405a;
+		background: #252f47;
+		color: #e5e9f2;
+	}
+
+	.bl-module-card {
+		border-color: #36405a;
+		background: #1f283d;
+
+		&__title {
+			color: #e5e9f2;
+		}
+		&__desc {
+			color: #9aa5bd;
+		}
+	}
+
+	.bl-license-teaser__title {
+		color: #e5e9f2;
+	}
+	.bl-license-teaser__text {
+		color: #9aa5bd;
+	}
+	.bl-license-teaser__list li {
+		color: #e5e9f2;
+	}
+
+	.bl-set-updatenotice {
+		border-color: rgba(#d97706, 0.35);
+		background: rgba(#d97706, 0.14);
+		color: #f0c07a;
+	}
+
+	// Role Management — dark
+	.bl-rm {
+		&__section,
+		&__footer {
+			border-color: #36405a;
+		}
+		&__title,
+		&__role-name {
+			color: #e5e9f2;
+		}
+		&__count {
+			color: #9aa5bd;
+		}
+		&__all {
+			color: #6f97ff;
+		}
+
+		// Role filter (dark)
+		&__filter-btn {
+			border-color: #36405a;
+			background: #1f283d;
+			color: #e5e9f2;
+
+			&:hover,
+			&.is-active {
+				border-color: rgba(#6f97ff, 0.6);
+				color: #6f97ff;
+			}
+			svg {
+				color: #9aa5bd;
+			}
+		}
+		&__filter-label {
+			color: #9aa5bd;
+		}
+		&__filter-menu {
+			border-color: #36405a;
+			background: #252f47;
+			box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+		}
+		&__filter-head {
+			border-color: #36405a;
+			color: #9aa5bd;
+		}
+		&__filter-clear {
+			color: #6f97ff;
+		}
+		&__filter-item {
+			color: #e5e9f2;
+
+			&:hover {
+				background: #1f283d;
+			}
+		}
+		&__count-note {
+			background: rgba(#6f97ff, 0.18);
+			color: #6f97ff;
+		}
+		&__role {
+			border-color: #36405a;
+			background: #1f283d;
+
+			&:hover {
+				border-color: #4a5570;
+			}
+		}
+		&__switch {
+			background: #4a5570;
+		}
+		&__switch-input:checked ~ .bl-rm__switch {
+			background: #6f97ff;
+		}
+	}
+
+	// License — dark
+	.bl-lic {
+		&__hero,
+		&__help,
+		&__input,
+		&__otp-input {
+			border-color: #36405a;
+			background: #252f47;
+		}
+		&__help {
+			background: #1f283d;
+		}
+		&__hero-title,
+		&__help-toggle,
+		&__otp-text {
+			color: #e5e9f2;
+		}
+		&__hero-desc,
+		&__steps li,
+		&__otp-hint {
+			color: #9aa5bd;
+		}
+		&__input .bl-lic__input-field {
+			background: transparent;
+			color: #e5e9f2;
+		}
+		&__btn--danger {
+			border-color: #36405a;
+			background: #252f47;
+			color: #f98080;
+		}
+		&__otp {
+			border-color: rgba(111, 151, 255, 0.35);
+			background: rgba(111, 151, 255, 0.08);
+		}
+		&__step-num {
+			background: rgba(111, 151, 255, 0.16);
+			color: #6f97ff;
+		}
+	}
+
+	// Legacy panel compatibility — dark
+	.bl-settings__panel {
+		.btl-text-field,
+		input[type='text'],
+		input[type='url'],
+		input[type='email'],
+		input[type='search'],
+		input[type='number'],
+		input[type='password'],
+		select,
+		textarea {
+			border-color: #36405a;
+			background: #252f47;
+			color: #e5e9f2;
+		}
+		.btl-react-select__control {
+			border-color: #36405a;
+			background: #252f47;
+		}
+
+		.bl-set-subhead,
+		h2:not(.bl-settings__panel-title):not(.bl-license-teaser__title),
+		h3:not(.bl-module-card__title),
+		.btl-d-title,
+		.btl-utm-templates-title {
+			color: #e5e9f2;
+		}
+		.btl-header .btl-description {
+			color: #9aa5bd;
+		}
+
+		.btl-form-label,
+		.btl-checkbox-field .text {
+			color: #e5e9f2;
+		}
+		.short-description,
+		.btl-note {
+			border-color: #36405a;
+			background: #252f47;
+			color: #9aa5bd;
+
+			b,
+			strong {
+				color: #e5e9f2;
+			}
+		}
+		.btl-checkbox-field .text::before {
+			background: #4a5570 !important;
+		}
+		.btl-checkbox-field .btl-check:checked + .text::before {
+			background: #6f97ff !important;
+		}
+		// `background-color` only — the shorthand would wipe the knob image.
+		input[type='checkbox']:not(.btl-check):not([class*='toggle']):not([class*='switch']) {
+			background-color: #4a5570;
+
+			&:checked {
+				background-color: #6f97ff;
+			}
+		}
+		.rmsc input[type='checkbox']:not(.btl-check):not([class*='toggle']):not([class*='switch']) {
+			background: none;
+		}
+	}
+}

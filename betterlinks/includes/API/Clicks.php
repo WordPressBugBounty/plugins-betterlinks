@@ -504,7 +504,7 @@ class Clicks extends Controller {
 	 * @return WP_Error|bool
 	 */
 	public function get_items_permissions_check( $request ) {
-		return apply_filters( 'betterlinks/api/analytics_items_permissions_check', current_user_can( 'manage_options' ) );
+		return apply_filters( 'betterlinks/api/analytics_items_permissions_check', current_user_can( 'manage_options' ) ) || \BetterLinks\Mcp\Mcp_Access::is_running_tool();
 	}
 	/**
 	 * Delete analytics for multiple links

@@ -5,7 +5,7 @@ Tags: link shortener, affiliate links, redirects, link cloaking, url shortener
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.1.4
+Stable tag: 3.1.5
 License: GPL-3.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -33,7 +33,7 @@ Ask your assistant to *"create a short link for this affiliate offer"*, *"which 
 * **Off by default** — nothing is exposed to anyone until you switch it on in **BetterLinks → MCP**
 * **Scope-aware** — apps that ask for read-only access are enforced as read-only and clearly labelled in your dashboard
 * **Revocable any time** — reset the connection token, or revoke a single connected app, with one click
-* **Admin-scoped** — every action runs as the administrator who approved it and respects that account's permissions
+* **Permission-aware** — every action runs as the user who approved it and respects that account's permissions; only administrators can connect by default
 * **Built-in health check** — a live "Test connection" round trip tells you exactly which step failed if a client can't connect
 
 Built on the WordPress **Abilities API**, bundled with the plugin — there are no companion plugins to install.
@@ -188,6 +188,14 @@ Only with the usage insights above: the administrator's IP address is sent once,
 
 Off by default. A connected assistant receives only the link, category and analytics data returned by the tools it calls; the assistant provider's own terms and privacy policy apply.
 
+== Source code ==
+
+The readable source of every compiled file ships with the plugin:
+
+* `dev_betterlinks/` holds the JavaScript (React) source of `assets/js/`, and `assets/scss/` the Sass source of `assets/css/`.
+* `package.json`, `webpack.config.js`, `babel.config.json` and `gulpfile.js` are the build setup. Run `npm install --legacy-peer-deps`, then `npm run build`.
+* `dependencies/` holds the bundled WordPress Abilities API 0.4.0 (GPL-2.0-or-later) and the Jetpack Autoloader 5.0.22, installed with Composer. The source of the Abilities API's compiled client script is in [WordPress/abilities-api on GitHub](https://github.com/WordPress/abilities-api/tree/v0.4.0/packages/client).
+
 == Installation ==
 
 = From your WordPress dashboard =
@@ -269,7 +277,7 @@ No. The MCP server and the WordPress Abilities API runtime are bundled with Bett
 
 = Is the MCP connector safe to turn on? =
 
-It is off by default and nothing is exposed until you enable it in BetterLinks → MCP. Clients connect either through a one-time OAuth approval or a connection token, every request runs as the administrator who approved it and respects that account's permissions, and you can reset the token or revoke any connected app at any time.
+It is off by default and nothing is exposed until you enable it in BetterLinks → MCP. Clients connect either through a one-time OAuth approval or a connection token, every request runs as the user who approved it and respects that account's permissions (only administrators can connect by default), and an administrator can reset the token or revoke any connected app at any time.
 
 = Which AI assistants can connect to BetterLinks? =
 
@@ -285,6 +293,13 @@ Any MCP-capable client. The setup screen has ready-made instructions for Claude 
 6. AI Bulk Link Generator — create short links for many posts at once
 
 == Changelog ==
+
+= 3.1.5 - 14/10/2026 =
+
+- Improvement: Enhanced block editor experience
+- Improvement: Improved MCP connector access control and connection health
+- Improvement: Better redirect handling for cloaked links
+- Few minor bug fixes & improvements
 
 = 3.1.4 - 22/09/2026 =
 

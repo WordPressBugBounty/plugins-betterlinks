@@ -327,7 +327,14 @@ class Utils {
 				wp_redirect( esc_url_raw( $target_url ), 307 );
 				exit;
 			case 'cloak':
-				do_action( 'betterlinks/make_cloaked_redirect', $target_url, $data );
+				// Cloaking is provided by BetterLinks Pro. Without it (Pro deactivated or
+				// expired), send visitors on with a temporary redirect rather than an
+				// empty page; the stored redirect type is left as it is.
+				if ( has_action( 'betterlinks/make_cloaked_redirect' ) ) {
+					do_action( 'betterlinks/make_cloaked_redirect', $target_url, $data );
+					exit;
+				}
+				wp_redirect( esc_url_raw( $target_url ), 307 );
 				exit;
 			default:
 				wp_redirect( esc_url_raw( $target_url ) );

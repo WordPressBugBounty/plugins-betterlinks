@@ -1,0 +1,855 @@
+// ==========================================================================
+// MCP connector (`pages/MCP.js`, `components/MCP/*`).
+// Same token set as the Settings redesign (border #e6e8ee, blue #2f6bff,
+// surface #f7f8fa) so the screen sits in the existing design system rather
+// than introducing a second one. Dark overrides live at the bottom.
+// ==========================================================================
+$mcp-border: #e6e8ee;
+$mcp-text: #1a2233;
+$mcp-muted: #6b7280;
+$mcp-blue: #2f6bff;
+$mcp-blue-dark: #1f57e6;
+$mcp-surface: #f7f8fa;
+$mcp-white: #fff;
+$mcp-green: #067647;
+$mcp-green-bg: #ecfdf3;
+$mcp-amber: #b54708;
+$mcp-amber-bg: #fffaeb;
+$mcp-danger: #b42318;
+$mcp-danger-bg: #fef3f2;
+
+.bl-mcp {
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	color: $mcp-text;
+	font-size: 14px;
+	line-height: 1.5;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	&__loading {
+		padding: 40px;
+		text-align: center;
+		color: $mcp-muted;
+	}
+
+	&__muted {
+		margin: 0;
+		color: $mcp-muted;
+		font-size: 13px;
+	}
+
+	&__link {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		color: $mcp-blue;
+		text-decoration: none;
+
+		&:hover {
+			text-decoration: underline;
+		}
+		&.is-small {
+			align-self: flex-start;
+			font-size: 12px;
+			color: $mcp-muted;
+
+			&:hover {
+				color: $mcp-blue;
+			}
+		}
+	}
+
+	// ---- Panel (the card shell) -------------------------------------------
+	&__panel {
+		border: 1px solid $mcp-border;
+		border-radius: 12px;
+		background: $mcp-white;
+		padding: 24px;
+
+		&.is-flush {
+			padding: 0;
+			overflow: hidden;
+		}
+	}
+
+	&__panel-head {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+		flex-wrap: wrap;
+		margin-bottom: 16px;
+	}
+	&__panel-title {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0 0 4px;
+		padding: 0;
+		font-size: 15px;
+		font-weight: 600;
+		color: $mcp-text;
+	}
+	&__panel-icon {
+		display: inline-flex;
+		color: $mcp-blue;
+	}
+	&__panel-desc {
+		margin: 0;
+		max-width: 640px;
+		font-size: 13px;
+		color: $mcp-muted;
+	}
+	&__panel-actions {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-shrink: 0;
+	}
+
+	// ---- Hero --------------------------------------------------------------
+	&__hero {
+		display: flex;
+		align-items: flex-start;
+		gap: 16px;
+		padding: 24px;
+	}
+	&__hero-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		flex-shrink: 0;
+		border-radius: 12px;
+		background: rgba(47, 107, 255, 0.1);
+		color: $mcp-blue;
+	}
+	&__hero-body {
+		flex: 1;
+		min-width: 0;
+	}
+	&__hero-titlerow {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+	&__hero-title {
+		margin: 0;
+		padding: 0;
+		font-size: 16px;
+		font-weight: 600;
+		color: $mcp-text;
+	}
+	&__hero-desc {
+		margin: 6px 0 0;
+		max-width: 680px;
+		font-size: 13px;
+		color: $mcp-muted;
+	}
+	&__hero-toggle {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-shrink: 0;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+	&__togglelabel {
+		font-size: 13px;
+		font-weight: 500;
+		color: $mcp-text;
+		cursor: pointer;
+	}
+	&__saving {
+		font-size: 12px;
+		color: $mcp-muted;
+	}
+
+	// ---- Collapsible capability list ---------------------------------------
+	&__collapse {
+		border-top: 1px solid $mcp-border;
+	}
+	&__collapse-btn {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 12px;
+		width: 100%;
+		padding: 20px 24px;
+		border: 0;
+		background: transparent;
+		text-align: left;
+		cursor: pointer;
+		font-family: inherit;
+	}
+	&__collapse-title {
+		display: block;
+		font-size: 14px;
+		font-weight: 600;
+		color: $mcp-text;
+	}
+	&__collapse-desc {
+		display: block;
+		margin-top: 4px;
+		font-size: 13px;
+		color: $mcp-muted;
+	}
+	&__collapse-chevron {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 24px;
+		height: 24px;
+		flex-shrink: 0;
+		color: $mcp-muted;
+	}
+	&__caps {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+		gap: 10px;
+		margin: 0;
+		padding: 0 24px 24px;
+		list-style: none;
+	}
+	&__cap {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin: 0;
+		padding: 10px 12px;
+		border: 1px solid $mcp-border;
+		border-radius: 8px;
+		background: $mcp-white;
+		font-size: 13px;
+		color: $mcp-muted;
+	}
+	&__cap-check {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 20px;
+		height: 20px;
+		flex-shrink: 0;
+		border-radius: 50%;
+		background: $mcp-green-bg;
+		color: $mcp-green;
+	}
+}
+
+// ---- Badge ------------------------------------------------------------------
+.bl-mcp-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 8px;
+	border-radius: 999px;
+	border: 1px solid $mcp-border;
+	background: $mcp-surface;
+	color: $mcp-muted;
+	font-size: 11px;
+	font-weight: 600;
+	line-height: 1.6;
+	white-space: nowrap;
+
+	&.is-good {
+		border-color: rgba(6, 118, 71, 0.2);
+		background: $mcp-green-bg;
+		color: $mcp-green;
+	}
+	&.is-warning {
+		border-color: rgba(181, 71, 8, 0.2);
+		background: $mcp-amber-bg;
+		color: $mcp-amber;
+	}
+	&.is-poor {
+		border-color: rgba(180, 35, 24, 0.2);
+		background: $mcp-danger-bg;
+		color: $mcp-danger;
+	}
+	&.is-info {
+		border-color: rgba(47, 107, 255, 0.2);
+		background: rgba(47, 107, 255, 0.08);
+		color: $mcp-blue;
+	}
+}
+
+// ---- Alert ------------------------------------------------------------------
+.bl-mcp-alert {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px;
+	padding: 12px 16px;
+	border: 1px solid $mcp-border;
+	border-radius: 10px;
+	background: $mcp-surface;
+	font-size: 13px;
+
+	& + & {
+		margin-top: 8px;
+	}
+
+	&.is-success {
+		border-color: rgba(6, 118, 71, 0.25);
+		background: $mcp-green-bg;
+		color: $mcp-green;
+	}
+	&.is-warning {
+		border-color: rgba(181, 71, 8, 0.25);
+		background: $mcp-amber-bg;
+		color: $mcp-amber;
+	}
+	&.is-error {
+		border-color: rgba(180, 35, 24, 0.25);
+		background: $mcp-danger-bg;
+		color: $mcp-danger;
+	}
+	&.is-info {
+		border-color: rgba(47, 107, 255, 0.25);
+		background: rgba(47, 107, 255, 0.06);
+		color: $mcp-blue-dark;
+	}
+
+	&__x {
+		border: 0;
+		background: transparent;
+		color: inherit;
+		font-size: 18px;
+		line-height: 1;
+		cursor: pointer;
+		opacity: 0.6;
+		padding: 0 2px;
+
+		&:hover {
+			opacity: 1;
+		}
+	}
+}
+
+// ---- Button -----------------------------------------------------------------
+.bl-mcp-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	height: 34px;
+	padding: 0 14px;
+	border: 1px solid $mcp-border;
+	border-radius: 8px;
+	background: $mcp-white;
+	color: $mcp-text;
+	font-size: 13px;
+	font-weight: 500;
+	font-family: inherit;
+	text-decoration: none;
+	cursor: pointer;
+	transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+
+	&:hover:not(:disabled) {
+		border-color: #cfd5e4;
+		background: $mcp-surface;
+	}
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
+	&.is-primary {
+		border-color: $mcp-blue;
+		background: $mcp-blue;
+		color: #fff;
+
+		&:hover:not(:disabled) {
+			border-color: $mcp-blue-dark;
+			background: $mcp-blue-dark;
+		}
+	}
+	&.is-outline {
+		align-self: flex-start;
+		border-color: $mcp-blue;
+		color: $mcp-blue;
+		background: transparent;
+
+		&:hover {
+			background: rgba(47, 107, 255, 0.06);
+		}
+	}
+}
+
+// ---- Tabs -------------------------------------------------------------------
+.bl-mcp-tabs {
+	display: flex;
+	gap: 4px;
+	margin-bottom: 16px;
+	border-bottom: 1px solid $mcp-border;
+
+	&__tab {
+		position: relative;
+		padding: 8px 14px;
+		border: 0;
+		border-bottom: 2px solid transparent;
+		background: transparent;
+		color: $mcp-muted;
+		font-size: 13px;
+		font-weight: 500;
+		font-family: inherit;
+		cursor: pointer;
+		margin-bottom: -1px;
+
+		&:hover {
+			color: $mcp-text;
+		}
+		&.is-active {
+			border-bottom-color: $mcp-blue;
+			color: $mcp-blue;
+		}
+	}
+}
+
+// ---- Client cards -----------------------------------------------------------
+.bl-mcp-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+	gap: 12px;
+}
+
+.bl-mcp-card {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 16px;
+	border: 1px solid $mcp-border;
+	border-radius: 10px;
+	background: $mcp-white;
+
+	&__head {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+	&__icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		flex-shrink: 0;
+		border-radius: 8px;
+	}
+	&__headtext {
+		min-width: 0;
+		flex: 1;
+	}
+	&__title {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+		font-size: 14px;
+		font-weight: 600;
+		color: $mcp-text;
+	}
+	&__sub {
+		display: block;
+		margin-top: 2px;
+		font-size: 12px;
+		color: $mcp-muted;
+	}
+}
+
+// ---- Copy field -------------------------------------------------------------
+.bl-mcp-field {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+
+	&__label {
+		font-size: 12px;
+		font-weight: 500;
+		color: $mcp-muted;
+	}
+	&__control {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 6px 6px 6px 12px;
+		border: 1.5px solid $mcp-border;
+		border-radius: 8px;
+		transition: border-color 0.15s;
+
+		&:focus-within {
+			border-color: $mcp-blue;
+		}
+	}
+	&__value {
+		flex: 1;
+		min-width: 0;
+		padding: 0;
+		background: transparent;
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 12px;
+		color: $mcp-muted;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	&__copy {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		height: 28px;
+		padding: 0 10px;
+		flex-shrink: 0;
+		border: 0;
+		border-radius: 6px;
+		background: transparent;
+		color: $mcp-blue;
+		font-size: 12px;
+		font-weight: 500;
+		font-family: inherit;
+		cursor: pointer;
+
+		&:hover {
+			background: rgba(47, 107, 255, 0.08);
+		}
+	}
+}
+
+// ---- Numbered steps ---------------------------------------------------------
+.bl-mcp-steps {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+
+	&__item {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		margin: 0;
+		font-size: 13px;
+		color: $mcp-muted;
+	}
+	&__num {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 20px;
+		height: 20px;
+		flex-shrink: 0;
+		border-radius: 50%;
+		background: rgba(47, 107, 255, 0.1);
+		color: $mcp-blue;
+		font-size: 11px;
+		font-weight: 600;
+	}
+}
+
+// ---- Reset row --------------------------------------------------------------
+.bl-mcp-reset {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-top: 16px;
+	padding-top: 16px;
+	border-top: 1px solid $mcp-border;
+
+	&__text {
+		margin: 0;
+		max-width: 560px;
+		font-size: 12px;
+		color: $mcp-muted;
+	}
+}
+
+// ---- Connected apps ---------------------------------------------------------
+.bl-mcp-applist {
+	display: flex;
+	flex-direction: column;
+}
+
+.bl-mcp-app {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 0;
+	border-top: 1px solid $mcp-border;
+
+	&:first-child {
+		border-top: 0;
+	}
+
+	&__icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		flex-shrink: 0;
+		border-radius: 10px;
+
+		&.is-initial {
+			background: rgba(47, 107, 255, 0.1);
+			color: $mcp-blue;
+			font-size: 16px;
+			font-weight: 600;
+		}
+	}
+	&__body {
+		flex: 1;
+		min-width: 0;
+	}
+	&__name {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+		font-size: 14px;
+		font-weight: 600;
+		color: $mcp-text;
+	}
+	&__meta {
+		display: block;
+		margin-top: 2px;
+		font-size: 12px;
+		color: $mcp-muted;
+	}
+	&__revoke {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		flex-shrink: 0;
+		border: 0;
+		border-radius: 6px;
+		background: transparent;
+		color: $mcp-muted;
+		cursor: pointer;
+		transition: background-color 0.15s, color 0.15s;
+
+		&:hover:not(:disabled) {
+			background: $mcp-danger-bg;
+			color: $mcp-danger;
+		}
+		&:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+	}
+}
+
+.bl-mcp-empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 6px;
+	padding: 40px 20px;
+	border: 1px dashed $mcp-border;
+	border-radius: 10px;
+	text-align: center;
+
+	&__icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 48px;
+		height: 48px;
+		margin-bottom: 4px;
+		border-radius: 12px;
+		background: $mcp-surface;
+		color: $mcp-muted;
+	}
+	&__title {
+		margin: 0;
+		padding: 0;
+		font-size: 14px;
+		font-weight: 600;
+		color: $mcp-text;
+	}
+	&__text {
+		margin: 0;
+		font-size: 13px;
+		color: $mcp-muted;
+	}
+}
+
+// ---- Connection health ------------------------------------------------------
+.bl-mcp-health {
+	&__list {
+		border: 1px solid $mcp-border;
+		border-radius: 10px;
+		padding: 0 16px;
+	}
+	&__row {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+		padding: 12px 0;
+		border-top: 1px solid $mcp-border;
+
+		&:first-child {
+			border-top: 0;
+		}
+	}
+	&__rowtext {
+		min-width: 0;
+	}
+	&__label {
+		display: block;
+		font-size: 13px;
+		font-weight: 500;
+		color: $mcp-text;
+	}
+	&__detail {
+		display: block;
+		margin-top: 2px;
+		font-size: 12px;
+		color: $mcp-muted;
+	}
+}
+
+.bl-mcp-checks {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin: 0 0 16px;
+	padding: 0;
+	list-style: none;
+
+	&__item {
+		display: flex;
+		align-items: flex-start;
+		gap: 8px;
+		margin: 0;
+		font-size: 12px;
+		color: $mcp-muted;
+	}
+	&__ok {
+		color: $mcp-green;
+		font-weight: 700;
+	}
+	&__warn {
+		color: $mcp-amber;
+		font-weight: 700;
+	}
+}
+
+// Spinner used by the revoke button.
+.bl-mcp-spin {
+	animation: bl-mcp-spin 0.8s linear infinite;
+}
+@keyframes bl-mcp-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+// ==========================================================================
+// Dark mode
+// ==========================================================================
+// NOTE: this partial is @imported INSIDE `.betterlinks-body { … }`, so a bare
+// `body.betterlinks-dark-mode { … }` would compile to a <body> nested inside
+// `.betterlinks-body`, which never matches. Appending `&` puts the parent
+// AFTER the body selector.
+body.betterlinks-dark-mode & {
+	.bl-mcp {
+		color: #e5e9f2;
+
+		&__hero-title,
+		&__collapse-title,
+		&__panel-title {
+			color: #e5e9f2;
+		}
+		&__hero-desc,
+		&__collapse-desc,
+		&__panel-desc,
+		&__muted,
+		&__saving {
+			color: #9aa5bd;
+		}
+		&__panel {
+			border-color: #36405a;
+			background: #1f283d;
+		}
+		&__collapse {
+			border-top-color: #36405a;
+		}
+		&__cap {
+			border-color: #36405a;
+			background: #263149;
+			color: #9aa5bd;
+		}
+		&__togglelabel {
+			color: #e5e9f2;
+		}
+	}
+
+	.bl-mcp-card,
+	.bl-mcp-health__list,
+	.bl-mcp-empty {
+		border-color: #36405a;
+		background: #263149;
+	}
+	.bl-mcp-card__title,
+	.bl-mcp-app__name,
+	.bl-mcp-health__label,
+	.bl-mcp-empty__title {
+		color: #e5e9f2;
+	}
+	.bl-mcp-card__sub,
+	.bl-mcp-app__meta,
+	.bl-mcp-health__detail,
+	.bl-mcp-empty__text,
+	.bl-mcp-reset__text,
+	.bl-mcp-field__label,
+	.bl-mcp-field__value,
+	.bl-mcp-steps__item,
+	.bl-mcp-checks__item {
+		color: #9aa5bd;
+	}
+	.bl-mcp-app,
+	.bl-mcp-health__row,
+	.bl-mcp-reset,
+	.bl-mcp-tabs {
+		border-color: #36405a;
+	}
+	.bl-mcp-field__control {
+		border-color: #36405a;
+	}
+	.bl-mcp-btn {
+		border-color: #36405a;
+		background: #263149;
+		color: #e5e9f2;
+
+		&:hover:not(:disabled) {
+			border-color: #47526e;
+			background: #2d3852;
+		}
+		&.is-primary {
+			border-color: $mcp-blue;
+			background: $mcp-blue;
+			color: #fff;
+		}
+		&.is-outline {
+			background: transparent;
+		}
+	}
+	.bl-mcp-badge {
+		border-color: #36405a;
+		background: #2d3852;
+		color: #9aa5bd;
+	}
+	.bl-mcp-empty__icon {
+		background: #2d3852;
+	}
+}

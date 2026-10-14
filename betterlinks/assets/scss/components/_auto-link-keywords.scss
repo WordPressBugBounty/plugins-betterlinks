@@ -1,0 +1,893 @@
+// ==========================================================================
+// Auto-Link Keywords — page redesign (bl-* design system, matches Manage Links)
+// ==========================================================================
+$kw-border: #e6e8ee;
+$kw-muted: #6b7280;
+$kw-title: #1a2233;
+$kw-surface: #f7f8fa;
+$kw-blue: #2f6bff;
+$kw-blue-dark: #1f57e6;
+$kw-green: #16a34a;
+$kw-green-bg: #dcfce7;
+$kw-radius: 12px;
+
+.bl-kw {
+	color: $kw-title;
+	padding-bottom: 40px;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	// ---- Header ----------------------------------------------------------
+	&__header {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 16px;
+		flex-wrap: wrap;
+		margin-bottom: 22px;
+	}
+	&__heading {
+		min-width: 0;
+	}
+	// Override the global `.betterlinks-body h1` (Dosis / centered) styles.
+	// (`.bl-kw .bl-kw__title` + !important already outranks `.betterlinks-body h1`.)
+	&__title {
+		margin: 0 0 4px !important;
+		padding: 0 !important;
+		font-family: inherit !important;
+		font-size: 28px !important;
+		line-height: 1.15 !important;
+		font-weight: 700 !important;
+		color: $kw-title !important;
+		text-align: left !important;
+	}
+	&__subtitle {
+		margin: 0;
+		font-size: 14px;
+		color: $kw-muted;
+	}
+	&__actions {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+
+	// Refresh icon button
+	&__icon-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		border: 1px solid $kw-border;
+		border-radius: 10px;
+		background: #fff;
+		color: $kw-muted;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		&:hover {
+			color: $kw-blue;
+			border-color: rgba($kw-blue, 0.5);
+		}
+		&.is-spinning svg {
+			animation: bl-kw-spin 0.7s linear infinite;
+		}
+	}
+
+	// Export / Import (injected KeywordsImportExport component)
+	.btl-keywords-import-export {
+		display: inline-flex;
+	}
+	.btl-import-export-buttons {
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+	}
+	.btl-import-export-buttons .btl-btn,
+	.btl-import-export-buttons .btl-import-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		height: 44px;
+		padding: 0 16px;
+		border: 1px solid $kw-border !important;
+		border-radius: 10px;
+		background: #fff !important;
+		color: $kw-title !important;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+		box-shadow: none !important;
+		transition: all 0.15s ease;
+
+		&:hover {
+			border-color: rgba($kw-blue, 0.5) !important;
+			color: $kw-blue !important;
+		}
+		i {
+			font-size: 13px;
+		}
+	}
+
+	// Add New Keywords (injected AddNewKeywords button)
+	.btl-create-autolinks {
+		display: inline-flex;
+	}
+	.btl-create-autolink-button {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		height: 44px;
+		padding: 0 20px;
+		border: none;
+		border-radius: 10px;
+		background: $kw-blue;
+		color: #fff;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+		box-shadow: 0 6px 16px rgba($kw-blue, 0.28);
+		transition: background 0.15s ease;
+
+		&:hover {
+			background: $kw-blue-dark;
+		}
+		svg {
+			display: block;
+		}
+	}
+
+	// ---- Stats -----------------------------------------------------------
+	&__stats {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		border: 1px solid $kw-border;
+		border-radius: $kw-radius;
+		background: #fff;
+		margin-bottom: 18px;
+		overflow: hidden;
+
+		@media (max-width: 900px) {
+			grid-template-columns: repeat(2, 1fr);
+		}
+		@media (max-width: 520px) {
+			grid-template-columns: 1fr;
+		}
+	}
+	&__stat {
+		padding: 16px 24px;
+		border-left: 1px solid $kw-border;
+
+		&:first-child {
+			border-left: none;
+		}
+		@media (max-width: 900px) {
+			&:nth-child(odd) {
+				border-left: none;
+			}
+		}
+		@media (max-width: 520px) {
+			border-left: none;
+			border-top: 1px solid $kw-border;
+			&:first-child {
+				border-top: none;
+			}
+		}
+	}
+	&__stat-head {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 10px;
+		color: $kw-muted;
+	}
+	&__stat-icon {
+		display: inline-flex;
+		svg {
+			width: 16px;
+			height: 16px;
+		}
+	}
+	&__stat-label {
+		font-size: 12px;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+	}
+	&__stat-value {
+		font-size: 28px;
+		font-weight: 700;
+		line-height: 1;
+		color: $kw-title;
+	}
+
+	// ---- Toolbar ---------------------------------------------------------
+	&__toolbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 14px;
+		flex-wrap: wrap;
+		margin-bottom: 16px;
+	}
+	&__search {
+		position: relative;
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		flex: 1 1 320px;
+		min-width: 240px;
+		height: 44px;
+		padding: 0 14px;
+		border: 1px solid $kw-border;
+		border-radius: 10px;
+		background: #fff;
+		color: $kw-muted;
+
+		input {
+			flex: 1;
+			border: none !important;
+			outline: none !important;
+			box-shadow: none !important;
+			background: transparent;
+			font-size: 14px;
+			color: $kw-title;
+			padding: 0;
+			margin: 0;
+			min-height: auto;
+
+			&::placeholder {
+				color: $kw-muted;
+			}
+			&:focus {
+				border: none !important;
+				box-shadow: none !important;
+			}
+			// hide native search clear
+			&::-webkit-search-cancel-button {
+				-webkit-appearance: none;
+			}
+		}
+	}
+	&__toolbar-right {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+	}
+	&__filter {
+		position: relative;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		height: 44px;
+		padding: 0 34px 0 12px;
+		border: 1px solid $kw-border;
+		border-radius: 10px;
+		background: #fff;
+		color: $kw-muted;
+		font-size: 14px;
+
+		&-icon {
+			display: inline-flex;
+		}
+		&-label {
+			font-weight: 600;
+			color: $kw-muted;
+		}
+		&-select {
+			border: none !important;
+			outline: none !important;
+			box-shadow: none !important;
+			background: transparent !important;
+			font-size: 14px;
+			font-weight: 600;
+			color: $kw-title;
+			cursor: pointer;
+			padding: 0 4px 0 0 !important;
+			margin: 0 !important;
+			min-height: auto !important;
+			height: auto !important;
+			appearance: none;
+			-webkit-appearance: none;
+			-moz-appearance: none;
+		}
+		&-caret {
+			position: absolute;
+			right: 12px;
+			display: inline-flex;
+			color: $kw-muted;
+			pointer-events: none;
+		}
+	}
+	&__reset {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		height: 44px;
+		padding: 0 16px;
+		border: 1px solid $kw-border;
+		border-radius: 10px;
+		background: #fff;
+		color: $kw-muted;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		&:hover {
+			color: $kw-blue;
+			border-color: rgba($kw-blue, 0.4);
+		}
+	}
+
+	// ---- Bulk bar --------------------------------------------------------
+	&__bulk {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		flex-wrap: wrap;
+		padding: 12px 16px;
+		margin-bottom: 12px;
+		border: 1px solid rgba($kw-blue, 0.3);
+		border-radius: 10px;
+		background: rgba($kw-blue, 0.05);
+
+		&-count {
+			font-size: 13px;
+			font-weight: 700;
+			color: $kw-blue;
+		}
+		&-actions {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			flex-wrap: wrap;
+		}
+		&-select {
+			height: 36px;
+			border: 1px solid $kw-border;
+			border-radius: 8px;
+			background: #fff;
+			font-size: 13px;
+			padding: 0 10px;
+			color: $kw-title;
+		}
+		&-btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			height: 36px;
+			padding: 0 14px;
+			border: 1px solid $kw-border;
+			border-radius: 8px;
+			background: #fff;
+			color: $kw-title;
+			font-size: 13px;
+			font-weight: 600;
+			cursor: pointer;
+
+			&:hover:not(:disabled) {
+				border-color: rgba($kw-blue, 0.5);
+				color: $kw-blue;
+			}
+			&:disabled {
+				opacity: 0.55;
+				cursor: not-allowed;
+			}
+			&--danger:hover {
+				border-color: rgba(#ef4444, 0.5);
+				color: #ef4444;
+			}
+		}
+	}
+
+	// ---- Table -----------------------------------------------------------
+	&__table-wrap {
+		border: 1px solid $kw-border;
+		border-radius: $kw-radius;
+		background: #fff;
+		overflow-x: auto;
+	}
+	&__table {
+		width: 100%;
+		border-collapse: collapse;
+		font-size: 14px;
+
+		thead th {
+			text-align: left;
+			padding: 14px 18px;
+			font-size: 12px;
+			font-weight: 700;
+			letter-spacing: 0.04em;
+			text-transform: uppercase;
+			color: $kw-muted;
+			border-bottom: 1px solid $kw-border;
+			white-space: nowrap;
+			background: #fff;
+		}
+		tbody td {
+			padding: 14px 18px;
+			border-bottom: 1px solid $kw-border;
+			vertical-align: middle;
+		}
+		tbody tr:last-child td {
+			border-bottom: none;
+		}
+		tbody tr {
+			transition: background 0.12s ease;
+		}
+		// Zebra striping: odd rows stay white, even rows use the soft surface tint
+		// (what used to be the hover colour). Hover + selected sit on top.
+		tbody tr:nth-child(even) {
+			background: rgba($kw-surface, 0.6);
+		}
+		tbody tr:hover {
+			background: rgba($kw-blue, 0.05);
+		}
+		tbody tr.is-selected {
+			background: rgba($kw-blue, 0.08);
+		}
+	}
+	&__empty-row td {
+		text-align: center;
+		color: $kw-muted;
+		padding: 40px 18px !important;
+	}
+
+	// checkbox
+	&__cell-check {
+		width: 46px;
+	}
+	&__cell-status {
+		width: 140px;
+	}
+	&__cell-action {
+		width: 110px;
+	}
+	&__check {
+		display: inline-flex;
+		cursor: pointer;
+
+		input {
+			position: absolute;
+			opacity: 0;
+			width: 0;
+			height: 0;
+		}
+		// Use the literal class after the `+` combinator: `&` here would expand to
+		// the full `.bl-kw .bl-kw__check-box` chain and break the sibling match.
+		input:checked + .bl-kw__check-box {
+			background: $kw-blue;
+			border-color: $kw-blue;
+
+			&::after {
+				content: '';
+				position: absolute;
+				left: 5px;
+				top: 2px;
+				width: 5px;
+				height: 9px;
+				border: solid #fff;
+				border-width: 0 2px 2px 0;
+				transform: rotate(45deg);
+			}
+		}
+	}
+	&__check-box {
+		width: 18px;
+		height: 18px;
+		border: 1.5px solid $kw-border;
+		border-radius: 5px;
+		background: #fff;
+		transition: all 0.15s ease;
+		position: relative;
+	}
+
+	// keyword cell
+	&__kw {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		min-width: 0;
+	}
+	&__kw-badge {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 38px;
+		height: 38px;
+		border-radius: 9px;
+		background: rgba($kw-blue, 0.1);
+		color: $kw-blue;
+	}
+	&__kw-text {
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	&__kw-name {
+		font-size: 14px;
+		font-weight: 700;
+		color: $kw-title;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 260px;
+	}
+	&__kw-sub {
+		font-size: 12px;
+		color: $kw-muted;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 320px;
+	}
+	&__kw-arrow {
+		color: rgba($kw-muted, 0.8);
+	}
+	&__kw-missing {
+		color: #b91c1c;
+	}
+
+	// status pill
+	&__status {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 4px 12px;
+		border-radius: 20px;
+		font-size: 12px;
+		font-weight: 600;
+
+		&-dot {
+			width: 7px;
+			height: 7px;
+			border-radius: 50%;
+			background: currentColor;
+		}
+		&.is-active {
+			background: $kw-green-bg;
+			color: $kw-green;
+		}
+		&.is-draft {
+			background: rgba($kw-muted, 0.14);
+			color: $kw-muted;
+		}
+	}
+
+	// shortened url pill
+	&__url {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		// Fixed container width so the copy/open icons line up across every row
+		// regardless of how long or short the URL is.
+		width: 300px;
+		max-width: 100%;
+
+		&-text {
+			flex: 1;
+			min-width: 0;
+			padding: 7px 12px;
+			border: 1px solid $kw-border;
+			border-radius: 8px;
+			background: $kw-surface;
+			color: $kw-title;
+			font-size: 13px;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			vertical-align: middle;
+		}
+		&-btn {
+			flex: none;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 30px;
+			height: 30px;
+			border: none;
+			border-radius: 7px;
+			background: transparent;
+			color: $kw-muted;
+			cursor: pointer;
+			text-decoration: none;
+			transition: all 0.15s ease;
+
+			&:hover {
+				background: rgba($kw-muted, 0.12);
+				color: $kw-blue;
+			}
+		}
+		&-missing {
+			color: $kw-muted;
+		}
+	}
+
+	// action cell
+	&__row-actions {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		justify-content: flex-end;
+	}
+	// the edit pencil comes from ActionButton (.btl-tooltip > .dnd-link-button)
+	.btl-tooltip .dnd-link-button,
+	&__action-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		border: none;
+		border-radius: 7px;
+		background: transparent;
+		color: $kw-muted;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		svg {
+			display: block;
+		}
+		.icon,
+		i {
+			display: inline-flex;
+		}
+		&:hover {
+			background: rgba($kw-muted, 0.12);
+			color: $kw-blue;
+		}
+	}
+	&__action-btn--danger:hover {
+		color: #ef4444;
+		background: rgba(#ef4444, 0.1);
+	}
+
+	// inline delete confirm
+	&__confirm {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 12px;
+		color: $kw-muted;
+
+		button {
+			border: none;
+			border-radius: 6px;
+			padding: 4px 9px;
+			font-size: 12px;
+			font-weight: 600;
+			cursor: pointer;
+		}
+	}
+	&__confirm-yes {
+		background: #ef4444;
+		color: #fff;
+	}
+	&__confirm-no {
+		background: rgba($kw-muted, 0.15);
+		color: $kw-title;
+	}
+
+	// ---- Footer / pagination --------------------------------------------
+	&__foot {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 14px;
+		flex-wrap: wrap;
+		padding: 14px 4px 0;
+	}
+	&__rows {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 13px;
+		color: $kw-muted;
+
+		select {
+			height: 36px;
+			border: 1px solid $kw-border;
+			border-radius: 8px;
+			background: #fff;
+			color: $kw-title;
+			font-size: 13px;
+			padding: 0 8px;
+			cursor: pointer;
+		}
+	}
+	&__pager {
+		display: inline-flex;
+		align-items: center;
+		gap: 14px;
+
+		&-range {
+			font-size: 13px;
+			color: $kw-muted;
+		}
+		&-btns {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+
+			button {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 34px;
+				height: 34px;
+				border: 1px solid $kw-border;
+				border-radius: 8px;
+				background: #fff;
+				color: $kw-muted;
+				cursor: pointer;
+				transition: all 0.15s ease;
+
+				&:hover:not(:disabled) {
+					color: $kw-blue;
+					border-color: rgba($kw-blue, 0.4);
+				}
+				&:disabled {
+					opacity: 0.45;
+					cursor: not-allowed;
+				}
+			}
+		}
+	}
+	&__flip {
+		display: inline-flex;
+		transform: rotate(180deg);
+	}
+}
+
+// ==========================================================================
+// Loading skeleton — mirrors the stats + table layout. Reuses the real
+// `.bl-kw__stats` / `.bl-kw__toolbar` / `.bl-kw__table-wrap` chrome (rendered
+// inside `.bl-kw`) and fills it with shimmer blocks.
+// ==========================================================================
+.bl-kw-skel {
+	&__stat-label,
+	&__stat-value,
+	&__search,
+	&__filter,
+	&__reset,
+	&__h,
+	&__check,
+	&__badge,
+	&__name,
+	&__sub,
+	&__pill,
+	&__url,
+	&__icon {
+		display: block;
+		border-radius: 6px;
+		background: #e9ebf0;
+		background-image: linear-gradient(90deg, #e9ebf0 0%, #f3f4f7 50%, #e9ebf0 100%);
+		background-size: 200% 100%;
+		animation: bl-skel-shimmer 1.4s linear infinite;
+	}
+
+	// Stats
+	&__stat-label {
+		width: 92px;
+		height: 12px;
+		margin-bottom: 12px;
+	}
+	&__stat-value {
+		width: 46px;
+		height: 26px;
+	}
+
+	// Toolbar
+	&__search {
+		flex: 1 1 320px;
+		min-width: 240px;
+		height: 44px;
+		border-radius: 10px;
+	}
+	&__filter {
+		width: 150px;
+		height: 44px;
+		border-radius: 10px;
+	}
+	&__reset {
+		width: 100px;
+		height: 44px;
+		border-radius: 10px;
+	}
+
+	// Table rows (same column rhythm as the real table)
+	&__row {
+		display: grid;
+		grid-template-columns: 46px minmax(180px, 2fr) 140px minmax(240px, 1.4fr) 110px;
+		align-items: center;
+		gap: 18px;
+		padding: 15px 18px;
+		border-bottom: 1px solid $kw-border;
+
+		&:last-child {
+			border-bottom: none;
+		}
+		&--head {
+			padding-top: 16px;
+			padding-bottom: 16px;
+		}
+	}
+	&__h {
+		width: 70%;
+		height: 11px;
+	}
+	&__check {
+		width: 18px;
+		height: 18px;
+		border-radius: 5px;
+	}
+	&__kw {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		min-width: 0;
+	}
+	&__badge {
+		width: 38px;
+		height: 38px;
+		border-radius: 9px;
+		flex: none;
+	}
+	&__kw-lines {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	&__name {
+		width: 60%;
+		height: 13px;
+	}
+	&__sub {
+		width: 42%;
+		height: 10px;
+	}
+	&__pill {
+		width: 74px;
+		height: 22px;
+		border-radius: 20px;
+	}
+	&__url-cell {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		min-width: 0;
+	}
+	&__url {
+		flex: 1;
+		min-width: 0;
+		height: 34px;
+		border-radius: 8px;
+	}
+	&__icon {
+		width: 30px;
+		height: 30px;
+		border-radius: 7px;
+		flex: none;
+	}
+	&__actions {
+		display: flex;
+		gap: 8px;
+		justify-content: flex-end;
+	}
+}
+
+@keyframes bl-kw-spin {
+	to {
+		transform: rotate(360deg);
+	}
+}

@@ -1,0 +1,109 @@
+// Customize Link Preview — social preview cards only.
+// The panel chrome (container / form / tabs, light + dark) is now owned by
+// _customize-link-preview-redesign.scss: `.bl-clp` for the free teaser + the
+// redesigned Pro form, and a compat layer for the legacy Pro v2.8.0
+// `.btl-modal-customize-link-preview*` markup. Only the preview cards
+// (`.btl-customized-link-preview-*`) still live here, per that sheet's note.
+
+.link-options--customize-link-preview {
+	.btl-modal-form-group {
+		.btl-tooltip span {
+			color: #b0b2ba;
+
+			&:hover {
+				color: #003be2;
+			}
+
+			&.btl-tooltiptext {
+				color: $white;
+			}
+		}
+	}
+}
+
+.btl-modal-customize-link-preview-box {
+	.btl-customized-link-preview-facebook {
+		border: 1px solid #e1e8ed;
+
+		.btl-customized-link-preview-image-container {
+			line-height: 0;
+			img {
+				width: 100%;
+				min-width: 300px;
+				min-height: 167px;
+				max-height: 250px;
+				object-fit: cover;
+			}
+		}
+
+		&.btl-customized-link-preview-twitter {
+			border-radius: 15px;
+			overflow: hidden;
+
+			span.btl-link-preview-title {
+				margin-top: 0 !important;
+			}
+			span.btl-link-preview-description {
+				margin-bottom: 8px !important;
+			}
+		}
+		.btl-customized-link-preview-content-container {
+			background-color: #f2f3f5;
+			display: flex;
+			flex-direction: column;
+			padding: 10px 12px;
+
+			span.btl-link-preview {
+				&-site-url {
+					text-transform: uppercase;
+					color: #606770;
+					line-height: 11px;
+					font-size: 12px;
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
+
+				&-title {
+					color: #1d2129;
+					line-height: 1.25rem;
+					font-weight: 600;
+					font-size: 16px;
+					padding-top: 2px;
+					margin-top: 6px;
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
+
+				&-description {
+					color: #606770;
+					line-height: 1rem;
+					font-size: 14px;
+					text-align: left;
+					padding-top: 2px;
+					margin-top: 2px;
+					white-space: nowrap;
+					overflow: hidden;
+					text-overflow: ellipsis;
+					overflow-wrap: break-word;
+				}
+			}
+		}
+	}
+}
+
+// Dark mode — cards only.
+body.betterlinks-dark-mode {
+	.btl-modal-customize-link-preview-box .btl-customized-link-preview-facebook {
+		border-color: #2c3650;
+
+		.btl-customized-link-preview-content-container {
+			background-color: #2c3650;
+
+			span {
+				color: #f7f8fa;
+			}
+		}
+	}
+}

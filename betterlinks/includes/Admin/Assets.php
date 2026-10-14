@@ -115,6 +115,12 @@ class Assets
                 // the MCP page whether the bundled runtime actually loaded — with
                 // it missing, a client connects and is offered no tools at all.
                 'mcp' => [
+                    // Whether this user may use MCP. Drives the MCP menu entry and
+                    // the page itself; the REST routes enforce the same rule.
+                    'can_access'              => \BetterLinks\Mcp\Mcp_Access::user_can(),
+                    // Site-wide controls (the shared token, the on/off switch,
+                    // other users' apps) are administrator-only (#127).
+                    'is_admin'                => \BetterLinks\Mcp\Mcp_Access::is_admin(),
                     'abilities_api_available' => function_exists('wp_register_ability'),
                     'endpoint'                => home_url('/betterlinks/mcp'),
                 ],

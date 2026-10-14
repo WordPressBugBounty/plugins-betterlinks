@@ -1,0 +1,1191 @@
+// ==========================================================================
+// Add / Edit link — right-side slide-in drawer
+// (modal content is portaled to <body>, so these rules live at top level)
+// ==========================================================================
+$d-border: #e6e8ee;
+$d-text: #1a2233;
+$d-muted: #6b7280;
+$d-blue: #2f6bff;
+$d-surface: #f7f8fa;
+$d-utm-applied: #28a745;
+
+// Overlay + content positioning and smooth in/out slide (driven by
+// react-modal's --after-open / --before-close state classes).
+.ReactModal__Overlay:has(.bl-drawer) {
+	background: rgba(15, 20, 30, 0.5) !important;
+	z-index: 100000 !important;
+	overflow: hidden !important;
+	opacity: 0;
+	transition: opacity 0.3s ease;
+}
+.ReactModal__Overlay--after-open:has(.bl-drawer) {
+	opacity: 1;
+}
+.ReactModal__Overlay--before-close:has(.bl-drawer) {
+	opacity: 0;
+}
+
+.ReactModal__Content:has(.bl-drawer) {
+	inset: 0 0 0 auto !important;
+	width: 820px !important;
+	max-width: 95vw !important;
+	height: 100% !important;
+	max-height: none !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border: none !important;
+	border-radius: 0 !important;
+	background: #fff !important;
+	overflow: hidden !important;
+	transform: translateX(100%);
+	transition: transform 0.3s ease;
+}
+.ReactModal__Content--after-open:has(.bl-drawer) {
+	transform: translateX(0);
+}
+.ReactModal__Content--before-close:has(.bl-drawer) {
+	transform: translateX(100%);
+}
+// The read-only view drawer is narrower than the edit drawer.
+.ReactModal__Content:has(.bl-view) {
+	width: 460px !important;
+}
+
+// The Material-UI date/time picker (Advanced → expiry date) portals to <body>
+// with MUI's default z-index (1300), which is below the drawer overlay. Raise
+// it so the calendar shows above the drawer.
+.MuiDialog-root,
+.MuiPopover-root,
+.MuiPickersModal-dialogRoot {
+	z-index: 100010 !important;
+}
+
+.bl-drawer {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	color: $d-text;
+	font-size: 14px;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	// ---- Header ----------------------------------------------------------
+	&__header {
+		flex: none;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 12px 28px;
+		border-bottom: 1px solid $d-border;
+	}
+	&__title {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-size: 20px;
+		font-weight: 700;
+		color: $d-text;
+
+		i {
+			color: $d-muted;
+			font-size: 18px;
+		}
+	}
+	&__close {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 35px;
+		height: 35px;
+		border: 1px solid $d-border;
+		border-radius: 10px;
+		background: #fff;
+		color: $d-muted;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		i {
+			font-size: 13px;
+		}
+		&:hover {
+			color: $d-text;
+			border-color: rgba($d-blue, 0.4);
+		}
+	}
+
+	// ---- Footer ----------------------------------------------------------
+	&__footer {
+		flex: none;
+		display: flex;
+		gap: 12px;
+		padding: 18px 28px;
+		border-top: 1px solid $d-border;
+	}
+	&__publish,
+	&__cancel {
+		flex: 1;
+		height: 48px;
+		border-radius: 10px;
+		font-size: 15px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+	&__publish {
+		border: none;
+		background: $d-blue;
+		color: #fff;
+		box-shadow: 0 6px 16px rgba($d-blue, 0.28);
+		&:hover {
+			background: #1f57e6;
+		}
+	}
+	&__cancel {
+		border: 1px solid $d-border;
+		background: #fff;
+		color: $d-text;
+		&:hover {
+			background: $d-surface;
+		}
+	}
+
+	// ---- Body (two columns) ---------------------------------------------
+	.btl-entry-content {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
+		display: flex;
+		gap: 28px;
+		padding: 24px 28px;
+		align-items: flex-start;
+	}
+	.btl-entry-content-left {
+		flex: 1 1 auto;
+		min-width: 0;
+		margin: 0 !important;
+	}
+	.btl-entry-content-right {
+		flex: 0 0 300px;
+		width: 300px;
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+	}
+
+	// ---- Form fields -----------------------------------------------------
+	.btl-modal-form-group {
+		margin: 0 0 15px;
+		display: block;
+		.bl-kw-chips__input {
+        	border: unset;
+    	}
+	}
+	.btl-modal-form-label {
+		display: block;
+		width: auto;
+		margin-bottom: 8px;
+		padding: 0;
+		font-size: 14px;
+		font-weight: 600;
+		color: $d-text;
+
+		&.btl-required::after {
+			content: ' *';
+			color: #ef4444;
+		}
+	}
+	.btl-modal-form-control {
+		width: 100%;
+		min-height: 46px;
+		padding: 12px 14px;
+		border: 1px solid $d-border;
+		border-radius: 10px;
+		background: #fff;
+		font-size: 14px;
+		color: $d-text;
+		outline: none;
+		box-shadow: none;
+		transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+		&:focus {
+			border-color: $d-blue;
+			box-shadow: 0 0 0 3px rgba($d-blue, 0.12);
+		}
+		&::placeholder {
+			color: #9aa3b2;
+		}
+	}
+	textarea.btl-modal-form-control {
+		min-height: 84px;
+		resize: vertical;
+	}
+
+	// Auto-fetched title suggestion — the "Overwrite title? Yes / No" callout
+	// shown under the Title field when a title is scraped from the target URL.
+	.btl-modal-form-label-found {
+		margin-top: 10px;
+		padding: 12px 14px;
+		border: 1px solid rgba($d-blue, 0.22);
+		border-radius: 10px;
+		background: rgba($d-blue, 0.05);
+
+		.btl-modal-fetced-title {
+			display: block;
+			font-size: 13px;
+			font-weight: 600;
+			line-height: 1.45;
+			color: $d-text;
+		}
+
+		.btl-modal-title-overwrite-row {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: center;
+			justify-content: space-between;
+			gap: 10px;
+			margin-top: 10px;
+		}
+		.btl-modal-title-overwrite-text {
+			font-size: 12.5px;
+			line-height: 1.4;
+			color: $d-muted;
+
+			strong {
+				font-weight: 600;
+				color: $d-text;
+			}
+		}
+		.btl-modal-title-overwrite-actions {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+		.btl-modal-title-overwrite {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			min-width: 52px;
+			height: 30px;
+			padding: 0 14px;
+			border-radius: 999px;
+			font-size: 12px;
+			font-weight: 600;
+			line-height: 1;
+			cursor: pointer;
+			transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+		}
+		.btl-modal-title-overwrite-yes {
+			border: 1px solid $d-blue;
+			background: $d-blue;
+			color: #fff;
+
+			&:hover {
+				background: #2559e6;
+				border-color: #2559e6;
+			}
+		}
+		.btl-modal-title-overwrite-no {
+			border: 1px solid $d-border;
+			background: #fff;
+			color: $d-muted;
+
+			&:hover {
+				border-color: rgba($d-blue, 0.5);
+				color: $d-blue;
+			}
+		}
+	}
+
+	// react-select controls (redirect type / category / tags)
+	.btl-react-select__control {
+		min-height: 46px;
+		border-radius: 10px;
+		border-color: $d-border;
+		box-shadow: none;
+
+		&--is-focused {
+			border-color: $d-blue;
+			box-shadow: 0 0 0 3px rgba($d-blue, 0.12);
+		}
+	}
+	.btl-react-select__menu {
+		z-index: 20;
+	}
+
+	// Target URL with UTM + share buttons on the right
+	.btl-has-utm-button {
+		position: relative;
+
+		.btl-modal-form-control {
+			padding-right: 64px;
+		}
+		.btl-utm-button-group {
+			position: absolute;
+			right: 8px;
+			bottom: 7px;
+			display: flex;
+			align-items: center;
+			gap: 6px;
+		}
+		.btl-utm-button {
+			position: relative; // anchors the "applied" badge
+			height: 32px;
+			padding: 0 12px;
+			border: 1px solid rgba($d-blue, 0.4);
+			border-radius: 8px;
+			background: rgba($d-blue, 0.08);
+			color: $d-blue;
+			font-size: 12px;
+			font-weight: 700;
+			cursor: pointer;
+
+			// UTM params already present on the target URL — flip the button green
+			// and pin a check badge to its corner. Green matches the dark-mode
+			// treatment in control/_plugin-mode-modal.scss.
+			&--applied {
+				border-color: rgba($d-utm-applied, 0.45);
+				background: rgba($d-utm-applied, 0.1);
+				color: $d-utm-applied;
+			}
+		}
+		.btl-utm-badge {
+			position: absolute;
+			top: -7px;
+			right: -7px;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 18px;
+			height: 18px;
+			border: 2px solid #fff; // ring that lifts the badge off the button edge
+			border-radius: 50%;
+			background: $d-utm-applied;
+			line-height: 0;
+
+			svg {
+				width: 11px;
+				height: 11px;
+				display: block;
+
+				path {
+					fill: #fff;
+				}
+			}
+		}
+		.btl-share-button {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 34px;
+			height: 32px;
+			border: 1px solid $d-border;
+			border-radius: 8px;
+			background: #fff;
+			color: $d-muted;
+			cursor: pointer;
+			position: relative;
+
+			.locked {
+				position: absolute;
+				right: -4px;
+				top: -6px;
+				width: 14px;
+			}
+		}
+	}
+
+	// Shortened URL (prefix + input + copy/share)
+	.btl-modal-shorturl-wrap .btl-link-field-copyable {
+		display: flex;
+		align-items: stretch;
+		border: 1px solid $d-border;
+		border-radius: 10px;
+		overflow: hidden;
+
+		&.is-invalid {
+			border-color: #ef4444;
+		}
+		.btl-static-link {
+			display: flex;
+			align-items: center;
+			padding: 0 12px;
+			background: $d-surface;
+			border-right: 1px solid $d-border;
+			color: $d-muted;
+			font-size: 13px;
+			white-space: nowrap;
+		}
+		.btl-dynamic-link {
+			flex: 1;
+			min-width: 0;
+			border: none !important;
+			min-height: 46px;
+			padding: 12px 12px;
+			font-size: 14px;
+			outline: none;
+			box-shadow: none !important;
+		}
+	}
+	.errorlog {
+		margin-top: 6px;
+		color: #ef4444;
+		font-size: 12px;
+
+		// The slug shadows WordPress content the user may choose to redirect.
+		&--overridable {
+			color: #b45309;
+
+			.btl-wp-url-override {
+				display: flex;
+				align-items: flex-start;
+				gap: 6px;
+				margin-top: 6px;
+				color: #374151;
+				cursor: pointer;
+
+				input {
+					margin: 1px 0 0;
+				}
+			}
+		}
+	}
+
+	// Category + Tags side by side
+	[data-testid='btl-cat-id'],
+	[data-testid='btl-tags-id'] {
+		display: inline-block;
+		width: 100%;
+		vertical-align: top;
+	}
+	[data-testid='btl-cat-id'] {
+		margin-right: 12px;
+	}
+
+	// ---- Right sidebar: option cards (accordion) ------------------------
+	.link-options {
+		border: 1px solid $d-border;
+		border-radius: 12px;
+		background: #fff;
+		overflow: hidden;
+
+		// Collapsed: hide everything except the header (works whether the body
+		// is wrapped in __body or rendered as direct children, e.g. Advanced).
+		&:not(.link-options--open) > *:not(.link-options__head) {
+			display: none;
+		}
+
+		&__head {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			width: 100%;
+			padding: 14px 16px;
+			border: none;
+			background: transparent;
+			cursor: pointer;
+
+			&--title {
+				margin: 0;
+				font-size: 14px;
+				font-weight: 700;
+				color: $d-text;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+			i {
+				color: $d-muted;
+				transition: transform 0.2s ease;
+				transform: rotate(-90deg);
+			}
+		}
+		&--open .link-options__head i {
+			transform: rotate(0);
+		}
+		&__body {
+			padding: 4px 16px 14px !important;
+			border-top: 1px solid $d-border;
+		}
+	}
+
+	// Shortened URL copy button
+	.btl-link-field-copyable .btl-link-copy-button,
+	.btl-link-field-copyable .btl-link-share-button {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 46px;
+		min-height: 46px;
+		border: none;
+		border-left: 1px solid $d-border;
+		background: #fff;
+		color: $d-muted;
+		cursor: pointer;
+		transition: color 0.15s ease;
+
+		i,
+		.dashicons {
+			font-size: 15px;
+		}
+		&:hover {
+			color: $d-blue;
+		}
+		&:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+	}
+	// Locked (non-pro) social-share button shows a small lock badge
+	.btl-link-field-copyable .btl-link-share-button {
+		position: relative;
+
+		.locked {
+			position: absolute;
+			right: 4px;
+			top: 6px;
+			width: 13px;
+		}
+	}
+
+	// ---- Advanced / Dynamic Redirect panel fields -----------------------
+	// Direct-child fields (Advanced/Dynamic panels have no __body wrapper) need
+	// their own inset padding.
+	.link-options {
+		> .btl-modal-form-group,
+		> .btl-checkbox-field {
+			margin: 0 16px 14px;
+		}
+		> .link-options__head + .btl-modal-form-group,
+		> .link-options__head + .btl-checkbox-field {
+			margin-top: 14px;
+		}
+		> .btl-modal-form-group:last-child,
+		> .btl-checkbox-field:last-child {
+			margin-bottom: 16px;
+		}
+	}
+	.link-options {
+		select,
+		input[type='text'],
+		input[type='url'],
+		input[type='password'],
+		input[type='date'],
+		input[type='datetime-local'],
+		input[type='time'],
+		input[type='number'],
+		.btl-modal-form-textarea {
+			width: 100%;
+			min-height: 18px;
+			padding: 10px 12px;
+			border: 1px solid $d-border;
+			border-radius: 10px;
+			background: #fff;
+			font-size: 14px;
+			color: $d-text;
+			outline: none;
+
+			&:focus {
+				border-color: $d-blue;
+				box-shadow: 0 0 0 3px rgba($d-blue, 0.12);
+			}
+		}
+		select {
+			cursor: pointer;
+			appearance: auto;
+		}
+
+		// Branded checkboxes (not the toggle switches in Link Options)
+		input[type='checkbox']:not(.btl-check) {
+			width: 18px;
+			height: 18px;
+			margin: 0;
+			accent-color: $d-blue;
+			cursor: pointer;
+		}
+
+		.btl-modal-form-label {
+			font-size: 13px;
+			font-weight: 600;
+			color: $d-text;
+			margin-bottom: 6px;
+		}
+	}
+
+	// Password + reveal button. The button overlays the right end of the input
+	// rather than sitting beside it, so the row keeps the same shape as every
+	// other field in the drawer.
+	.btl-password-field {
+		position: relative;
+		display: flex;
+		align-items: center;
+
+		input[type='password'],
+		input[type='text'] {
+			width: 100%;
+			padding-right: 44px;
+		}
+
+		&__toggle {
+			position: absolute;
+			top: 50%;
+			right: 6px;
+			transform: translateY(-50%);
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 32px;
+			height: 32px;
+			padding: 0;
+			border: none;
+			border-radius: 8px;
+			background: transparent;
+			color: $d-muted;
+			cursor: pointer;
+			transition: background 0.15s ease, color 0.15s ease;
+
+			&:hover {
+				background: rgba($d-blue, 0.08);
+				color: $d-blue;
+			}
+			&:focus-visible {
+				outline: 2px solid rgba($d-blue, 0.4);
+				outline-offset: 1px;
+			}
+			svg {
+				display: block;
+			}
+		}
+	}
+
+	// Toggle rows
+	.btl-checkbox-field {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 10px 0;
+		cursor: pointer;
+
+		.text {
+			order: 0;
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			font-size: 14px;
+			font-weight: 500;
+			color: $d-text;
+
+			&::before {
+				display: none !important;
+			}
+			.dashicons {
+				color: $d-muted;
+				font-size: 16px;
+			}
+		}
+
+		.btl-check {
+			order: 1;
+			display: inline-block !important;
+			appearance: none;
+			-webkit-appearance: none;
+			position: relative;
+			flex: none;
+			width: 40px;
+			height: 22px;
+			margin: 0;
+			border: none;
+			border-radius: 20px;
+			background: #d1d5db;
+			cursor: pointer;
+			transition: background 0.2s ease;
+
+			&::before {
+				content: '';
+				position: absolute;
+				top: 2px;
+				left: 2px;
+				width: 18px;
+				height: 18px;
+				border-radius: 50%;
+				background: #fff;
+				box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+				transition: transform 0.2s ease;
+				margin: auto;
+			}
+			&:checked {
+				background: $d-blue;
+				&::before {
+					transform: translateX(18px);
+				}
+			}
+		}
+	}
+}
+
+// Dark mode (body-level class reaches the portal)
+body.betterlinks-dark-mode .bl-drawer {
+	background: #1f283d;
+	color: #e5e9f2;
+
+	.bl-drawer__header,
+	.bl-drawer__footer {
+		border-color: #36405a;
+	}
+	.bl-drawer__title,
+	.btl-modal-form-label,
+	.link-options__head--title,
+	.btl-checkbox-field .text {
+		color: #e5e9f2;
+	}
+	.bl-drawer__close,
+	.bl-drawer__cancel,
+	.btl-modal-form-control,
+	.link-options,
+	.btl-link-field-copyable .btl-dynamic-link {
+		background: #252f47;
+		border-color: #36405a;
+		color: #e5e9f2;
+	}
+
+	// Password reveal button: transparent over the dark field.
+	.btl-password-field__toggle {
+		color: #9aa5bd;
+
+		&:hover {
+			background: rgba(139, 169, 255, 0.14);
+			color: #8ba9ff;
+		}
+	}
+	.btl-link-field-copyable,
+	.link-options {
+		border-color: #36405a;
+	}
+	.btl-static-link {
+		background: #1b2336;
+		border-color: #36405a;
+	}
+
+	// Auto-fetched title suggestion callout
+	.btl-modal-form-label-found {
+		background: rgba(139, 169, 255, 0.1);
+		border-color: rgba(139, 169, 255, 0.28);
+
+		.btl-modal-fetced-title {
+			color: #e5e9f2;
+		}
+		.btl-modal-title-overwrite-text {
+			color: #9aa5bd;
+
+			strong {
+				color: #e5e9f2;
+			}
+		}
+		.btl-modal-title-overwrite-yes {
+			background: #3b6bff;
+			border-color: #3b6bff;
+			color: #fff;
+
+			&:hover {
+				background: #2559e6;
+				border-color: #2559e6;
+			}
+		}
+		.btl-modal-title-overwrite-no {
+			background: #252f47;
+			border-color: #36405a;
+			color: #9aa5bd;
+
+			&:hover {
+				border-color: #8ba9ff;
+				color: #8ba9ff;
+			}
+		}
+	}
+}
+
+// ==========================================================================
+// View link (read-only) drawer
+// ==========================================================================
+.bl-viewlink {
+	cursor: pointer;
+}
+
+.bl-view {
+	&__header {
+		flex: none;
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 22px 28px 18px;
+		border-bottom: 1px solid $d-border;
+	}
+	&__title {
+		margin: 0 0 10px;
+		font-size: 22px;
+		font-weight: 700;
+		line-height: 1.25;
+		color: $d-text;
+	}
+	&__sub {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+	&__status {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		padding: 5px 12px;
+		border-radius: 20px;
+		font-size: 13px;
+		font-weight: 600;
+		text-transform: capitalize;
+		color: #16a34a;
+		background: rgba(#22c55e, 0.12);
+	}
+	&__dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: #22c55e;
+	}
+	&__status--draft {
+		color: $d-muted;
+		background: rgba($d-muted, 0.12);
+		.bl-view__dot {
+			background: #9ca3af;
+		}
+	}
+	&__status--expired {
+		color: #d97706;
+		background: rgba(#f59e0b, 0.14);
+		.bl-view__dot {
+			background: #f59e0b;
+		}
+	}
+	&__status--broken {
+		color: #dc2626;
+		background: rgba(#ef4444, 0.14);
+		.bl-view__dot {
+			background: #ef4444;
+		}
+	}
+	// Favourite star inside the header
+	.btl-fav-link {
+		width: 30px;
+		height: 30px;
+		padding: 0;
+		border: none;
+		background: transparent;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		.favorite-svg {
+			width: 17px;
+			height: 17px;
+		}
+		&.unfavorated .fav-icon-svg-path {
+			fill: none;
+			stroke: $d-muted;
+			stroke-width: 28px;
+		}
+		&.favorated .fav-icon-svg-path {
+			fill: $favorite-icon-yellow;
+			stroke: $favorite-icon-yellow;
+		}
+	}
+
+	// ---- Body ----
+	&__body {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
+		padding: 22px 28px;
+	}
+	&__field {
+		margin-bottom: 20px;
+	}
+	&__field-label,
+	&__row-label {
+		display: block;
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: $d-muted;
+	}
+	&__field-label {
+		margin-bottom: 10px;
+	}
+	&__url {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+	&__url-text {
+		flex: 1 1 auto;
+		min-width: 0;
+		padding: 12px 14px;
+		background: $d-surface;
+		border: 1px solid $d-border;
+		border-radius: 10px;
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 13px;
+		color: #3a465a;
+		word-break: break-all;
+	}
+	&__icon-btn {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 34px;
+		height: 34px;
+		border: none;
+		border-radius: 8px;
+		background: transparent;
+		color: $d-muted;
+		cursor: pointer;
+		text-decoration: none;
+		transition: all 0.15s ease;
+		&:hover {
+			color: $d-blue;
+			background: rgba($d-blue, 0.1);
+		}
+		&.is-copied {
+			color: #16a34a;
+		}
+	}
+
+	// ---- Stats card ----
+	&__stats {
+		margin-bottom: 22px;
+		padding: 20px;
+		border: 1px solid $d-border;
+		border-radius: 12px;
+		background: $d-surface;
+	}
+	&__stats-head {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		padding-bottom: 16px;
+		border-bottom: 1px solid $d-border;
+	}
+	&__stats-label {
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: $d-muted;
+	}
+	&__stats-value {
+		font-size: 34px;
+		font-weight: 700;
+		line-height: 1;
+		color: $d-text;
+	}
+	&__stats-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		padding-top: 16px;
+	}
+	&__stat {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		text-align: center;
+
+		& + & {
+			border-left: 1px solid $d-border;
+		}
+	}
+	&__stat-num {
+		font-size: 20px;
+		font-weight: 700;
+		color: $d-text;
+	}
+	&__stat-lbl {
+		font-size: 11px;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+		color: $d-muted;
+	}
+
+	// ---- Detail rows ----
+	&__row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		padding: 16px 0;
+		border-bottom: 1px solid $d-border;
+
+		&:last-child {
+			border-bottom: none;
+		}
+	}
+	&__row-value {
+		font-size: 14px;
+		font-weight: 500;
+		color: $d-text;
+		text-align: right;
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+	&__badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 44px;
+		padding: 3px 10px;
+		border: 1px solid $d-border;
+		border-radius: 7px;
+		font-size: 12px;
+		font-weight: 600;
+		color: $d-muted;
+	}
+	&__tags {
+		gap: 6px;
+	}
+	&__tag {
+		font-size: 12px;
+		font-weight: 500;
+		color: $d-muted;
+		background: rgba($d-muted, 0.1);
+		padding: 3px 10px;
+		border-radius: 7px;
+	}
+	&__ago {
+		color: $d-muted;
+	}
+
+	// ---- Footer ----
+	&__footer {
+		flex: none;
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 16px 28px;
+		border-top: 1px solid $d-border;
+	}
+	&__foot-actions {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+
+		.btl-tooltip {
+			display: inline-flex;
+			margin: 0;
+		}
+		.dnd-link-button {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 42px;
+			height: 42px;
+			min-width: 42px;
+			padding: 0;
+			margin: 0;
+			border: 1px solid #767c8b;
+			border-radius: 10px;
+			background: #fff;
+			color: $d-muted;
+			cursor: pointer;
+			transition: all 0.15s ease;
+			.icon,
+			i {
+				font-size: 15px;
+			}
+			img {
+				width: 17px;
+			}
+			&:hover {
+				color: $d-blue;
+				border-color: rgba($d-blue, 0.4);
+			}
+		}
+		.delete-button:hover {
+			color: #ef4444;
+			border-color: rgba(#ef4444, 0.4);
+		}
+	}
+	&__edit {
+		margin-left: auto;
+
+		.dnd-link-button {
+			border: none;
+			background: none;
+			padding: 0;
+			cursor: pointer;
+			span {
+				text-decoration: none !important;
+			}
+		}
+	}
+	&__edit-inner {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		height: 46px;
+		padding: 0 28px;
+		border-radius: 10px;
+		background: $d-blue;
+		color: #fff;
+		font-size: 15px;
+		font-weight: 600;
+		box-shadow: 0 6px 16px rgba($d-blue, 0.28);
+
+		i {
+			font-size: 15px;
+		}
+	}
+}
+
+// View drawer (dark)
+body.betterlinks-dark-mode .bl-view {
+	.bl-view__header,
+	.bl-view__footer,
+	.bl-view__row,
+	.bl-view__stats-head {
+		border-color: #36405a;
+	}
+	.bl-view__title,
+	.bl-view__stats-value,
+	.bl-view__stat-num,
+	.bl-view__row-value {
+		color: #e5e9f2;
+	}
+	.bl-view__url-text,
+	.bl-view__stats {
+		background: #252f47;
+		border-color: #36405a;
+		color: #b8c2d9;
+	}
+	.bl-view__stats-grid .bl-view__stat + .bl-view__stat {
+		border-color: #36405a;
+	}
+	.bl-view__badge,
+	.bl-view__tag {
+		background: rgba(#fff, 0.08);
+		border-color: #36405a;
+		color: #9aa5bd;
+	}
+	.bl-view__foot-actions .dnd-link-button {
+		background: #252f47;
+		border-color: #36405a;
+	}
+}

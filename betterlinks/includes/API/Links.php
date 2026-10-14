@@ -318,7 +318,7 @@ class Links extends Controller
      */
     public function get_items_permissions_check($request)
     {
-        return apply_filters('betterlinks/api/links_get_items_permissions_check', current_user_can('manage_options'));
+        return apply_filters('betterlinks/api/links_get_items_permissions_check', current_user_can('manage_options')) || \BetterLinks\Mcp\Mcp_Access::is_running_tool();
     }
 
     /**
@@ -329,7 +329,7 @@ class Links extends Controller
      */
     public function create_item_permissions_check($request)
     {
-        return apply_filters('betterlinks/api/links_create_item_permissions_check', current_user_can('manage_options'));
+        return apply_filters('betterlinks/api/links_create_item_permissions_check', current_user_can('manage_options')) || \BetterLinks\Mcp\Mcp_Access::is_running_tool();
     }
 
     /**
@@ -340,7 +340,7 @@ class Links extends Controller
      */
     public function update_item_permissions_check($request)
     {
-        return apply_filters('betterlinks/api/links_update_item_permissions_check', current_user_can('manage_options'));
+        return apply_filters('betterlinks/api/links_update_item_permissions_check', current_user_can('manage_options')) || \BetterLinks\Mcp\Mcp_Access::is_running_tool();
     }
 
     /**
@@ -362,6 +362,6 @@ class Links extends Controller
      */
     public function permissions_check($request)
     {
-        return current_user_can('manage_options');
+        return current_user_can('manage_options') || \BetterLinks\Mcp\Mcp_Access::is_running_tool();
     }
 }

@@ -1,0 +1,291 @@
+.btl-analytics-chart-overlay {
+	align-items: center;
+	background-color: hsla(0, 0%, 100%, 0.7);
+	display: flex;
+	height: 100%;
+	justify-content: center;
+	left: 0;
+	position: absolute;
+	top: 0;
+	width: 100%;
+
+	> div {
+		width: 500px;
+		height: 400px;
+		background: #fefefe;
+		box-shadow: -3px 8px 30px 0px rgba(0, 0, 0, 0.1);
+		overflow: visible;
+		border-radius: 20px;
+
+		div:has(> ul) {
+			display: flex;
+			justify-content: center;
+			margin-top: 5px;
+			margin-bottom: 10px;
+		}
+		ul {
+			display: flex;
+			flex-direction: column;
+			row-gap: 10px;
+			li {
+				margin: 0 !important;
+			}
+		}
+		h5 {
+			color: #000;
+			font-size: 24px;
+			font-style: normal;
+			font-weight: 500;
+			line-height: 28px;
+			margin-bottom: 0.5em;
+			margin-top: 1em;
+			text-align: center;
+		}
+		> div > span {
+			color: #667085;
+			font-size: 16px;
+			font-style: normal;
+			font-weight: 400;
+			line-height: 1.5rem;
+			margin: 0;
+		}
+
+		.btl-graphteaser-icon {
+			display: flex;
+			align-items: center;
+			column-gap: 10px;
+
+			p {
+				color: #4e5260;
+				font-size: 14px;
+				font-weight: 400;
+				line-height: 2em;
+				margin: 0;
+			}
+			svg {
+				width: 18px;
+				height: 18px;
+
+			}
+		}
+
+		.MuiCardContent-root {
+			position: relative;
+			text-align: center;
+		}
+
+		.MuiList-root {
+
+			.MuiListItem-root {
+				padding: 0 !important;
+
+				.MuiListItemText-root {
+					flex: unset;
+					margin: 0 !important;
+				}
+				.MuiTypography-root {
+					color: #666b78;
+					font-size: 16px;
+					font-style: normal;
+					font-weight: 400;
+					line-height: 1rem;
+					margin: 0;
+					overflow: hidden;
+				}
+			}
+		}
+	}
+}
+
+// =======================================================================
+// Premium "Upgrade to PRO" teaser card — modern redesign of the shared
+// UpgradeToProSpecial overlay (blurred backdrop + one clean feature card).
+// Scoped with the .btl-pro-teaser modifier so the legacy overlay styles
+// above are cleanly overridden without touching other teasers.
+// =======================================================================
+.btl-analytics-chart-overlay.btl-pro-teaser {
+	background-color: rgba(249, 250, 251, 0.72);
+
+	// `safe` centering: stays centred while the card fits, but clamps to the top
+	// edge instead of overflowing upward when the card is taller than the stage.
+	// Plain `center` let tall cards (Promo Cards / Bio Links, which list five
+	// selling points) ride up over the admin notice sitting above the preview.
+	// Browsers without `safe` fall back to the `center` inherited from the base
+	// overlay rule, i.e. today's behaviour.
+	align-items: safe center;
+	padding: 20px 0;
+	overflow-y: auto;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	> .btl-pro-teaser__card {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		// !important defeats the 2560px+ analytics override (`… > div { width:25% !important }`).
+		width: 100% !important;
+		max-width: 528px !important;
+		height: auto !important;
+		padding: 34px 25px 40px;
+		text-align: center;
+		background: #fff;
+		border: 1px solid #e6e8ee;
+		border-radius: 20px;
+		box-shadow: 0 24px 60px rgba(16, 24, 40, 0.16);
+	}
+
+	.btl-pro-teaser__pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		padding: 6px 14px;
+		border-radius: 999px;
+		background: rgba(47, 107, 255, 0.1);
+		color: #2f6bff;
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+
+		svg {
+			width: 14px;
+			height: 14px;
+
+			path {
+				fill: currentColor;
+			}
+		}
+	}
+
+	.btl-pro-teaser__title {
+		margin: 18px 0 0;
+		color: #1a2233;
+		font-size: 24px;
+		font-weight: 800;
+		line-height: 1.25;
+		letter-spacing: -0.01em;
+	}
+
+	.btl-pro-teaser__desc {
+		margin: 10px 0 0;
+		max-width: 390px;
+		color: #667085;
+		font-size: 14px;
+		line-height: 1.6;
+	}
+
+	.btl-pro-teaser__features {
+		width: 100%;
+		margin-top: 24px;
+
+		.MuiList-root,
+		ul {
+			display: flex;
+			flex-direction: column;
+			gap: 12px;
+			margin: 0;
+			padding: 0;
+		}
+
+		.MuiListItem-root,
+		li {
+			margin: 0 !important;
+			padding: 0 !important;
+		}
+
+		.MuiListItemText-root {
+			flex: unset;
+			margin: 0 !important;
+		}
+
+		.MuiTypography-root {
+			margin: 0;
+			overflow: visible;
+		}
+
+		.btl-graphteaser-icon {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			text-align: left;
+
+			> span,
+			> svg {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				flex: none;
+				width: 32px;
+				height: 32px;
+				border-radius: 9px;
+				background: rgba(47, 107, 255, 0.1);
+				color: #2f6bff;
+				font-size: 15px;
+				line-height: 1;
+			}
+
+			> svg {
+				padding: 7px;
+			}
+
+			> span svg {
+				width: 18px;
+				height: 18px;
+			}
+
+			p {
+				margin: 0;
+				color: #344054;
+				font-size: 14px;
+				font-weight: 500;
+				line-height: 1.5;
+			}
+		}
+	}
+
+	.btl-pro-teaser__cta {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 9px;
+		height: 52px;
+		margin-top: 28px;
+		padding: 0 30px;
+		border-radius: 12px;
+		background: linear-gradient(135deg, #2f6bff 0%, #1f3fd6 100%);
+		color: #fff;
+		font-size: 15px;
+		font-weight: 700;
+		text-decoration: none;
+		box-shadow: 0 12px 26px rgba(47, 107, 255, 0.36);
+		transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+		img {
+			width: 18px;
+			height: 18px;
+		}
+
+		&:hover {
+			transform: translateY(-1px);
+			box-shadow: 0 16px 32px rgba(47, 107, 255, 0.44);
+			color: #fff;
+		}
+
+		&:focus {
+			outline: none;
+			box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.3);
+		}
+	}
+
+	@media screen and (max-width: 600px) {
+		> .btl-pro-teaser__card {
+			padding: 28px 22px 32px;
+		}
+
+		.btl-pro-teaser__title {
+			font-size: 20px;
+		}
+	}
+}

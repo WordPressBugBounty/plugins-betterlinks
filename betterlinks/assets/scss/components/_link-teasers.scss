@@ -1,0 +1,251 @@
+// ==========================================================================
+// Locked Pro panels in the Add/Edit link drawer's right sidebar
+// (`components/Teasers/Link/AdvanceOptionTeaser` + `DynamicRedirectsTeaser`).
+//
+// Each renders an inert replica of the real Pro panel — the controls are divs,
+// not form elements, so nothing can be focused, submitted or read back — with
+// an "Unlock with Pro" row underneath. Clicking anywhere opens the upgrade
+// modal.
+//
+// This replaces the old `.link-options--teasers` / `.link-options-info` rules,
+// whose light-mode block in `_modal.scss` had been commented out, leaving the
+// teasers rendering as unstyled selects and bare checkboxes.
+// ==========================================================================
+$lt-border: #e6e8ee;
+$lt-text: #1a2233;
+$lt-muted: #6b7280;
+$lt-blue: #2f6bff;
+
+.bl-lt {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	// Matches `.link-options__body`, which this stands in for on the Advanced
+	// panel (there the teaser IS the panel body, a direct child of
+	// `.link-options`, so it also has to draw the divider under the header).
+	padding: 10px 16px 14px;
+	border-top: 1px solid $lt-border;
+	cursor: pointer;
+
+	// Dynamic Redirects nests the teaser inside a real `__body`, which already
+	// supplies both — don't stack them twice.
+	.link-options__body & {
+		padding: 0;
+		border-top: 0;
+	}
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+
+	// The replica is a picture of the feature, not a form. Nothing inside is
+	// interactive — the wrapper owns the click.
+	&__fields {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		pointer-events: none;
+		user-select: none;
+	}
+
+	// ---- Field row (label above a faux control) --------------------------
+	&__field {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	&__label {
+		font-size: 13px;
+		font-weight: 600;
+		color: $lt-text;
+	}
+
+	// Faux <select>: the chevron is drawn here rather than by the UA.
+	&__select {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		min-height: 40px;
+		padding: 0 12px;
+		border: 1px solid $lt-border;
+		border-radius: 10px;
+		background: #fff;
+		color: $lt-muted;
+		font-size: 14px;
+
+		svg {
+			flex: none;
+			color: $lt-muted;
+		}
+	}
+
+	// ---- Toggle row ------------------------------------------------------
+	&__toggle-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		min-height: 34px;
+	}
+	&__toggle-label {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 13px;
+		font-weight: 600;
+		color: $lt-text;
+
+		svg {
+			flex: none;
+			color: $lt-muted;
+		}
+	}
+	// Always drawn in the off position — this is a preview, not a control.
+	&__switch {
+		flex: none;
+		position: relative;
+		width: 36px;
+		height: 20px;
+		border-radius: 999px;
+		background: #d7dbe3;
+
+		&::after {
+			content: '';
+			position: absolute;
+			top: 2px;
+			left: 2px;
+			width: 16px;
+			height: 16px;
+			border-radius: 50%;
+			background: #fff;
+			box-shadow: 0 1px 2px rgba(16, 24, 40, 0.2);
+		}
+	}
+
+	// ---- Redirect type cards (Dynamic Redirects) -------------------------
+	&__types {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 8px;
+	}
+	&__type {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		padding: 10px;
+		border: 1px solid $lt-border;
+		border-radius: 10px;
+		background: #fff;
+		font-size: 12.5px;
+		font-weight: 600;
+		color: $lt-text;
+
+		svg {
+			flex: none;
+			color: $lt-blue;
+		}
+		// The first card stands in for the default selection.
+		&.is-active {
+			border-color: rgba($lt-blue, 0.5);
+			background: rgba($lt-blue, 0.06);
+			color: $lt-blue;
+		}
+	}
+
+	// ---- Unlock row ------------------------------------------------------
+	&__unlock {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		padding: 10px 12px;
+		border: 1px solid rgba($lt-blue, 0.35);
+		border-radius: 10px;
+		background: rgba($lt-blue, 0.06);
+		color: $lt-blue;
+		font-size: 13px;
+		font-weight: 600;
+		text-align: left;
+		cursor: pointer;
+		transition: background 0.15s ease, border-color 0.15s ease;
+
+		svg {
+			flex: none;
+		}
+		// Pushes the chevron to the far end.
+		&-text {
+			flex: 1 1 auto;
+		}
+
+		&:hover,
+		&:focus {
+			border-color: $lt-blue;
+			background: rgba($lt-blue, 0.12);
+			color: $lt-blue;
+			outline: none;
+			box-shadow: none;
+		}
+	}
+}
+
+// ==========================================================================
+// Dark mode
+// ==========================================================================
+body.betterlinks-dark-mode {
+	.bl-lt {
+		border-top-color: #36405a;
+
+		&__label,
+		&__toggle-label {
+			color: #e5e9f2;
+		}
+		&__toggle-label svg {
+			color: #9aa5bd;
+		}
+
+		&__select {
+			border-color: #36405a;
+			background: #252f47;
+			color: #9aa5bd;
+
+			svg {
+				color: #9aa5bd;
+			}
+		}
+
+		&__switch {
+			background: #414d6b;
+		}
+
+		&__type {
+			border-color: #36405a;
+			background: #252f47;
+			color: #e5e9f2;
+
+			svg {
+				color: #6f97ff;
+			}
+			&.is-active {
+				border-color: rgba(111, 151, 255, 0.6);
+				background: rgba(111, 151, 255, 0.16);
+				color: #6f97ff;
+			}
+		}
+
+		&__unlock {
+			border-color: rgba(111, 151, 255, 0.4);
+			background: rgba(111, 151, 255, 0.12);
+			color: #6f97ff;
+
+			&:hover,
+			&:focus {
+				border-color: #6f97ff;
+				background: rgba(111, 151, 255, 0.2);
+				color: #6f97ff;
+			}
+		}
+	}
+}

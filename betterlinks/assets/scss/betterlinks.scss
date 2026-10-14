@@ -1,0 +1,1594 @@
+@import './calendar/style';
+@import './calendar/theme';
+@import './common/fonts';
+@import './common/variable';
+@import './short-link-generator';
+
+@keyframes rotating {
+	from {
+		transform: rotate(0deg);
+	}
+
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.btl-rotating {
+	animation: rotating 3s linear infinite;
+}
+
+.betterlinks-body {
+	padding-top: 20px;
+	padding-right: 20px;
+	@import './common/reboot';
+	@import './common/form';
+	@import './common/components';
+	@import './components/app-navbar';
+	@import './components/topbar';
+	@import './components/manage-links';
+	@import './components/board';
+	@import './components/category';
+	@import './components/link';
+	@import './components/list-view';
+	@import './components/analytics';
+	@import './components/analytics-redesign';
+	@import './components/tab';
+	@import './components/doc';
+	@import './components/broken-links';
+	@import './components/quick-setup';
+	@import './components/ip-tag-input';
+	@import './components/toast';
+	@import './components/keywords-import-export';
+	@import './components/auto-link-keywords';
+	@import './components/tags-categories';
+	@import './components/settings';
+	@import './components/mcp';
+	@import './components/custom-fields';
+	@import './components/quick-setup-redesign';
+}
+
+*,
+html {
+	scroll-behavior: smooth;
+}
+
+@import './components/pro-badge';
+@import './components/import-modal';
+@import './components/tools';
+
+body {
+	// BetterLinks admin dashboard background (this stylesheet only loads on
+	// BetterLinks screens, so scoping to a body class isn't needed).
+	#wpcontent {
+		background-color: #f9fafb;
+	}
+
+	&.betterlinks-dark-mode {
+		background: #36405a;
+
+		#wpcontent {
+			background-color: #36405a;
+		}
+
+		.betterlinks-body {
+			@import './control/plugin-mode';
+		}
+
+		.notice {
+			background-color: #2c3650;
+			color: $white;
+		}
+
+		@import './control/plugin-mode-modal';
+
+		#wpfooter {
+			color: $white;
+
+			a {
+				color: $success-lighten;
+			}
+		}
+
+		.btl-modal-utm-builder .btl-modal-utm-builder__body .btl-modal-utm-builder__form-group button[type='button'],
+		.btl-modal-utm-builder__title,
+		.btl-analytic-advanced-search h3,
+		.btl-confirmation-alert .btl-confirmation-buttons button:nth-child(2),
+		.btl-reset-finish-modal-title,
+		.btl-reset-finish-modal-description {
+			color: $white;
+		}
+
+		// Permission Modal Dark Mode Support
+		.btl-permission-modal {
+			background: #1f283d !important;
+		}
+
+		.btl-modal-content {
+			background-color: #1f283d !important;
+		}
+
+		.btl-permission-text {
+			color: $white !important;
+		}
+
+		.btl-permission-sub-text {
+			color: #d0d5dd !important;
+		}
+
+		.btl-modal-close {
+			color: $white !important;
+		}
+
+		.btl-analytic-table-wrapper {
+			.btl-analytic-link-name i.btl-analytics {
+				border: 1px solid $white;
+			}
+		}
+
+		.rmsc.multi-select * {
+			background: #252f47;
+			border-color: #36405a;
+			color: #fff;
+		}
+
+		.btl-analytic {
+			.btl-analytics-filter {
+				border-color: #36405a;
+			}
+
+			.apexcharts-legend>div span.apexcharts-legend-text {
+				color: #fff !important;
+
+				&:hover {
+					opacity: 0.7;
+				}
+			}
+
+			.apexcharts-xaxis {
+				.apexcharts-xaxis-label {
+					fill: #fff !important;
+				}
+			}
+
+			.apexcharts-tooltip.apexcharts-theme-light {
+				border-color: #36405a;
+				background-color: #36405a;
+
+				.apexcharts-tooltip-title {
+					background-color: #36405a;
+				}
+			}
+
+			.apexcharts-toolbar {
+				div.apexcharts-menu-icon>svg {
+					fill: #fff;
+
+					&:hover {
+						opacity: 0.4;
+					}
+				}
+
+				div.apexcharts-menu-open {
+					background-color: #36405a;
+
+					>div {
+						&:hover {
+							background-color: #fff;
+							color: #36405a;
+						}
+					}
+				}
+			}
+
+			.btl-analytic-table-wrapper {
+				border-color: #36405a;
+
+				.btl-analytic-table {
+					.rdt_TableRow {
+						&:hover {
+							outline: #36405a solid 1px;
+							border-bottom-color: #36405a;
+							background-color: #36405a;
+						}
+
+						.rdt_TableCell>a {
+							background-color: #36405a;
+						}
+					}
+				}
+
+				.btl-tabs {
+					background-color: #2c3650;
+				}
+
+				.btl-click-filter .btl-search-button {
+					border-color: #36405a;
+					background-color: #252f47;
+					color: $white;
+
+					.search.loading>div {
+						border-color: $white;
+					}
+				}
+
+				.btl-single-click-info-header {
+					>div span.btl-column-name {
+						color: #fff;
+					}
+				}
+			}
+		}
+
+		.btl-react-select__control {
+			background-color: #252f47;
+			color: #fff;
+			border-color: #36405a;
+		}
+		.btl-white{
+			color: $white !important;
+		}
+		.btl-dark-box{
+			background: #252f47;
+			border-color: #36405a;
+			color: #c3cce0;
+		}
+		.btl-dark{
+			background-color: #2c3650 !important;
+			color: $white;
+		}
+		.css-1uccc91-singleValue{
+			color: $white !important;
+		}
+	}
+
+	>.btl-overlay {
+		position: fixed;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		background-color: #000;
+		z-index: 99;
+		opacity: 0.65;
+	}
+
+	.pro-badge-new svg {
+		width: 50px;
+	}
+}
+
+.btl-date-range-picker-wrap {
+	position: fixed;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	z-index: 9999;
+	display: flex;
+	justify-content: center;
+	text-align: center;
+	padding: 50px;
+	overflow-x: hidden;
+	overflow-y: auto;
+
+	.btl-date-range-picker {
+		position: relative;
+		display: inline-block;
+		background: white;
+		border-radius: 6px;
+		margin: auto;
+
+		.btn-date-range-close {
+			position: absolute;
+			top: 0;
+			right: 0;
+			z-index: 999;
+			border: 0;
+			background: transparent;
+			outline: none;
+			color: $secondary-lighten;
+			padding: 5px 5px;
+			cursor: pointer;
+		}
+
+		.rdrDateRangePickerWrapper .rdrInputRanges {
+			display: none;
+		}
+	}
+}
+
+// Bubble for `components/Tooltip`, portaled to <body> so scroll containers
+// (the board column in particular) can't clip it. Lives at root level because
+// that is where it is mounted; `top`/`left` come from the trigger's rect.
+.bl-tip {
+	position: fixed;
+	z-index: 100050;
+	// Anchor point is the trigger's top-centre, so shift the bubble fully above
+	// it and leave room for the arrow.
+	transform: translate(-50%, -100%) translateY(-9px);
+	width: max-content;
+	max-width: 240px;
+	padding: 8px 10px;
+	border-radius: 6px;
+	background: linear-gradient(202deg, #2961ff 0%, #003be2 100%);
+	color: #fff;
+	font-size: 13px;
+	font-weight: 400;
+	line-height: 1.35;
+	text-align: center;
+	box-shadow: 0 8px 20px rgba(16, 24, 40, 0.18);
+	pointer-events: none;
+
+	&::after {
+		content: '';
+		position: absolute;
+		top: 100%;
+		left: 50%;
+		margin-left: -5px;
+		border-width: 5px;
+		border-style: solid;
+		border-color: #003be2 transparent transparent transparent;
+	}
+}
+
+.btl-tooltip {
+	position: relative;
+	display: inline-block;
+	line-height: 1;
+	margin-left: 10px;
+
+	.btl-tooltiptext {
+		visibility: hidden;
+		width: max-content;
+		max-width: 225px;
+		background: linear-gradient(202deg, #2961ff 0%, #003be2 100%);
+		font-size: 14px;
+		color: #fff;
+		border-radius: 6px;
+		padding: 10px;
+		position: absolute;
+		z-index: 1;
+		bottom: 150%;
+		left: 50%;
+		transform: translateX(-50%);
+
+		&::after {
+			content: '';
+			position: absolute;
+			top: 100%;
+			left: 50%;
+			margin-left: -5px;
+			border-width: 5px;
+			border-style: solid;
+			border-color: #003be2 transparent transparent transparent;
+		}
+	}
+
+	&:hover .btl-tooltiptext {
+		visibility: visible;
+	}
+}
+
+.betterlinks-auto-create-link {
+	.btl-tooltip {
+		background-color: transparent;
+		border: none;
+		margin: 0;
+		padding: 0;
+		text-align: inherit;
+		border-radius: 0;
+		appearance: none; // Just in case we missed anything.
+		margin-left: 3px;
+		cursor: pointer;
+
+		.btl-tooltiptext {
+			width: 60px;
+			font-size: 8px;
+		}
+	}
+}
+
+@import './components/link-drawer';
+@import './components/keyword-drawer';
+@import './components/term-modal';
+@import './components/qr-modal';
+@import './components/confirm-delete-modal';
+@import './components/utm-confirm-modal';
+@import './components/admin-notices';
+@import './components/pro-update-required';
+@import './components/utm_builder';
+@import './components/bl-modal-tokens';
+@import './components/utm-builder-redesign';
+@import './components/customize_link_preview';
+@import './components/customize-link-preview-redesign';
+@import './components/dynamic-redirect-compat';
+@import './components/ai_generate_links';
+@import './components/custom_table';
+@import './components/fullsite-scanner-teaser';
+@import './components/custom-domain-teaser';
+@import './components/upgrade-pro-modal';
+@import './components/promo-cards-teaser';
+@import './components/bio-links-teaser';
+@import './components/link-teasers';
+@import './components/ai-settings';
+
+// expire status circle styles starts
+
+span.btl-expire-status-dot {
+	height: 0;
+	width: 0;
+	border-radius: 50%;
+	display: inline-block;
+	padding: 5px;
+}
+
+.btl-expire-status-dot-parent .btl-tooltiptext {
+	width: 90px;
+	text-transform: capitalize;
+}
+
+.betterlinks-body .btl-list-view .rdt_Table .rdt_TableBody .rdt_TableRow .rdt_TableCell .dnd-link-button.btl-tooltip.btl-expire-status-dot-parent {
+	margin: 0;
+	padding: 0;
+}
+
+.betterlinks-body .dnd-link-button.btl-tooltip.btl-expire-status-dot-parent,
+.betterlinks-body .btl-list-view .rdt_Table .rdt_TableBody .rdt_TableRow .rdt_TableCell .dnd-link-button.btl-tooltip.btl-expire-status-dot-parent {
+	margin-right: 10px;
+}
+
+.btl-list-view {
+	#column-categories {
+		margin-left: 9px !important;
+	}
+
+	#column-tags {
+		margin-left: 9px !important;
+	}
+}
+
+span.btl-expire-status-dot.publish {
+	background-color: #0bb876;
+}
+
+span.btl-expire-status-dot.expired {
+	background-color: #dc143c;
+}
+
+span.btl-expire-status-dot.scheduled {
+	background-color: #1e90ff;
+}
+
+span.btl-expire-status-dot.draft {
+	background-color: #f8e00b;
+}
+
+// expire status circle styles ends
+
+// list view 'rows per page' select broken icon design fix start
+
+#betterlinksbody .rdt_Pagination select[aria-label='Rows per page:'] {
+	background-image: none;
+}
+
+#betterlinksbody .rdt_Pagination select[aria-label='Rows per page:']+svg {
+	top: 50%;
+	transform: translateY(-50%);
+}
+
+// list view 'rows per page' select broken icon design fix end
+
+// autolink keywords' 'keywords' input field's new extra label css end
+
+// mark as favorite button tooltip css start
+.btl-fav-link.btl-tooltip .btl-tooltiptext {
+	width: 130px;
+	z-index: 33333;
+}
+
+//
+
+// external analytics teaser UI css start
+.btl-external-analytics-container.teaser>form.form>.btl-role-item>label.btl-form-label {
+	width: 56%;
+	padding-right: 15px;
+}
+
+// external analytics teaser UI css end
+
+//
+// react select design break fix: Disable Auto-link keywords for Post Types start
+.betterlinks-body .btl-form-group.btl-general-tab-settings-react-select {
+	.btl-modal-select--full {
+		min-width: 260px;
+	}
+
+	.btl-modal-select--full-link {
+		width: 300px;
+	}
+
+	.btl-modal-select--full .btl-react-select__control {
+		height: auto;
+	}
+
+	.btl-form-field label.btl-checkbox-field {
+		display: flex;
+	}
+}
+
+// react select design break fix: Disable Auto-link keywords for Post Types end
+//
+
+//
+// betterlinks reset analytics css start
+.btl-analytic-reset-wrapeer {
+	button {
+		display: block;
+		border: 1px solid #0afa;
+		background: #0af;
+		color: #fff;
+		padding: 10px;
+		cursor: pointer;
+		margin: 10px 0;
+		border-radius: 5px;
+
+		&:hover {
+			background: #09e;
+		}
+	}
+
+	button.btl-reset-analytics-initial-button {
+		padding: 12px 20px !important;
+	}
+}
+
+body.betterlinks-delete-clicks-modal-popup-opened {
+
+	button.btl-btn-reset-apply-1 {
+		margin: 0 !important;
+		width: 100px;
+	}
+
+	.btl-reset-modal-popup-wrapper {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		height: 100%;
+
+		span.btl-close-popup {
+			position: absolute;
+			left: 100%;
+			top: 0;
+			height: 30px;
+			width: 30px;
+			background: #fff9;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			cursor: pointer;
+		}
+	}
+
+	.btl-reset-modal-popup {
+		margin: 0;
+		padding: 0;
+
+		&.btl-reset-modal-popup-step-1>h2 {
+			display: block;
+			text-align: center;
+			width: 430px;
+			margin: auto;
+			margin-top: -70px;
+			margin-bottom: 30px;
+			font-size: 24px;
+			line-height: 32px;
+		}
+
+		&.btl-reset-modal-popup-step-1 {
+			.select_apply {
+				display: flex;
+				gap: 20px;
+			}
+
+			.btl-react-select__option {
+				padding-left: 16px !important;
+			}
+		}
+
+		&.btl-reset-modal-popup-step-2 {
+			text-align: center;
+			padding-bottom: 50px;
+
+			.btl-reset-modal-popup-title {
+				font-weight: 600;
+				font-size: 24px;
+				line-height: 130%;
+				text-align: center;
+				margin-top: 24px;
+				margin-bottom: 20px;
+				color: #1a1a1a; // Light theme text color
+			}
+			.btl-delete-description{
+				font-weight: 400;
+				font-size: 16px;
+				line-height: 150%;
+				text-align: center;
+				color: #374151; // Light theme text color
+			}
+			.btl-analytics-dlt-date{
+				font-weight: 500;
+				font-size: 16px;
+				line-height: 150%;
+				text-align: center;
+				color: #374151; // Light theme text color
+
+				.btl-date-range {
+					color: #374151; // Light theme text color
+				}
+			}
+			.btl-delete-count-box{
+				opacity: 1;
+				color: #F04438;
+				border-radius: 4px;
+				gap: 10px;
+				border-width: 1px;
+				padding: 8px;
+				background-color: #FFEFEE;
+				border: 1px solid #FFD3CF;
+				margin: 24px 0;
+				.btl-delete-count{
+					font-weight: 600;
+				}
+			}
+			.btl-confirmation-section {
+				margin: 0 16px;
+			}
+			.btl-confirmation-label{
+				font-size: 13px;
+				line-height: 140%;
+				text-align: center;
+				margin-bottom: 8px;
+				color: #374151; // Light theme text color
+			}
+			.btl-reset-confirmation-input{
+				font-weight: 400;
+				font-size: 13px;
+				line-height: 140%;
+				text-align: center;
+				margin-bottom: 32px;
+			}
+
+			.btl-btn-reset-popup-step-2-buttons {
+				display: flex;
+				justify-content: center;
+				gap: 20px;
+
+				button {
+					height: 40px;
+					padding: 0 20px;
+					background-image: linear-gradient(202deg, #2961ff 0%, #003be2 100%);
+					border: none;
+					outline: none;
+					box-shadow: none;
+					border-radius: 4px;
+					color: #fff;
+					cursor: pointer;
+					transition: background 0.3s ease-in-out;
+					font-size: 14px;
+				}
+			}
+		}
+	}
+
+	.btl-modal-select--full {
+		width: 350px !important;
+	}
+
+	.ReactModal__Content {
+		width: 870px;
+		height: 380px;
+		margin: auto;
+		overflow: visible !important;
+	}
+
+	.ReactModal__Overlay {
+		background-color: rgba(0, 0, 0, 0.5) !important;
+	}
+}
+
+// Dark mode styles for delete clicks modal
+body.betterlinks-dark-mode {
+	&.betterlinks-delete-clicks-modal-popup-opened {
+		.btl-reset-modal-popup.btl-reset-modal-popup-step-2 {
+			color: #f9fafb;
+
+			.btl-reset-modal-popup-title {
+				color: #f9fafb;
+			}
+
+			.btl-delete-description {
+				color: #d1d5db;
+			}
+
+			.btl-analytics-dlt-date {
+				color: #d1d5db;
+
+				.btl-date-range {
+					color: #d1d5db;
+				}
+			}
+
+			.btl-delete-count-box {
+				color: #fca5a5;
+				background-color: #7f1d1d;
+				border-color: #991b1b;
+			}
+
+			.btl-confirmation-label {
+				color: #d1d5db;
+			}
+
+			.btl-reset-confirmation-input {
+				background: #374151;
+				border-color: #4b5563;
+				color: #f9fafb;
+
+				&::placeholder {
+					color: #9ca3af;
+				}
+			}
+		}
+
+		.btl-reset-deleting-modal {
+			color: #f9fafb;
+
+			.btl-reset-deleting-modal-title {
+				color: #f9fafb;
+			}
+
+			.btl-reset-deleting-modal-description {
+				color: #d1d5db;
+			}
+		}
+	}
+}
+
+.btl-view-control {
+	display: flex;
+
+	.btl-link-view-toggler {
+		svg.favorite-svg .fav-icon-svg-path {
+			fill: #a1a2ad !important;
+
+			&:hover {
+				fill: #faba59 !important;
+			}
+		}
+	}
+
+	.btl-link-view-toggler.active {
+		svg.favorite-svg .fav-icon-svg-path {
+			fill: #faba59 !important;
+		}
+	}
+
+	.btl-sortby-fav {
+		padding: 10px;
+	}
+}
+
+//
+// betterlinks reset analytics css end
+
+// autolink keyword search cancel (x) icon style start
+input#search_autolink::-webkit-search-decoration:hover,
+input#search_autolink::-webkit-search-cancel-button:hover {
+	cursor: pointer;
+}
+
+// autolink keyword search cancel (x) icon style end
+
+.betterlinks-options-tabs-wrapper div.react-tabs {
+	display: flex;
+}
+
+.betterlinks-options-tabs-wrapper div.react-tabs ul {
+	display: flex;
+	flex-direction: column;
+	margin-top: 0;
+	margin-right: 20px;
+
+	li {
+		user-select: none;
+	}
+}
+
+// quill-editor-css start
+@import './ql-editor.scss';
+
+//Affiliate disclosure preview
+.btl-preview-modal-wrapper {
+	position: sticky;
+	top: 35px;
+	z-index: 1;
+}
+
+.betterlinks-preview-modal {
+	padding: 1px;
+	width: 90%;
+	max-height: 300px;
+	overflow: scroll;
+	display: grid;
+	align-items: center;
+
+	ul {
+		padding: revert;
+		list-style: unset;
+		margin-top: revert !important;
+	}
+
+	img {
+		width: 100%;
+	}
+}
+
+.btl-disclosure-preview {
+	background: linear-gradient(202deg, rgb(41, 97, 255) 0%, rgb(0, 59, 226) 100%);
+	padding: 5px;
+	font-size: 16px;
+	border-radius: 2px;
+	display: inline-block;
+	color: white;
+
+	.btl-backward-hand {
+		font-size: 16px;
+	}
+}
+
+.betterlinks-body .btl-tab-panel-inner .betterlinks-multi-input .btl-modal-select--full,
+.betterlinks-body .btl-tab-panel-inner .betterlinks-input-select-fields .btl-modal-select--full {
+	width: 100px !important;
+	margin-left: 10px;
+	align-self: flex-start;
+}
+
+.betterlinks-multi-input {
+	display: flex;
+
+	.betterlinks-single-input {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+
+		.btl-text-field {
+			width: 60px !important;
+			text-align: center;
+		}
+
+		span {
+			font-size: 10px;
+			font-style: italic;
+		}
+	}
+}
+
+.betterlinks_affiliate_disclosure_post {
+	display: flex;
+	flex-direction: column;
+	line-height: 18px;
+	margin: 0;
+}
+
+.betterlinks_affiliate_disclosure_post p {
+	padding: 0;
+	margin: 0;
+	font-size: inherit;
+}
+
+.rmsc.multi-select {
+	max-width: 165px;
+	min-width: 150px;
+}
+
+.rmsc {
+	* {
+		transition: unset !important;
+	}
+
+	.dropdown-container {
+		.dropdown-heading .clear-selected-button {
+			display: none;
+		}
+	}
+
+	.dropdown-content {
+		position: absolute;
+		z-index: 1;
+		top: 100%;
+		width: 100%;
+		padding-top: 8px;
+
+		.panel-content input[type='checkbox'] {
+			overflow: hidden;
+			border-radius: var(--rmsc-radius);
+			background: var(--rmsc-bg);
+			box-shadow: 0 0 0 1px #0000001a, 0 4px 11px #0000001a;
+		}
+	}
+}
+
+// // Search Icon Css Loader
+.betterlinks-body {
+
+	h1 {
+		font-family: 'Dosis', sans-serif;
+		padding-bottom: 10px;
+		color: #333;
+		padding-top: 10px;
+	}
+
+	.description {
+		margin: 20px;
+		font-size: 15px;
+		display: block;
+		text-align: center;
+	}
+
+	p {
+		padding: 0px;
+		margin: 4px;
+	}
+
+	.search-wrapper {
+		position: relative;
+		height: 32px;
+		margin: 0 auto;
+	}
+
+	input.ajax-search {
+		height: 30px;
+		width: 100px;
+		cursor: pointer;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+		filter: grayscale(100%);
+		color: rgba(0, 0, 0, 0.5);
+	}
+
+	.search {
+		cursor: pointer;
+		position: absolute;
+		left: 50%;
+		margin-left: -1em;
+		padding: 10px 0;
+		text-align: center;
+		font-size: 12px;
+	}
+
+	input.ajax-search:after,
+	input.ajax-search:before {
+		content: 'what';
+		position: absolute;
+		top: 0;
+		left: 50%;
+		color: #000;
+		text-indent: 0;
+	}
+
+	input.ajax-search:after,
+	input.ajax-search:before,
+	.search.loading .search__circle,
+	.search.loading .search__rectangle {
+		opacity: 1;
+	}
+
+	.search__circle,
+	input.ajax-search:before {
+		width: 0.8em;
+		height: 0.8em;
+		border: 1px solid #2673ff;
+		border-radius: 50%;
+		transition: 0.3s;
+	}
+
+	.search__rectangle,
+	input.ajax-search:after {
+		position: absolute;
+		left: 9px;
+		margin-top: -1px;
+		width: 4px;
+		-webkit-transform: rotate(45deg);
+		transform: rotate(45deg);
+		border: 1px solid #2673ff;
+		border-radius: 100%;
+	}
+
+	@-webkit-keyframes load8 {
+		0% {
+			-webkit-transform: rotate(0deg);
+			transform: rotate(0deg);
+		}
+
+		100% {
+			-webkit-transform: rotate(360deg);
+			transform: rotate(360deg);
+		}
+	}
+
+	@keyframes load8 {
+		0% {
+			-webkit-transform: rotate(0deg);
+			transform: rotate(0deg);
+		}
+
+		100% {
+			-webkit-transform: rotate(360deg);
+			transform: rotate(360deg);
+		}
+	}
+}
+
+.btl-form-field {
+	div.btl-individual-config-blocks {
+		max-width: 500px;
+		min-width: 400px;
+		width: 450px;
+
+		>div {
+			border-radius: 8px;
+		}
+
+		&.--btl-records-bg {
+			color: #333;
+			overflow-x: auto;
+		}
+
+		.btl-instruction-block-wrapper {
+			background-color: rgb(246, 246, 246);
+			color: rgb(123, 126, 152);
+			padding: 15px;
+			margin-bottom: 10px;
+		}
+
+		.btl-code-block-wrapper {
+			padding: 20px 10px;
+			margin-bottom: 10px;
+			border: 1px solid rgba(217, 225, 244, 1);
+
+			.btl-code-block {
+				margin-top: 8px;
+			}
+		}
+
+		code {
+			display: block;
+			min-height: 18px;
+			padding: 8px 10px;
+			border: 1px solid rgba(217, 225, 244, 1);
+			border-radius: 8px;
+			background-color: rgba(245, 245, 247, 1);
+			font-weight: normal;
+		}
+	}
+}
+
+.btl-domain-configuration .btl-form-field {
+	min-height: 230px;
+
+	.server-type-wrapper {
+		display: flex;
+		flex-direction: column;
+
+		.server-type {
+			display: flex;
+			align-items: center;
+			padding: 10px 0;
+			column-gap: 10px;
+
+			label {
+				cursor: pointer;
+			}
+		}
+	}
+}
+
+.ReactModal__Body--open.modal-open .supports-drag-drop:has(> .media-modal) {
+	z-index: 9999999;
+}
+
+/* Permission Modal Styles */
+.btl-modal-overlay {
+	position: fixed !important;
+	top: 0 !important;
+	left: 0 !important;
+	right: 0 !important;
+	bottom: 0 !important;
+	background-color: rgba(0, 0, 0, 0.5) !important;
+	z-index: 999999 !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+}
+
+.btl-permission-modal {
+	position: relative !important;
+	top: auto !important;
+	left: auto !important;
+	right: auto !important;
+	bottom: auto !important;
+	margin: 0 !important;
+	transform: none !important;
+	background: #fff !important;
+	border-radius: 8px !important;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+	outline: none !important;
+	padding: 0 !important;
+	max-width: 450px !important;
+	width: 90% !important;
+	border: none !important;
+	overflow: visible !important;
+}
+
+.btl-modal-header {
+	position: absolute;
+	top: 24px;
+	right: 24px;
+	display: flex !important;
+	justify-content: end !important;
+	align-items: center !important;
+	border-bottom: none !important;
+}
+
+.btl-modal-header h2 {
+	margin: 0 !important;
+	font-size: 18px !important;
+	font-weight: 600 !important;
+	color: #333 !important;
+}
+
+.btl-modal-close {
+	background: none !important;
+	border: none !important;
+	font-size: 24px !important;
+	cursor: pointer !important;
+	color: #666 !important;
+	padding: 0 !important;
+	width: 24px !important;
+	height: 24px !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	border-radius: 4px !important;
+}
+
+.ReactModal__Content.ReactModal__Content--after-open.btl-permission-modal.btl-permission-modal-expanded {
+	padding: 0 !important;
+	max-width: 871px !important;
+}
+.ReactModal__Content.ReactModal__Content--after-open.btl-confirmation-modal.btl-confirmation-modal-expanded {
+	padding: 0 !important;
+	max-width: 700px !important;
+	position: fixed !important;
+	top: 50% !important;
+	left: 50% !important;
+	transform: translate(-50%, -50%) !important;
+	z-index: 999999 !important;
+	background: #fff !important;
+	border-radius: 8px !important;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+	border: none !important;
+	outline: none !important;
+}
+
+/* Ensure confirmation modal overlay has proper z-index */
+.ReactModal__Overlay.ReactModal__Overlay--after-open.btl-modal-overlay {
+	position: fixed !important;
+	top: 0 !important;
+	left: 0 !important;
+	right: 0 !important;
+	bottom: 0 !important;
+	background-color: rgba(0, 0, 0, 0.5) !important;
+	z-index: 999998 !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+}
+
+.btl-modal {
+
+	&-content {
+	padding: 67px 125px !important;
+	text-align: center !important;
+	}
+	&-confirm-content {
+	padding: 40px 80px !important;
+	text-align: center !important;
+	}
+}
+
+.btl-permission-message {
+	display: flex !important;
+	flex-direction: column !important;
+	align-items: center !important;
+}
+
+.btl-permission-icon {
+	display: flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+}
+
+.btl-permission-message p {
+	margin: 0 !important;
+	font-size: 16px !important;
+	color: #333 !important;
+	line-height: 1.5 !important;
+}
+
+.btl-permission-text {
+	font-weight: 600;
+	font-size: 20px;
+	line-height: 130%;
+	letter-spacing: 0px;
+	text-align: center;
+	margin-bottom: 24px;
+	margin-top: 32px;
+	color: #252525;
+
+}
+
+.btl-permission-sub-text {
+	font-weight: 400;
+	font-size: 14px;
+	line-height: 140%;
+	letter-spacing: 0px;
+	text-align: center;
+	color: #666B78;
+	margin-bottom: 42px;
+}
+
+.btl-modal-footer {
+	padding: 0 24px 24px 24px !important;
+	display: flex !important;
+	justify-content: center !important;
+}
+
+.btl-modal-footer .button {
+	padding: 8px 16px !important;
+	background-image: linear-gradient(202deg, #2961ff 0%, #003be2 100%);
+	font-weight: 500;
+	font-size: 14px;
+	line-height: 28px;
+	text-align: center;
+
+	&:hover {
+		background-image: linear-gradient(202deg, #2961ff 0%, #003be2 100%);
+	}
+}
+
+.betterlinks-body {
+	.btl-button-danger {
+		background: #F04438 !important;
+		color: #ffffff !important;
+		border: 1px solid #F97066 !important;
+		padding: 5px 16px !important;
+		border-radius: 4px !important;
+		font-size: 14px !important;
+		display: flex;
+    	align-items: center;
+		img {
+			margin-right: 6px;
+			color: #ffffff !important;
+		}
+
+		// Disabled state
+		&.disabled,
+		&:disabled {
+			background: #f33333 !important;
+			color: #ffffff !important;
+			border: 1px solid #D0D5DD !important;
+			cursor: not-allowed !important;
+			opacity: 0.6;
+
+		}
+	}
+	.btl-button-cancel{
+		color: #114BEE !important;
+		background: #ffffff !important;
+		border: 1px solid #114BEE !important;
+	}
+
+	.btl-confirmation-text {
+		display: block;
+		font-weight: 400;
+		font-size: 13px;
+		line-height: 140%;
+		letter-spacing: 0px;
+		text-align: center;
+		color: #9DA3B3;
+
+	}
+
+	input.btl-modal-form-control.btl-confirmation-input,
+	input.btl-modal-form-control.btl-confirmation-input:focus {
+		background-color: #DDDDDD;
+	}
+
+	.btl-refresh-btn {
+		padding: 4px 2px !important;
+		margin-right: 16px !important;
+	}
+
+	.btl-btn-groups {
+		display: flex;
+		gap: 16px;
+		align-items: center;
+
+		.btl-refresh-btn {
+			background-image: linear-gradient(to bottom, #2961FF, #003BE2) !important;
+			display: flex;
+			align-items: center;
+			padding-left: 13px !important;
+			border-radius: 4px;
+		}
+	}
+
+	.button-secondary-gray {
+		background: #fff !important;
+		padding: 12px 20px !important;
+		color: #114BEE;
+		border: 1px solid #114BEE !important;
+		font-size: 15px;
+		border-radius: 4px;
+	}
+}
+
+.btl-reset-modal-popup.btl-reset-modal-popup-step-1.betterlinks-body {
+	background-color: #ffffff;
+	border-radius: 8px;
+
+	.btl-compact-date-picker {
+		position: relative;
+
+		.btl-date-picker-title {
+			font-weight: 600;
+			font-size: 24px;
+			line-height: 130%;
+			letter-spacing: 0px;
+			color: #252525;
+			padding: 24px 27.5px;
+			border-bottom: 1px solid #EBEBEB;
+		}
+
+		.btl-date-picker-actions {
+			display: flex;
+			justify-content: flex-end;
+			gap: 16px;
+			padding-right: 16px;
+			padding-bottom: 17px;
+			padding-top: 15px;
+			align-items: center;
+			border-top: 1px solid #EBEBEB;
+
+			button.button-primary.btl-apply-date-range {
+				background: #ffffff;
+				color: #F97066;
+				border: 1px solid;
+				border-color: #F97066;
+				padding: 5px 16px;
+				border-radius: 4px;
+				font-size: 14px;
+				display: flex;
+				align-items: center;
+
+				img {
+					margin-right: 6px;
+				}
+			}
+
+			button.button-primary.btl-cancel-date-range {
+				border: 1px solid;
+				padding: 5px 16px;
+				border-radius: 4px;
+				font-size: 14px;
+			}
+		}
+
+		.btn-date-range-close {
+			position: absolute;
+			top: 0;
+			right: 0;
+			z-index: 999;
+			border: 0;
+			background: 0 0;
+			outline: 0;
+			color: #b0b2ba;
+			padding: 24px 19px;
+			cursor: pointer;
+		}
+	}
+
+}
+
+	.btl-reset-modal-popup-wrapper {
+		.btl-reset-finish-modal {
+			text-align: center;
+		}
+
+		.btl-reset-deleting-modal {
+			text-align: center;
+			padding-bottom: 50px;
+
+			.btl-reset-deleting-modal-title {
+				font-weight: 600;
+				font-size: 24px;
+				line-height: 130%;
+				text-align: center;
+				margin-top: 24px;
+				margin-bottom: 20px;
+				color: #1a1a1a;
+			}
+
+			.btl-reset-deleting-modal-description {
+				font-weight: 400;
+				font-size: 16px;
+				line-height: 150%;
+				text-align: center;
+				color: #374151;
+				margin-bottom: 20px;
+				.btl-date-range-processing {
+					font-weight: 600;
+				}
+			}
+
+			.btl-deleting-icon {
+				animation: pulse 2s infinite;
+			}
+
+			@keyframes pulse {
+				0% {
+					opacity: 1;
+				}
+				50% {
+					opacity: 0.5;
+				}
+				100% {
+					opacity: 1;
+				}
+			}
+		}
+
+		.btl-reset-finish-modal {
+			text-align: center;
+		}	.btl-reset-finish-modal-title {
+		display: block;
+		font-weight: 600;
+		font-size: 24px;
+		line-height: 130%;
+		letter-spacing: 0px;
+		color: #252525;
+		margin-top: 42px;
+		margin-bottom: 24px;
+	}
+
+	.btl-reset-finish-modal-description {
+		font-weight: 400;
+		font-size: 16px;
+		line-height: 140%;
+		letter-spacing: 0px;
+		color: #666B78;
+	}
+
+	.btl-cancel-finish-date-range {
+		border-radius: 4px;
+		padding: 6px 22px;
+		display: block;
+		margin: 42px auto;
+		background-image: linear-gradient(to bottom, #2961FF, #003BE2) !important;
+
+	}
+
+	.btl-reset-not-found-wrapper {
+		text-align: center;
+	}
+
+	.btl-reset-not-found-modal-title {
+		font-weight: 400;
+		font-size: 24px;
+		line-height: 140%;
+		letter-spacing: 0px;
+		text-align: center;
+		padding: 24px 40px;
+		color: #252525;
+		.btl-reset-date-range{
+			font-weight: 600;
+		}
+	}
+}
+
+button.rdrStaticRange {
+	border-bottom: unset !important;
+}
+
+.rdrStaticRangeLabel {
+	font-weight: 500;
+	font-size: 16px;
+	line-height: 20px;
+	letter-spacing: -0.18px;
+	color: #252525;
+
+	.betterlinks_page_betterlinks-settings {
+		.btl-utm-template-modal-override {
+			position: absolute;
+			padding: 0 !important;
+		}
+	}
+}
+
+.ReactModal__Content.ReactModal__Content--after-open.btl-anl-delete-clicks-modal {
+	position: absolute;
+	inset: 40px;
+    background-color: #ffffff;
+}
+//common style classes
+.betterlinks-body {
+	.btl-flex {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+}
+.btl-date-range-picker {
+	.rdrMonthsVertical {
+		flex-direction: row !important;
+	}
+}
+.btl-click-filter .rmsc .item-renderer {
+	align-items: center !important;
+}
+
+//for effect
+
+/* ── Pulse Ring Focus Effect ── */
+
+.btl-temp-focus {
+  display: block; /* ← CRITICAL for span elements */
+  position: relative;
+  background: #eef2ff;
+  border-radius: 10px;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+  padding: 0px 10px; /* optional: gives breathing room */
+  margin-left: -10px;
+}
+
+/* Pulse ring that expands and fades */
+.btl-temp-focus::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 13px;
+  border: 2px solid #3b5bdb;
+  opacity: 0;
+  pointer-events: none;
+  animation: pulseRing 1.6s ease-out 0s 4;
+}
+
+@keyframes pulseRing {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.04); }
+}
+
+.btl-form-group {
+  overflow: visible !important;
+}
+// The old white-on-nothing notice text and the plain white licensing notice are
+// superseded by `components/admin-notices`, which is imported above. Kept out of
+// the cascade entirely rather than overridden — these sat AFTER that import and
+// would otherwise win on equal specificity and blank the notice text.
+
+// Imported last: the legacy reset-analytics rules earlier in this file would
+// otherwise win on equal specificity.
+// Superseded by `reset-clicks-modal` — the reset dialog no longer uses
+// react-modal or any legacy class names, so the old override sheet is gone.
+@import './components/reset-clicks-modal';

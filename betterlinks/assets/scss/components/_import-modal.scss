@@ -1,0 +1,1044 @@
+/* Import Keywords Modal - Figma Design System */
+
+/* Modal overlay */
+.btl-import-modal-overlay {
+    background: rgba(0, 0, 0, 0.5) !important;
+    z-index: 99999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+}
+
+.btl-import-modal-content {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 90% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    transform: none !important;
+    max-height: 90vh !important;
+    overflow: hidden !important;
+    background: #fff !important;
+
+    @media screen and (max-width: 768px) {
+        width: 95% !important;
+        max-height: 95vh !important;
+    }
+}
+
+/* Modal wrapper */
+.btl-import-modal-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 500px;
+    max-height: 90vh;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    width: 100%;
+    position: relative;
+}
+
+/* Modal header */
+.btl-import-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 32px 32px 24px 32px;
+    background: #fff;
+    border-bottom: 1px solid #EBEBEB;
+
+    .btl-import-modal-title {
+        font-weight: 600;
+        font-size: 22px;
+        line-height: 130%;
+        letter-spacing: 0px;
+        color: #252525;
+
+        @media screen and (max-width: 768px) {
+            font-size: 20px;
+        }
+    }
+
+    .btl-close-modal {
+        right: 24px !important;
+        top: 26px !important;
+        background: none;
+        border: none;
+        padding: 8px;
+        cursor: pointer;
+        color: #B0B2BA !important;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        width: 12px;
+        height: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        &:hover {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        i {
+            font-size: 16px;
+        }
+    }
+}
+
+/* Modal body */
+.btl-import-modal-body {
+    flex: 1;
+    padding: 32px 32px 0px 32px;
+    overflow-y: auto;
+    min-height: 0;
+
+    .btl-file-note{
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 140%;
+        color: #666B78;
+        margin-bottom: 16px;
+        a{
+            color: #114BEE;
+            text-decoration: none;
+        }
+    }
+    @media screen and (max-width: 768px) {
+        padding: 24px;
+    }
+
+    /* Error Details Styling */
+    .btl-import-error-step {
+        background-color: #FEF3F2;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 20px;
+        text-align: center;
+        border: dashed 1px #FDA29B;
+    }
+
+    .btl-error-file-display {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+    }
+
+    .btl-error-file-icon {
+        margin-bottom: 20px;
+
+        img {
+            width: 64px;
+            height: 64px;
+            opacity: 0.6;
+            filter: grayscale(50%);
+        }
+    }
+
+    .btl-error-file-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+
+    .btl-error-filename {
+        font-size: 16px;
+        font-weight: 500;
+        color: #1f2937;
+        margin-bottom: 12px;
+        line-height: 1.4;
+    }
+
+    .btl-error-message {
+        font-size: 14px;
+        color: #dc2626;
+        font-weight: 400;
+        line-height: 1.5;
+        margin-bottom: 20px;
+    }
+
+    .btl-error-details {
+        margin-top: 0;
+        border: none;
+        border-radius: 0;
+        background-color: transparent;
+        width: 100%;
+    }
+
+    .btl-error-details-toggle {
+        padding: 8px 0;
+        cursor: pointer;
+        background-color: transparent;
+        border: none;
+        font-size: 14px;
+        color: #6b7280;
+        user-select: none;
+        outline: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+
+        &:hover {
+            color: #374151;
+        }
+
+        &:before {
+            content: '▶';
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+    }
+
+    .btl-error-details[open] .btl-error-details-toggle:before {
+        transform: rotate(90deg);
+    }
+
+    .btl-error-log {
+        padding: 15px;
+        margin: 10px 0 0 0;
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 12px;
+        color: #dc2626;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 200px;
+        overflow-y: auto;
+        line-height: 1.5;
+        text-align: left;
+    }
+}
+
+/* Upload Step Styles */
+.btl-import-upload-step {
+    .btl-file-drop-zone {
+        border: 1px dashed #B8C5E5;
+        background-color: #FBFCFF !important;
+        border-radius: 12px;
+        padding: 32px;
+        text-align: center;
+        background: transparent;
+        transition: all 0.3s ease;
+        margin-bottom: 24px;
+        position: relative;
+
+        &:hover,
+        &.btl-drag-over {
+            border-color: #3b82f6;
+            background: #ECF1FF;
+        }
+
+        &.btl-error-state {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .btl-file-drop-label {
+            cursor: pointer;
+            display: block;
+            width: 100%;
+        }
+
+        .btl-file-icon {
+            margin-bottom: 16px;
+
+            i {
+                font-size: 32px;
+                color: #9ca3af;
+            }
+        }
+
+        .btl-file-selected {
+            .btl-file-name {
+                display: block;
+                font-size: 16px;
+                font-weight: 600;
+                color: #1D2939;
+                margin-bottom: 12px;
+            }
+
+            .btl-file-error-inline {
+                margin-bottom: 12px;
+
+                .btl-error-text {
+                    display: block;
+                    font-size: 14px;
+                    color: #ef4444;
+                    font-weight: 500;
+                }
+            }
+
+            .btl-upload-progress-inline {
+                margin-bottom: 16px;
+
+                .btl-upload-file-size {
+                    font-size: 14px;
+                    color: #6b7280;
+                    margin-bottom: 8px;
+                    text-align: center;
+                }
+
+                .btl-upload-message {
+                    font-size: 14px;
+                    color: #666B78;
+                    margin-bottom: 16px;
+                    text-align: center;
+                }
+
+                .btl-upload-progress-container {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    max-width: 270px;
+                    margin: auto;
+
+                    .btl-upload-progress-bar {
+                        flex: 1;
+                        height: 8px;
+                        background: #f3f4f6;
+                        border-radius: 10px;
+                        overflow: hidden;
+                        position: relative;
+
+                        .btl-upload-progress-fill {
+                            height: 100%;
+                            background: #3b82f6;
+                            border-radius: 3px;
+                            transition: width 0.3s ease;
+                        }
+                    }
+
+                    .btl-upload-progress-percentage {
+                        font-size: 14px;
+                        font-weight: 600;
+                        color: #374151;
+                        min-width: 30px;
+                    }
+                }
+            }
+
+            .btl-change-file {
+                background: none;
+                border: none;
+                color: #3b82f6;
+                font-size: 14px;
+                cursor: pointer;
+                padding: 0;
+
+                &:hover {
+                    color: #2563eb;
+                }
+            }
+        }
+
+        .btl-file-placeholder {
+            margin-bottom: 12px;
+            .btl-file-text {
+                font-weight: 600;
+                font-size: 16px;
+                line-height: 140%;
+                text-align: center;
+            }
+            .btl-file-c-text {
+                color: #114BEE;
+            }
+        }
+        /* File info section */
+        .btl-file-info {
+            font-size: 14px;
+            line-height: 140%;
+            text-align: center;
+            color: #666B78;
+        }
+    }
+
+    /* Sample format section */
+    .btl-sample-format {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px;
+        background: #F1FBF4;
+        border-radius: 12px;
+        margin-bottom: 32px;
+        border: 1px solid #e2e8f0;
+
+        .btl-sample-icon {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            background: #FFFFFF;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            i {
+                color: #fff;
+                font-size: 20px;
+            }
+        }
+
+        .btl-sample-content {
+            flex: 1;
+
+            h4 {
+                font-size: 16px;
+                font-weight: 600;
+                color: #1f2937;
+                margin: 0 0 4px 0;
+            }
+
+            p {
+                font-size: 14px;
+                color: #6b7280;
+                margin: 0;
+                line-height: 1.4;
+            }
+        }
+
+        .btl-sample-download {
+            background: #FFFFFF;
+            border: 1px solid #E6F6EA;
+            padding: 12px;
+            cursor: pointer;
+            color: #10b981;
+            border-radius: 6.4px;
+            transition: all 0.2s ease;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            border-width: 1px;
+
+            &:hover {
+                background: #f0fdf4;
+            }
+
+            i {
+                font-size: 16px;
+            }
+        }
+    }
+
+    /* Import options */
+    .btl-import-options {
+        .btl-checkbox-field {
+            display: flex;
+            align-items: flex-start;
+            gap: 6px;
+            width: fit-content;
+
+            input[type="checkbox"] {
+                margin-top: 2px;
+            }
+
+            .text {
+                font-size: 14px;
+                color: #6b7280;
+            }
+        }
+    }
+
+    /* File error */
+    .btl-file-error {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 8px;
+        color: #dc2626;
+        margin-bottom: 24px;
+
+        i {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .btl-error-dismiss {
+            background: none;
+            border: none;
+            color: #dc2626;
+            cursor: pointer;
+            padding: 4px;
+            margin-left: auto;
+            border-radius: 4px;
+
+            &:hover {
+                background: #fee2e2;
+            }
+        }
+    }
+}
+
+/* Progress Step */
+.btl-import-progress-step {
+    text-align: center;
+    padding: 50px 24px;
+    background-color: #FBFCFF;
+    border-radius: 8px;
+    border: 1px solid #E8EDF8;
+
+    .btl-progress-arc-container {
+        position: relative;
+        display: inline-block;
+
+        .btl-progress-arc {
+            display: block;
+            margin: 0 auto;
+        }
+
+        .btl-progress-arc-background {
+            opacity: 1;
+        }
+
+        .btl-progress-arc-progress {
+            transition: stroke-dashoffset 0.5s ease-in-out;
+            transform-origin: center;
+        }
+
+        .btl-progress-percentage {
+            position: absolute;
+            bottom: 7px;
+            left: 37px;
+            transform: translateX(-50%);
+            color: #1D2939;
+            font-weight: 600;
+            font-size: 14px;
+            line-height: 140%;
+        }
+    }
+
+    .btl-ie-progress-message {
+        color: #1D2939;
+        font-weight: 600;
+        font-size: 16px;
+        line-height: 140%;
+        text-align: center;
+
+    }
+    .btl-ie-progress-warning{
+        font-size: 14px;
+        line-height: 140%;
+        text-align: center;
+        color: #475467;
+        width: 205px;
+        margin: 12px auto;
+    }
+}
+
+/* Success Step */
+.btl-import-success-step {
+    text-align: center;
+    padding: 48px 24px;
+
+    .btl-success-icon {
+        margin-bottom: 24px;
+
+        i {
+            font-size: 32px;
+            color: #fff;
+        }
+    }
+
+    .btl-success-content {
+        .btl-success-title {
+            font-weight: 600;
+            font-size: 16px;
+            line-height: 130%;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .btl-success-sub-title {
+            font-size: 12px;
+            line-height: 140%;
+            text-align: center;
+            color: #6b7280;
+        }
+
+        .btl-success-details {
+            margin-bottom: 32px;
+            font-size: 12px;
+            color: #6b7280;
+            margin: auto;
+            width: 286px;
+        }
+    }
+
+    .btl-import-summary {
+        display: flex;
+        justify-content: center;
+        text-align: center;
+        background: #FBFCFF;
+        border: 1px solid #F1F4FD;
+        opacity: 1;
+        border-radius: 8px;
+        gap: 16px;
+        padding: 16px;
+        max-width: 255px;
+        margin: auto;
+        margin-top: 16px;
+        margin-bottom: 12px;
+
+        @media screen and (max-width: 480px) {
+            gap: 40px;
+        }
+
+        .btl-summary-item {
+            display: flex;
+            flex-direction: row;
+            gap: 8px;
+            align-items: center;
+            font-weight: 400;
+            font-size: 14px;
+            line-height: 130%;
+            letter-spacing: 0%;
+
+            .btl-summary-label {
+                font-size: 14px;
+                color: #6b7280;
+                font-weight: 400;
+            }
+
+            .btl-summary-value {
+                font-weight: 600;
+                color: #114BEE;
+                line-height: 1;
+            }
+        }
+    }
+}
+
+/* Error Step */
+
+/* Modal footer */
+ .btl-import-export-buttons {
+     .btl-btn {
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+        width: fit-content;
+
+        @media screen and (max-width: 768px) {
+            width: 100%;
+            justify-content: center;
+        }
+
+        &.btl-btn-secondary {
+            background: #fff;
+            color: #3669F6;
+            border-color: #3669F6;
+
+            &:hover:not(:disabled) {
+                background: #f9fafb;
+                border-color: #9ca3af;
+                color: #374151;
+            }
+        }
+    }
+ }
+ .btl-import-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 24px 32px;
+    border-top: 1px solid #f3f4f6;
+    background: #fff;
+
+    @media screen and (max-width: 768px) {
+        padding: 20px;
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+
+    .btl-btn {
+        padding: 12px 32px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+        min-width: 120px;
+
+        @media screen and (max-width: 768px) {
+            width: 100%;
+            justify-content: center;
+        }
+
+        &.btl-btn-secondary {
+            background: #fff;
+            color: #3669F6;
+            border-color: #3669F6;
+
+            &:hover:not(:disabled) {
+                background: #f9fafb;
+                border-color: #9ca3af;
+                color: #374151;
+            }
+        }
+
+        &.btl-btn-primary {
+            background: #114BEE;
+            border-color: #3b82f6;
+            color: #fff;
+
+            &:hover:not(:disabled) {
+                background: #2563eb;
+                border-color: #2563eb;
+            }
+
+            &:disabled {
+                background: #B0B2BA;
+                border-color: #d1d5db;
+                color: #FFFFFF;
+                cursor: not-allowed;
+            }
+        }
+    }
+}
+
+/* Upload Progress Styles */
+.btl-upload-progress-step {
+    padding: 32px 24px;
+    text-align: center;
+
+    .btl-upload-file-info {
+        margin-bottom: 32px;
+
+        .btl-upload-file-details {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 8px;
+
+            .btl-upload-file-name {
+                font-size: 16px;
+                font-weight: 600;
+                color: #1D2939;
+            }
+
+            .btl-upload-file-size {
+                font-size: 14px;
+                color: #6b7280;
+            }
+        }
+
+        .btl-upload-message {
+            font-size: 14px;
+            color: #6b7280;
+        }
+    }
+
+    .btl-upload-progress-container {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        max-width: 270px;
+        margin: auto;
+
+        .btl-upload-progress-bar {
+            flex: 1;
+            height: 8px;
+            background: #f3f4f6;
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+
+            .btl-upload-progress-fill {
+                height: 100%;
+                background: #3b82f6;
+                border-radius: 4px;
+                transition: width 0.3s ease;
+            }
+        }
+
+        .btl-upload-progress-percentage {
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            min-width: 35px;
+        }
+    }
+}
+
+/* Dark Mode Support */
+body.betterlinks-dark-mode {
+    .btl-import-modal-overlay {
+        background: rgba(0, 0, 0, 0.8) !important;
+    }
+
+    .btl-import-modal-content {
+        background: #1f283d !important;
+    }
+
+    .btl-import-modal-wrapper {
+        background: #1f283d;
+    }
+
+    .btl-import-modal-header {
+        background: #1f283d;
+        border-bottom-color: #374151;
+
+        .btl-import-modal-title {
+            color: #f9fafb;
+        }
+
+        .btl-close-modal {
+            color: #9ca3af !important;
+
+            &:hover {
+                background: #374151;
+                color: #f3f4f6;
+            }
+        }
+    }
+
+    .btl-import-modal-body {
+        .btl-file-note {
+            color: #d1d5db;
+
+            a {
+                color: $dark-mode-link;
+            }
+        }
+    }
+
+    .btl-import-upload-step {
+        .btl-file-drop-zone {
+            border-color: #4b5563;
+            background-color: #374151 !important;
+
+            &:hover,
+            &.btl-drag-over {
+                border-color: $dark-mode-link;
+                background: #4b5563;
+            }
+
+            &.btl-error-state {
+                border-color: #ef4444;
+                background: #7f1d1d;
+            }
+
+            .btl-file-selected {
+                .btl-file-name {
+                    color: #f9fafb;
+                }
+
+                .btl-upload-progress-inline {
+                    .btl-upload-message {
+                        color: #d1d5db;
+                    }
+
+                    .btl-upload-progress-container {
+                        .btl-upload-progress-bar {
+                            background: #4b5563;
+
+                            .btl-upload-progress-fill {
+                                background: $dark-mode-link;
+                            }
+                        }
+
+                        .btl-upload-progress-percentage {
+                            color: #f3f4f6;
+                        }
+                    }
+                }
+
+                .btl-change-file {
+                    color: $dark-mode-link;
+
+                    &:hover {
+                        color: #93c5fd;
+                    }
+                }
+            }
+
+            .btl-file-placeholder {
+                .btl-file-text {
+                    color: #d1d5db;
+                }
+
+                .btl-file-c-text {
+                    color: $dark-mode-link;
+                }
+            }
+
+            .btl-file-info {
+                color: #9ca3af;
+            }
+        }
+
+        .btl-sample-format {
+            background: #374151;
+            border-color: #4b5563;
+
+            .btl-sample-content {
+                h4 {
+                    color: #f9fafb;
+                }
+
+                p {
+                    color: #d1d5db;
+                }
+            }
+
+            .btl-sample-download {
+                background: #4b5563;
+                border-color: #6b7280;
+                color: #10b981;
+
+                &:hover {
+                    background: #6b7280;
+                }
+            }
+        }
+
+        .btl-import-options {
+            .btl-checkbox-field {
+                .text {
+                    color: #d1d5db;
+                }
+
+                .btl-tooltip {
+                    .dashicons {
+                        color: #9ca3af;
+                    }
+
+                    .btl-tooltiptext {
+                        background: #374151;
+                        color: #f9fafb;
+                        border-color: #4b5563;
+                    }
+                }
+            }
+        }
+    }
+
+    .btl-import-progress-step {
+        background-color: #374151;
+        border-color: #4b5563;
+
+        .btl-ie-progress-message {
+            color: #f9fafb;
+        }
+
+        .btl-ie-progress-warning {
+            color: #d1d5db;
+        }
+
+        .btl-progress-percentage {
+            color: #f9fafb;
+        }
+    }
+
+    .btl-import-success-step {
+        .btl-success-content {
+            .btl-success-title {
+                color: #f9fafb;
+            }
+
+            .btl-success-sub-title {
+                color: #d1d5db;
+            }
+
+            .btl-success-details {
+                color: #9ca3af;
+            }
+        }
+
+        .btl-import-summary {
+            background: #374151;
+            border-color: #4b5563;
+
+            .btl-summary-item {
+                .btl-summary-label {
+                    color: #d1d5db;
+                }
+
+                .btl-summary-value {
+                    color: $dark-mode-link;
+                }
+            }
+        }
+    }
+
+    .btl-import-error-step {
+        .btl-error-content {
+            h3 {
+                color: #f9fafb;
+            }
+
+            p {
+                color: #d1d5db;
+            }
+        }
+    }
+
+    .btl-import-modal-footer {
+        background: #1f283d;
+        border-top-color: #374151;
+
+        .btl-btn {
+            &.btl-btn-secondary {
+                background: #374151;
+                color: $dark-mode-link;
+                border-color: $dark-mode-link;
+
+                &:hover:not(:disabled) {
+                    background: #4b5563;
+                    border-color: #93c5fd;
+                    color: #93c5fd;
+                }
+            }
+
+            &.btl-btn-primary {
+                background: $dark-mode-link;
+                border-color: $dark-mode-link;
+                color: #fff;
+
+                &:hover:not(:disabled) {
+                    background: #3b82f6;
+                    border-color: #3b82f6;
+                }
+
+                &:disabled {
+                    background: #6b7280;
+                    border-color: #6b7280;
+                    color: #9ca3af;
+                }
+            }
+        }
+    }
+}

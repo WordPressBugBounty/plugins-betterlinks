@@ -1,0 +1,21 @@
+.btl-migration-logs {
+	margin-top: 20px;
+	width: 100%;
+	height: 180px;
+	padding: 8px 12px 8px 12px;
+	gap: 6px;
+	border-radius: 8px;
+	border: 1px 0px 0px 0px;
+	background: rgba(240, 242, 247, 1);
+	display: flex;
+	color: black;
+	flex-direction: column;
+	box-sizing: border-box;
+	overflow-y: auto;
+
+	.btl-migration-logs__item {
+		> * {
+			display: block;
+		}
+	}
+}

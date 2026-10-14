@@ -1,0 +1,362 @@
+.ReactModal__Content {
+	background-color: #252f47 !important;
+	border-color: #36405a !important;
+
+	h2,
+	h4 {
+		color: #fff;
+	}
+
+	.btl-close-modal {
+		color: $white;
+	}
+
+	.btl-entry-content {
+		.btl-entry-content-right {
+			.light-tooltip {
+				background: #536082;
+				color: $white;
+
+				&::after {
+					border-top-color: #536082;
+				}
+			}
+
+			.link-options {
+				border-color: #202b42;
+
+				&__head {
+					border-color: #202b42;
+
+					&--title {
+						color: $white;
+					}
+
+					i {
+						color: #fff;
+					}
+				}
+
+				&__body {
+					.btl-checkbox-field {
+						.text {
+							span.dashicons.dashicons-info-outline {
+								color: #818caa;
+							}
+						}
+					}
+				}
+			}
+
+			.link-options--advance-keyword,
+			.link-options--advanced {
+				.btl-modal-form-group {
+
+					.btl-modal-form-label {
+						color: #b2b3bd;
+					}
+
+					input[type='number'],
+					input[type='password'],
+					input[type='text'],
+					textarea,
+					button {
+						background: #36405a;
+						color: #fff;
+						border-color: #36405a;
+
+						&:focus {
+							background: #36405a;
+							box-shadow: 0 10px 15px rgba(#1a163d, 0.06);
+						}
+
+						&::placeholder {
+							color: #b0b2ba;
+						}
+					}
+
+					button:hover {
+						background: #272f43;
+						color: $white;
+					}
+
+					select {
+						background-color: #36405a !important;
+						border-color: #36405a !important;
+						color: #fff;
+
+						&:focus {
+							border-color: #ebebeb;
+							box-shadow: none;
+							outline: none;
+						}
+					}
+
+					.MuiFormControl-root {
+						.MuiInputBase-root {
+							input {
+								background: #36405a;
+								color: #fff;
+								border-color: #36405a;
+
+								&:focus {
+									background: #36405a;
+									box-shadow: 0 10px 15px rgba(#1a163d, 0.06);
+								}
+
+								&::placeholder {
+									color: #b0b2ba;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	.btl-modal-form-group {
+		.btl-modal-form-label {
+			color: $white;
+
+			&.btl-required {
+				&:after {
+					color: $danger;
+				}
+			}
+		}
+	}
+
+	textarea.btl-modal-form-control,
+	input.btl-modal-form-control {
+		background: #36405a;
+		color: $white;
+		border-color: #36405a;
+
+		&:focus {
+			background: #36405a;
+			box-shadow: 0 10px 15px rgba(#1a163d, 0.06);
+		}
+
+		&::placeholder {
+			color: $secondary-lighten;
+		}
+	}
+
+	.btl-modal-migration {
+		&__title {
+			color: #fff;
+		}
+
+		&__sub-title {
+			color: #fff;
+		}
+
+		label {
+			color: #fff;
+		}
+
+		h3 {
+			color: #fff;
+		}
+
+		#response {
+			color: #fff;
+		}
+	}
+
+	.btl-modal-select--mini,
+	.btl-modal-select {
+		.btl-react-select__control {
+			background-color: #36405a !important;
+			border-color: #36405a !important;
+
+			.btl-react-select__value-container {
+				.btl-react-select__single-value {
+					color: $white;
+				}
+
+				.btl-react-select__input {
+					input {
+						color: $white !important;
+					}
+				}
+			}
+
+			&.btl-react-select__control--is-focused {
+				background-color: #36405a !important;
+			}
+
+			.btl-react-select__placeholder {
+				color: $white;
+			}
+		}
+
+		.btl-react-select__multi-value {
+			background: #252f47 !important;
+
+			.btl-react-select__multi-value__label {
+				color: $white !important;
+			}
+
+			.btl-react-select__multi-value__remove {
+				svg {
+					color: $white;
+				}
+
+				&:hover {
+					svg {
+						color: red;
+					}
+				}
+			}
+		}
+
+		.btl-react-select__indicators {
+			.btl-react-select__indicator-separator {
+				background-color: #666182;
+			}
+
+			.btl-react-select__indicator {
+				color: $white;
+			}
+		}
+	}
+
+	.btl-link-field-copyable {
+		background: #36405a;
+		border: 1px solid #36405a;
+
+		.btl-dynamic-link {
+			color: $white;
+		}
+
+		.btl-link-copy-button {
+			color: #bccbee;
+
+			&:hover {
+				color: $white;
+			}
+		}
+
+		&:focus-within {
+			background: #36405a;
+		}
+	}
+
+	.btl-checkbox-field {
+		.text {
+			color: #b2b3bd;
+
+			&:before {
+				color: #9596b1;
+			}
+		}
+	}
+
+	.btl-modal-submit-button {
+		height: 50px;
+		background: linear-gradient(202deg, #2961ff 0%, #003be2 100%);
+		color: $white;
+
+		&:hover {
+			box-shadow: 0 22px 42px rgba(#003be2, 0.18);
+		}
+	}
+
+	.btl-utm-button,
+	.btl-share-button {
+		color: $white !important;
+		border-color: $white !important;
+
+		// Dark mode support for UTM button states
+		&.btl-utm-button--applied {
+			color: #28a745 !important;
+			border-color: #28a745 !important;
+			background: rgba(40, 167, 69, 0.15) !important;
+		}
+	}
+
+	// Dark mode badge styling
+	.btl-utm-badge {
+		background: #28a745 !important;
+		border-color: #36405a !important; // Dark background color for border
+
+		svg {
+			color: #ffffff !important;
+			stroke: #ffffff !important;
+		}
+	}
+
+	.link-options .link-options-info .btl-block-code {
+		background: #36405a;
+		color: #fff;
+	}
+
+	.link-options--advanced .link-options__body .btl-block-code {
+		color: #fff;
+	}
+
+	.btl-entry-content .btl-entry-content-right .link-options__body {
+		border-top-color: #000;
+	}
+
+	.link-options--dynamic-redirect .link-options-info ul li {
+		color: #fff;
+
+		strong {
+			color: #fff;
+		}
+	}
+
+	.link-options--dynamic-redirect .link-options-info ul li .btl-add-link-button .text {
+		color: #fff;
+	}
+
+	.link-modal-options__dynamic-redirects .btl-modal-form-group .btl-add-link-button .text {
+		color: #fff;
+	}
+
+	.btl-qrcode-modal .btl-qrcode-modal__note {
+		color: #fff;
+	}
+}
+
+.btl-modal-utm-builder {
+	.btl-modal-utm-builder__title {
+		color: $white;
+	}
+
+	.btl-modal-utm-builder__body {
+		.btl-modal-utm-builder__form-group {
+			>label {
+				color: #fff;
+			}
+
+			textarea,
+			input[type='text'] {
+				background: #36405a;
+				color: $white;
+				border-color: #36405a;
+
+				&:focus {
+					background: #36405a;
+					box-shadow: 0 10px 15px rgba(#1a163d, 0.06);
+				}
+
+				&::placeholder {
+					color: $secondary-lighten;
+				}
+			}
+		}
+	}
+}
+
+#savedtemplate {
+	border-color: $success !important;
+	color: $white !important;
+}
+
+.pro-badge-new>svg {
+	fill: #252525;
+}

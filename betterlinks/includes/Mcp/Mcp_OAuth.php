@@ -16,7 +16,7 @@
  * Security contract:
  *   - PKCE S256 REQUIRED (OAuth 2.1 public clients); codes are single-use,
  *     60 s TTL, bound to client_id + redirect_uri + challenge.
- *   - /authorize gates on manage_options — only an admin can grant access.
+ *   - /authorize gates on Mcp_Access — administrators, plus roles Pro grants MCP.
  *   - Access/refresh tokens stored only as SHA-256 hashes; the raw value
  *     exists solely in the /token response. Constant-time comparison.
  *   - Tokens carry the read/write scope model; a read-only grant refuses
@@ -73,6 +73,13 @@ final class Mcp_OAuth {
 	 * MCP call into a database write.
 	 */
 	private const LAST_USED_THROTTLE = 60;
+
+	/**
+	 * How long an app may stay silent after signing in before the connection
+	 * health test reports it as unreached. A real client makes its first MCP
+	 * call within seconds of the token exchange.
+	 */
+	private const UNREACHED_GRACE = 300;
 
 	/**
 	 * How many registered clients to keep. RFC 7591 registration is open by
@@ -431,7 +438,7 @@ final class Mcp_OAuth {
 			return self::oauth_error( 'invalid_grant', 'PKCE verification failed.' );
 		}
 
-		return self::mint_tokens( (string) $entry['client_id'], (string) $entry['scope'], (int) $entry['user_id'] );
+		return self::mint_tokens( (string) $entry['client_id'], (string) $entry['scope'], (int) $entry['user_id'], true );
 	}
 
 	/**
@@ -471,18 +478,25 @@ final class Mcp_OAuth {
 	 * Mint an access + refresh token pair, store them hashed, and return
 	 * the RFC 6749 token response with the raw values.
 	 *
-	 * @param string $client_id Client id.
-	 * @param string $scope     Granted scope string.
-	 * @param int    $user_id   Resource-owner user id.
+	 * @param string $client_id  Client id.
+	 * @param string $scope      Granted scope string.
+	 * @param int    $user_id    Resource-owner user id.
+	 * @param bool   $authorized True when an admin has just approved this client
+	 *                           (authorization_code grant), as opposed to a refresh.
 	 * @return array<string,mixed>
 	 */
-	private static function mint_tokens( string $client_id, string $scope, int $user_id ): array {
+	private static function mint_tokens( string $client_id, string $scope, int $user_id, bool $authorized = false ): array {
 		$access  = bin2hex( random_bytes( 32 ) );
 		$refresh = bin2hex( random_bytes( 32 ) );
 		$ahash   = self::hash( $access );
 		$rhash   = self::hash( $refresh );
 
-		$state                      = self::state();
+		$state = self::state();
+		// When the app signed in, so the health test can tell an app that never
+		// reached the endpoint afterwards (see unreached_apps()).
+		if ( $authorized && isset( $state['clients'][ $client_id ] ) && is_array( $state['clients'][ $client_id ] ) ) {
+			$state['clients'][ $client_id ]['authorized_at'] = time();
+		}
 		$state['tokens'][ $ahash ]  = [
 			'client_id' => $client_id,
 			'scope'     => $scope,
@@ -538,8 +552,11 @@ final class Mcp_OAuth {
 		$client_id = (string) $entry['client_id'];
 		$now       = time();
 		if ( isset( $state['clients'][ $client_id ] ) && is_array( $state['clients'][ $client_id ] ) ) {
-			$last = isset( $state['clients'][ $client_id ]['last_used'] ) ? (int) $state['clients'][ $client_id ]['last_used'] : 0;
-			if ( $now - $last >= self::LAST_USED_THROTTLE ) {
+			$last       = isset( $state['clients'][ $client_id ]['last_used'] ) ? (int) $state['clients'][ $client_id ]['last_used'] : 0;
+			$authorized = isset( $state['clients'][ $client_id ]['authorized_at'] ) ? (int) $state['clients'][ $client_id ]['authorized_at'] : 0;
+			// The first call after a (re)authorization always writes, or a client
+			// reconnected within the throttle window would look unreached.
+			if ( $now - $last >= self::LAST_USED_THROTTLE || $last < $authorized ) {
 				$state['clients'][ $client_id ]['last_used'] = $now;
 				self::save( $state );
 			}
@@ -582,18 +599,23 @@ final class Mcp_OAuth {
 	 * only registered but never completed consent is excluded. One entry per
 	 * client_id, newest connection first.
 	 *
-	 * @return array<int,array{client_id:string,name:string,scope:string,read_only:bool,user_id:int,connected_at:int,last_used:int}>
+	 * @param int $only_user When set, list only the grants this user approved.
+	 * @return array<int,array{client_id:string,name:string,scope:string,read_only:bool,user_id:int,connected_at:int,last_used:int,authorized_at:int}>
 	 */
-	public static function connected_apps(): array {
+	public static function connected_apps( int $only_user = 0 ): array {
 		$state = self::state();
 
 		// Collect the scope + approving user per active client. Refresh tokens
 		// are the durable grant, so prefer them; fall back to access tokens.
+		// With $only_user, grants approved by anyone else are left out entirely.
 		$active = [];
 		foreach ( [ 'refresh', 'tokens' ] as $bucket ) {
 			foreach ( $state[ $bucket ] as $entry ) {
 				$cid = isset( $entry['client_id'] ) ? (string) $entry['client_id'] : '';
 				if ( '' === $cid || isset( $active[ $cid ] ) ) {
+					continue;
+				}
+				if ( $only_user > 0 && ( ! isset( $entry['user_id'] ) || (int) $entry['user_id'] !== $only_user ) ) {
 					continue;
 				}
 				$active[ $cid ] = [
@@ -607,13 +629,15 @@ final class Mcp_OAuth {
 		foreach ( $active as $cid => $info ) {
 			$client = isset( $state['clients'][ $cid ] ) && is_array( $state['clients'][ $cid ] ) ? $state['clients'][ $cid ] : [];
 			$apps[] = [
-				'client_id'    => $cid,
-				'name'         => isset( $client['name'] ) ? (string) $client['name'] : __( 'MCP Client', 'betterlinks' ),
-				'scope'        => $info['scope'],
-				'read_only'    => self::scope_is_read_only( $info['scope'] ),
-				'user_id'      => $info['user_id'],
-				'connected_at' => isset( $client['created'] ) ? (int) $client['created'] : 0,
-				'last_used'    => isset( $client['last_used'] ) ? (int) $client['last_used'] : 0,
+				'client_id'     => $cid,
+				'name'          => isset( $client['name'] ) ? (string) $client['name'] : __( 'MCP Client', 'betterlinks' ),
+				'scope'         => $info['scope'],
+				'read_only'     => self::scope_is_read_only( $info['scope'] ),
+				'user_id'       => $info['user_id'],
+				'connected_at'  => isset( $client['created'] ) ? (int) $client['created'] : 0,
+				'last_used'     => isset( $client['last_used'] ) ? (int) $client['last_used'] : 0,
+				// 0 for grants made before this was recorded.
+				'authorized_at' => isset( $client['authorized_at'] ) ? (int) $client['authorized_at'] : 0,
 			];
 		}
 
@@ -626,6 +650,87 @@ final class Mcp_OAuth {
 		);
 
 		return $apps;
+	}
+
+	/**
+	 * Connected apps that signed in but never made an MCP call afterwards.
+	 *
+	 * The only signal BetterLinks gets from outside its own server: when a
+	 * host-level "AI bot blocker" or a firewall refuses the AI vendor, the
+	 * consent and token exchange still succeed (they run through the admin's
+	 * browser and a single server-to-server call), but the app's MCP requests
+	 * never arrive. A loopback test cannot see that.
+	 *
+	 * - Only grants with a recorded sign-in time are measured; older grants
+	 *   are skipped rather than guessed at.
+	 * - An app is given UNREACHED_GRACE seconds after signing in.
+	 * - A silent app is ignored when an app of the same name has made calls
+	 *   since it signed in: those are grants left behind by earlier attempts.
+	 *
+	 * @param int $only_user When set, measure only the grants this user approved.
+	 * @return array{unreached:array<int,array{client_id:string,name:string,authorized_at:int}>,reached:int}|null
+	 *         Null when no connected app could be measured.
+	 */
+	public static function unreached_apps( int $only_user = 0 ): ?array {
+		$apps    = self::connected_apps( $only_user );
+		$clients = self::state()['clients'];
+		// For one user, compare only against that user's own grants, so other
+		// people's apps are neither reported to them nor used to excuse theirs.
+		if ( $only_user > 0 ) {
+			$clients = array_intersect_key( $clients, array_flip( array_column( $apps, 'client_id' ) ) );
+		}
+		$now       = time();
+		$measured  = false;
+		$reached   = 0;
+		$unreached = [];
+
+		foreach ( $apps as $app ) {
+			$authorized = $app['authorized_at'];
+			if ( $authorized <= 0 ) {
+				continue;
+			}
+			if ( $app['last_used'] >= $authorized ) {
+				$measured = true;
+				$reached++;
+				continue;
+			}
+			if ( $now - $authorized < self::UNREACHED_GRACE ) {
+				continue;
+			}
+			$measured = true;
+
+			$superseded = false;
+			foreach ( $clients as $cid => $client ) {
+				if (
+					(string) $cid !== $app['client_id']
+					&& is_array( $client )
+					&& isset( $client['name'] )
+					&& 0 === strcasecmp( trim( (string) $client['name'] ), trim( $app['name'] ) )
+					&& isset( $client['last_used'] )
+					&& (int) $client['last_used'] >= $authorized
+				) {
+					$superseded = true;
+					break;
+				}
+			}
+			if ( $superseded ) {
+				continue;
+			}
+
+			$unreached[] = [
+				'client_id'     => $app['client_id'],
+				'name'          => $app['name'],
+				'authorized_at' => $authorized,
+			];
+		}
+
+		if ( ! $measured ) {
+			return null;
+		}
+		return [
+			'unreached' => $unreached,
+			'reached'   => $reached,
+		];
 	}
 
 	/**
@@ -643,9 +748,10 @@ final class Mcp_OAuth {
 	 * (and mints brand-new tokens), so revocation loses nothing.
 	 *
 	 * @param string $client_id The client whose access to revoke.
+	 * @param int    $only_user When set, remove only the grants this user approved.
 	 * @return bool True if any live grant was removed.
 	 */
-	public static function revoke_client( string $client_id ): bool {
+	public static function revoke_client( string $client_id, int $only_user = 0 ): bool {
 		if ( '' === $client_id ) {
 			return false;
 		}
@@ -654,6 +760,9 @@ final class Mcp_OAuth {
 
 		foreach ( [ 'tokens', 'refresh', 'codes' ] as $bucket ) {
 			foreach ( $state[ $bucket ] as $key => $entry ) {
+				if ( $only_user > 0 && ( ! isset( $entry['user_id'] ) || (int) $entry['user_id'] !== $only_user ) ) {
+					continue;
+				}
 				if ( isset( $entry['client_id'] ) && (string) $entry['client_id'] === $client_id ) {
 					unset( $state[ $bucket ][ $key ] );
 					$removed = true;
@@ -662,6 +771,87 @@ final class Mcp_OAuth {
 		}
 
 		if ( $removed ) {
+			self::save( $state );
+		}
+		return $removed;
+	}
+
+	/**
+	 * End every grant whose user may no longer use MCP.
+	 *
+	 * Refusing those grants at request time is not enough: if MCP were given
+	 * back to the role before the app's next request, the old connection would
+	 * quietly work again. Deleting them means a user who lost MCP connects
+	 * again, with fresh consent, if they ever get it back. Called after Role
+	 * Management saves, when an administrator opens the apps list, and on any
+	 * refused request. See #127.
+	 *
+	 * @return int Number of grants removed (access tokens, refresh tokens, codes).
+	 */
+	public static function revoke_unauthorized(): int {
+		return self::revoke_where(
+			static function ( int $user_id ): bool {
+				return ! Mcp_Access::user_can( $user_id );
+			}
+		);
+	}
+
+	/**
+	 * End every grant approved by someone who is not an administrator.
+	 *
+	 * For when BetterLinks Pro is being deactivated: at that moment its filter
+	 * is still loaded and would still vouch for the roles it granted, so the
+	 * usual check cannot be trusted.
+	 *
+	 * @return int Number of grants removed.
+	 */
+	public static function revoke_non_admins(): int {
+		return self::revoke_where(
+			static function ( int $user_id ): bool {
+				return ! Mcp_Access::is_admin( $user_id );
+			}
+		);
+	}
+
+	/**
+	 * End every grant one user approved.
+	 *
+	 * @param int $user_id The user.
+	 * @return int Number of grants removed.
+	 */
+	public static function revoke_user( int $user_id ): int {
+		return self::revoke_where(
+			static function ( int $grant_user ) use ( $user_id ): bool {
+				return $grant_user === $user_id;
+			}
+		);
+	}
+
+	/**
+	 * Remove access tokens, refresh tokens and codes whose user matches.
+	 *
+	 * @param callable $should_revoke Receives the grant's user id.
+	 * @return int Number of entries removed.
+	 */
+	private static function revoke_where( callable $should_revoke ): int {
+		$state   = self::state();
+		$removed = 0;
+		$verdict = [];
+
+		foreach ( [ 'tokens', 'refresh', 'codes' ] as $bucket ) {
+			foreach ( $state[ $bucket ] as $key => $entry ) {
+				$uid = isset( $entry['user_id'] ) ? (int) $entry['user_id'] : 0;
+				if ( ! isset( $verdict[ $uid ] ) ) {
+					$verdict[ $uid ] = (bool) $should_revoke( $uid );
+				}
+				if ( $verdict[ $uid ] ) {
+					unset( $state[ $bucket ][ $key ] );
+					++$removed;
+				}
+			}
+		}
+
+		if ( $removed > 0 ) {
 			self::save( $state );
 		}
 		return $removed;

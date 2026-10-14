@@ -1,0 +1,337 @@
+// ==========================================================================
+// QR Code — share modal (centered dialog, portaled to <body>, so these rules
+// live at root level). Mirrors `_term-modal.scss`.
+// ==========================================================================
+$qr-border: #e6e8ee;
+$qr-text: #1a2233;
+$qr-muted: #6b7280;
+$qr-blue: #2f6bff;
+$qr-blue-dark: #1f57e6;
+$qr-surface: #f7f8fa;
+
+.bl-qr-modal {
+	width: 420px;
+	max-width: calc(100vw - 40px);
+	display: flex;
+	flex-direction: column;
+	background: #fff;
+	border-radius: 16px;
+	overflow: hidden;
+	box-shadow: 0 24px 60px rgba(15, 20, 30, 0.25);
+	color: $qr-text;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	// ---- Header ----------------------------------------------------------
+	&__header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 20px 22px;
+		border-bottom: 1px solid $qr-border;
+	}
+	&__heading {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		min-width: 0;
+	}
+	&__badge {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 42px;
+		height: 42px;
+		border-radius: 11px;
+		background: rgba($qr-blue, 0.1);
+		color: $qr-blue;
+	}
+	&__heading-text {
+		min-width: 0;
+	}
+	&__title {
+		margin: 0;
+		font-size: 18px;
+		font-weight: 700;
+		line-height: 1.2;
+		color: $qr-text;
+	}
+	&__subtitle {
+		margin: 2px 0 0;
+		font-size: 12px;
+		color: $qr-muted;
+	}
+	&__close {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		padding: 0;
+		border: 1px solid $qr-border;
+		border-radius: 9px;
+		background: #fff;
+		color: $qr-muted;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		&:hover {
+			color: $qr-text;
+			background: $qr-surface;
+			border-color: rgba($qr-muted, 0.4);
+		}
+	}
+
+	// ---- Body ------------------------------------------------------------
+	&__body {
+		padding: 24px 22px 22px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 16px;
+	}
+	// Framed QR — the canvas is rendered inside at 220px.
+	&__canvas {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 16px;
+		background: #fff;
+		border: 1px solid $qr-border;
+		border-radius: 14px;
+		box-shadow: 0 4px 14px rgba(15, 20, 30, 0.06);
+
+		canvas,
+		img,
+		svg {
+			display: block;
+			width: 220px;
+			height: 220px;
+		}
+	}
+
+	// Short-URL pill + copy button
+	&__url {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		width: 100%;
+		padding: 6px 6px 6px 12px;
+		border: 1px solid $qr-border;
+		border-radius: 10px;
+		background: $qr-surface;
+	}
+	&__url-text {
+		flex: 1;
+		min-width: 0;
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 12px;
+		color: #3a465a;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	&__copy {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		height: 32px;
+		padding: 0 12px;
+		border: 1px solid $qr-border;
+		border-radius: 8px;
+		background: #fff;
+		color: $qr-muted;
+		font-size: 12px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		svg {
+			display: block;
+		}
+		&:hover {
+			color: $qr-blue;
+			border-color: rgba($qr-blue, 0.5);
+			background: rgba($qr-blue, 0.05);
+		}
+		&.is-copied {
+			color: #16a34a;
+			border-color: rgba(#16a34a, 0.5);
+			background: rgba(#16a34a, 0.08);
+		}
+	}
+
+	&__note {
+		margin: 0;
+		text-align: center;
+		font-size: 12px;
+		line-height: 1.5;
+		color: $qr-muted;
+	}
+
+	// ---- Footer ----------------------------------------------------------
+	&__footer {
+		display: flex;
+		justify-content: center;
+		gap: 12px;
+		padding: 16px 22px;
+		border-top: 1px solid $qr-border;
+		background: $qr-surface;
+	}
+	&__btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		height: 44px;
+		padding: 0 20px;
+		border: 1px solid transparent;
+		border-radius: 10px;
+		font-size: 14px;
+		font-weight: 600;
+		text-decoration: none;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		svg {
+			display: block;
+		}
+		&--ghost {
+			background: #fff;
+			border-color: $qr-border;
+			color: $qr-text;
+			&:hover {
+				border-color: rgba($qr-blue, 0.5);
+				color: $qr-blue;
+			}
+		}
+		&--primary {
+			background: $qr-blue;
+			border-color: $qr-blue;
+			color: #fff;
+			box-shadow: 0 6px 16px rgba($qr-blue, 0.28);
+			&:hover {
+				background: $qr-blue-dark;
+				border-color: $qr-blue-dark;
+				color: #fff;
+			}
+		}
+	}
+}
+
+// ---- Dark mode -----------------------------------------------------------
+body.betterlinks-dark-mode .bl-qr-modal {
+	background: #2c3650;
+	color: #e5e9f2;
+
+	.bl-qr-modal__header,
+	.bl-qr-modal__footer {
+		border-color: #36405a;
+	}
+	.bl-qr-modal__footer {
+		background: #252f47;
+	}
+	.bl-qr-modal__title {
+		color: #e5e9f2;
+	}
+	.bl-qr-modal__subtitle,
+	.bl-qr-modal__note {
+		color: #9aa5bd;
+	}
+	.bl-qr-modal__badge {
+		background: rgba($qr-blue, 0.2);
+	}
+	.bl-qr-modal__close {
+		background: #252f47;
+		border-color: #36405a;
+		color: #9aa5bd;
+		&:hover {
+			color: #fff;
+		}
+	}
+	// Keep the QR itself on a white plate so scanners always read it.
+	.bl-qr-modal__canvas {
+		background: #fff;
+		border-color: #36405a;
+	}
+	.bl-qr-modal__url {
+		background: #252f47;
+		border-color: #36405a;
+	}
+	.bl-qr-modal__url-text {
+		color: #c7d0e0;
+	}
+	.bl-qr-modal__copy {
+		background: #36405a;
+		border-color: #36405a;
+		color: #c7d0e0;
+		&:hover {
+			color: #fff;
+		}
+	}
+	.bl-qr-modal__btn--ghost {
+		background: #252f47;
+		border-color: #36405a;
+		color: #e5e9f2;
+	}
+}
+
+// "Customize" upsell button (free): keep the PRO badge compact and aligned.
+.bl-qr-modal__customize {
+	.pro-badge-new {
+		display: inline-flex;
+		align-items: center;
+
+		svg {
+			width: 46px;
+			height: auto;
+		}
+	}
+}
+
+// On click the Download button (an <a>) inherits WordPress admin's `a:focus`
+// styling — dark text and a square focus ring. Scope our own focus/active
+// states under the footer so they out-specify wp-admin and keep the button
+// rounded with the correct text color.
+.bl-qr-modal .bl-qr-modal__footer .bl-qr-modal__btn {
+	&:focus,
+	&:active,
+	&:focus-visible {
+		outline: none;
+		border-radius: 10px;
+	}
+
+	&--primary {
+		&:focus,
+		&:active,
+		&:focus-visible {
+			color: #fff;
+			background: $qr-blue-dark;
+			border-color: $qr-blue-dark;
+			box-shadow: 0 6px 16px rgba($qr-blue, 0.28);
+		}
+	}
+
+	&--ghost {
+		&:focus,
+		&:active,
+		&:focus-visible {
+			color: $qr-text;
+			box-shadow: none;
+		}
+	}
+}
+
+body.betterlinks-dark-mode .bl-qr-modal .bl-qr-modal__footer .bl-qr-modal__btn--ghost {
+	&:focus,
+	&:active,
+	&:focus-visible {
+		color: #e5e9f2;
+	}
+}

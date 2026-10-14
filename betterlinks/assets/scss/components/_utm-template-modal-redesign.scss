@@ -1,0 +1,491 @@
+// ==========================================================================
+// UTM Template modal (Settings → UTM Builder → create/edit template).
+// Redesigned card in the bl-* design system — shares tokens with the per-link
+// UTM builder card (_utm-builder-redesign.scss).
+// ==========================================================================
+$blu: var(--bl-m-accent, #2f6bff);
+$blu-dark: var(--bl-m-accent-hover, #1f57e6);
+$brd: var(--bl-m-border, #e6e8ee);
+$ttl: var(--bl-m-text, #1a2233);
+$mut: var(--bl-m-muted, #6b7280);
+$foot-bg: var(--bl-m-surface-2, #f7f8fa);
+$err: var(--bl-m-danger, #ef4444);
+
+.ReactModal__Content:has(.bl-utmt) {
+	padding: 0 !important;
+	border: none !important;
+	border-radius: 16px !important;
+	overflow: visible !important;
+	background: #fff !important;
+	width: 720px !important;
+	max-width: calc(100vw - 40px) !important;
+}
+
+.bl-utmt {
+	* {
+		box-sizing: border-box;
+	}
+
+	display: flex;
+	flex-direction: column;
+	max-height: calc(100vh - 80px);
+	overflow: hidden;
+	background: var(--bl-m-surface);
+	border-radius: 16px;
+	color: $ttl;
+	font-family: inherit;
+	text-align: left;
+
+	// ---- Header ----------------------------------------------------------
+	&__header {
+		flex: none;
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 20px 22px;
+		border-bottom: 1px solid $brd;
+	}
+	&__heading {
+		display: flex;
+		align-items: flex-start;
+		gap: 12px;
+		min-width: 0;
+	}
+	&__badge {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 38px;
+		height: 38px;
+		border-radius: 10px;
+		background: var(--bl-m-accent-soft);
+		color: $blu;
+
+		svg {
+			display: block;
+		}
+	}
+	&__title {
+		margin: 0;
+		font-size: 20px;
+		font-weight: 700;
+		line-height: 1.2;
+		color: $ttl;
+	}
+	&__subtitle {
+		margin: 4px 0 0;
+		font-size: 13px;
+		font-weight: 400;
+		line-height: 1.5;
+		color: $mut;
+	}
+	&__close {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 36px;
+		height: 36px;
+		padding: 0;
+		border: 1px solid $brd;
+		border-radius: 9px;
+		background: var(--bl-m-input-bg);
+		color: $mut;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		&:hover {
+			color: $ttl;
+			background: $foot-bg;
+			border-color: var(--bl-m-muted);
+		}
+		svg {
+			display: block;
+		}
+	}
+
+	// ---- Body ------------------------------------------------------------
+	&__body {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
+		padding: 20px 22px;
+		display: flex;
+		flex-direction: column;
+		gap: 20px;
+
+		scrollbar-width: thin;
+		scrollbar-color: var(--bl-m-scroll) transparent;
+		&::-webkit-scrollbar {
+			width: 6px;
+		}
+		&::-webkit-scrollbar-thumb {
+			background: var(--bl-m-scroll);
+			border-radius: 10px;
+		}
+	}
+
+	&__field {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		min-width: 0;
+	}
+	&__label {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 14px;
+		font-weight: 700;
+		color: $ttl;
+
+		&.is-required::after {
+			content: '*';
+			color: $err;
+		}
+		.btl-tooltip {
+			display: inline-flex;
+			color: $mut;
+			font-weight: 400;
+		}
+	}
+
+	&__input {
+		width: 100%;
+		height: 46px;
+		padding: 0 14px;
+		border: 1px solid $brd;
+		border-radius: 10px;
+		background: var(--bl-m-input-bg);
+		font-size: 14px;
+		font-weight: 500;
+		color: $ttl;
+		outline: none;
+		box-shadow: none;
+		transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+		&::placeholder {
+			color: var(--bl-m-placeholder);
+			font-weight: 400;
+		}
+		&:focus {
+			border-color: $blu;
+			box-shadow: 0 0 0 3px var(--bl-m-accent-ring);
+		}
+	}
+
+	// ---- Section (UTM parameters) ----------------------------------------
+	&__section {
+		display: flex;
+		flex-direction: column;
+		gap: 14px;
+		padding-top: 18px;
+		border-top: 1px solid $brd;
+	}
+	&__section-title {
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: $mut;
+	}
+	&__grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 16px;
+
+		@media (max-width: 620px) {
+			grid-template-columns: minmax(0, 1fr);
+		}
+	}
+
+	// ---- Category stats --------------------------------------------------
+	&__stats {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 10px;
+		margin-top: 2px;
+		padding: 10px 12px;
+		border: 1px solid $brd;
+		border-radius: 10px;
+		background: $foot-bg;
+	}
+	&__stat-list {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	&__stat {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 4px 10px;
+		border: 1px solid $brd;
+		border-radius: 999px;
+		background: var(--bl-m-input-bg);
+		font-size: 12px;
+		font-weight: 500;
+		color: $mut;
+
+		strong {
+			font-size: 13px;
+			font-weight: 700;
+			color: $ttl;
+		}
+		&.is-tagged strong {
+			color: $blu;
+		}
+	}
+
+	// ---- Checkbox options -------------------------------------------------
+	&__options {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	&__option {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		padding: 12px 14px;
+		border: 1px solid $brd;
+		border-radius: 10px;
+		background: var(--bl-m-input-bg);
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		&:hover {
+			border-color: var(--bl-m-accent-border);
+		}
+		&.is-disabled {
+			opacity: 0.55;
+			cursor: not-allowed;
+
+			&:hover {
+				border-color: $brd;
+			}
+		}
+
+		// Native input stays accessible but invisible behind the custom box.
+		> input[type='checkbox'] {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			margin: 0;
+			opacity: 0;
+			pointer-events: none;
+		}
+		> input[type='checkbox']:checked + .bl-utmt__box {
+			border-color: $blu;
+			background: $blu;
+			color: #fff;
+		}
+		> input[type='checkbox']:focus-visible + .bl-utmt__box {
+			box-shadow: 0 0 0 3px var(--bl-m-accent-ring);
+		}
+	}
+	&__box {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 20px;
+		height: 20px;
+		border: 1px solid var(--bl-m-input-border);
+		border-radius: 6px;
+		background: var(--bl-m-input-bg);
+		color: transparent;
+		transition: all 0.15s ease;
+
+		svg {
+			display: block;
+		}
+	}
+	&__option-text {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 14px;
+		font-weight: 500;
+		color: $ttl;
+
+		.btl-tooltip {
+			display: inline-flex;
+			color: $mut;
+		}
+	}
+
+	// ---- Footer ----------------------------------------------------------
+	&__footer {
+		flex: none;
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		flex-wrap: wrap;
+		gap: 12px;
+		padding: 16px 22px;
+		border-top: 1px solid $brd;
+		background: $foot-bg;
+		border-radius: 0 0 16px 16px;
+	}
+
+	&__btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		height: 46px;
+		padding: 0 20px;
+		border: 1px solid transparent;
+		border-radius: 10px;
+		font-size: 14px;
+		font-weight: 600;
+		white-space: nowrap;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		&:disabled,
+		&[aria-disabled='true'] {
+			opacity: 0.55;
+			cursor: not-allowed;
+			box-shadow: none;
+		}
+
+		&--primary {
+			background: $blu;
+			border-color: $blu;
+			color: #fff;
+			box-shadow: 0 6px 16px var(--bl-m-accent-shadow);
+
+			&:hover:not(:disabled) {
+				background: $blu-dark;
+				border-color: $blu-dark;
+			}
+		}
+		&--ghost {
+			background: var(--bl-m-input-bg);
+			border-color: $brd;
+			color: $ttl;
+
+			&:hover:not(:disabled) {
+				color: $blu;
+				border-color: var(--bl-m-accent-border);
+			}
+		}
+		&--danger-ghost {
+			height: 34px;
+			padding: 0 14px;
+			background: var(--bl-m-input-bg);
+			border-color: var(--bl-m-danger-border);
+			color: $err;
+			font-size: 13px;
+
+			&:hover:not(:disabled) {
+				background: var(--bl-m-danger-soft);
+				border-color: var(--bl-m-danger-soft);
+			}
+		}
+	}
+
+	// ---- react-select (categories) ---------------------------------------
+	.btl-react-select-container {
+		width: 100%;
+	}
+	.btl-react-select__control {
+		min-height: 46px;
+		border: 1px solid $brd;
+		border-radius: 10px;
+		background: var(--bl-m-input-bg);
+		box-shadow: none;
+		transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+		&:hover {
+			border-color: var(--bl-m-accent-border);
+		}
+		&--is-focused {
+			border-color: $blu;
+			box-shadow: 0 0 0 3px var(--bl-m-accent-ring);
+		}
+	}
+	.btl-react-select__value-container {
+		padding: 5px 10px;
+		gap: 6px;
+	}
+	.btl-react-select__placeholder {
+		font-size: 14px;
+		color: var(--bl-m-placeholder);
+	}
+	.btl-react-select__multi-value {
+		margin: 0;
+		border-radius: 999px;
+		// background: var(--bl-m-accent-soft);
+	}
+	.btl-react-select__multi-value__label {
+		padding: 4px 4px 4px 10px;
+		font-size: 12px;
+		font-weight: 600;
+		color: $blu;
+	}
+	.btl-react-select__multi-value__remove {
+		padding: 0 8px 0 4px;
+		border-radius: 0 999px 999px 0;
+		color: $blu;
+
+		&:hover {
+			background: var(--bl-m-accent-ring);
+			color: $blu-dark;
+		}
+	}
+	.btl-react-select__indicator-separator {
+		display: none;
+	}
+	.btl-react-select__dropdown-indicator,
+	.btl-react-select__clear-indicator {
+		color: $mut;
+
+		&:hover {
+			color: $ttl;
+		}
+	}
+	// react-select paints its menu white via emotion, so every surface inside it
+	// needs an explicit token or the dark theme reads white-on-white.
+	.btl-react-select__menu,
+	.btl-react-select__menu-list {
+		background: var(--bl-m-input-bg);
+	}
+	.btl-react-select__menu {
+		z-index: 20;
+		border: 1px solid $brd;
+		border-radius: 10px;
+		box-shadow: 0 12px 28px var(--bl-m-shadow);
+		overflow: hidden;
+	}
+	.btl-react-select__option {
+		background: transparent;
+		font-size: 14px;
+		font-weight: 500;
+		color: $ttl;
+		cursor: pointer;
+
+		&--is-focused {
+			background: var(--bl-m-accent-soft);
+		}
+		&--is-selected {
+			background: $blu;
+			color: #fff;
+		}
+	}
+	.btl-react-select__input-container,
+	.btl-react-select__input,
+	.btl-react-select__single-value {
+		color: $ttl;
+	}
+	.btl-react-select__menu-notice {
+		color: $mut;
+	}
+}

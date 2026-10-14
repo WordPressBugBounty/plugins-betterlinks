@@ -1,0 +1,262 @@
+// `.btl-fbs-portal` is the body-level host the popover is rendered into. The
+// button stays inside FluentBoards' task sidebar, which clips overflow, so the
+// popover cannot live there — see usePortalContainer() for the full reasoning.
+// On FluentBoards 2.0 the wrapper is inserted as its own sidebar card, right
+// after Labels. `.fbs-task-sidebar` is a flex column with `gap: 24px`, so the
+// card needs no chrome of its own — it only has to stop the button from
+// stretching to the full column width.
+.btl-fbs-card {
+	display: flex;
+	align-items: flex-start;
+
+	// The flex `order` that decides where in the column this lands is set on
+	// the element by mountWrapper(), copied from the card it is inserted
+	// behind — it cannot be a fixed number here without breaking the builds
+	// that do not order their sidebar cards at all.
+
+	> .el-button {
+		flex: none;
+	}
+
+	// Labels reserves 10px under itself for the popover it opens. Stacked on
+	// the column's own 24px gap that leaves the button reading as a separate
+	// group rather than the next control in this one.
+	&.btl-fbs-card--after-labels {
+		margin-top: -10px;
+	}
+}
+
+#btl-intflboards-btn-wrapper,
+.btl-fbs-portal {
+	position: relative;
+	// The box itself — 24px tall, 12px text, 6px radius — is FluentBoards'
+	// `.el-button.mini`, the same rule their "Add Label" button resolves to,
+	// so nothing about it is restated here. Only the logo slot needs
+	// describing, scaled to sit inside a mini button's 20px content box.
+	.btl-fbs-share-btn {
+		position: relative;
+
+		> span {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+		}
+
+		// The spinner takes the logo's slot while the task link is looked up,
+		// so the button never changes width and nothing overlaps the label.
+		// It used to be absolutely positioned at `right: 5px`, which only
+		// cleared the text while FluentBoards 1.x stretched this button to the
+		// full sidebar width — in 2.0 the button hugs its content, so the
+		// spinner landed on top of "Share Task".
+		.icon {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			flex: none;
+			width: 14px;
+			height: 14px;
+		}
+
+		span.btl-fbs-loader {
+			display: inline-block;
+			flex: none;
+		}
+	}
+	.fbs-task-add-popover-box {
+		// Above the whole Element Plus range in one go. Their z-indexes come
+		// from a counter seeded at 2000 that every dialog, dropdown and hover
+		// tooltip advances, so the only value that reliably clears the task
+		// modal is one no counter will reach — see useAnchoredPosition() for
+		// why matching the counter instead does not hold.
+		z-index: 999999;
+		position: fixed;
+		width: 350px !important;
+		overflow-y: auto;
+
+		.el-popper__arrow {
+			position: absolute;
+			left: var(--btl-arrow-left, 50%);
+		}
+
+		.btl-fbs-top-bar {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 20px;
+
+			> span.btl-title {
+				font-weight: 500;
+				font-size: 15px;
+				color: rgb(25, 40, 93);
+			}
+
+			span.close-button {
+				cursor: pointer;
+				border: unset;
+				transition: 0.3s;
+				font-size: 18px;
+				padding: 10px 3px;
+			}
+		}
+		.btl-fbs-link-data {
+			.btl-form-group {
+				> label {
+					font-weight: 500;
+					display: inline-block;
+					margin-bottom: 5px;
+				}
+				p {
+					display: flex;
+					align-items: center;
+					border: 1px solid rgb(235, 235, 235);
+					border-radius: 6px;
+
+					> div {
+						display: flex;
+					}
+
+					span {
+						&.btl-site-url {
+							max-width: 50%;
+							overflow-x: auto;
+							white-space: nowrap;
+							cursor: ew-resize;
+							background: rgba(69, 117, 255, 1);
+							border-radius: 5px 3px 3px 5px;
+							font-size: 14px;
+							padding: 8px 10px;
+							color: #fff;
+							font-style: italic;
+							-ms-overflow-style: none; /* Internet Explorer 10+ */
+							scrollbar-width: none; /* Firefox */
+
+							&::-webkit-scrollbar {
+								display: none;
+							}
+						}
+					}
+					input {
+						width: 45%;
+						border: unset;
+						box-shadow: unset;
+
+						&:focus {
+							border: unset;
+						}
+					}
+					.btl-fbs-icon {
+						width: 25px;
+						height: 25px;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+						margin-right: 2px;
+					}
+					.btl-copy-icon {
+						cursor: pointer;
+					}
+				}
+
+				&.fbs_task_mover_actions {
+					justify-content: space-between;
+					display: flex;
+					align-items: center;
+					column-gap: 5px;
+
+					&:not(:has(+ .btl-fbs-qr-section)) {
+						margin-top: 10px;
+					}
+
+					> button {
+						width: 90px;
+						height: 35px;
+						border-radius: 5px;
+						padding: 2px;
+						background-color: rgba(38, 115, 255, 1);
+						color: #fff;
+						box-shadow: 0px 5px 5px 0px rgba(255, 255, 255, 0.1) inset;
+						cursor: pointer;
+						justify-content: center;
+
+						&:hover {
+							background-color: rgba(0, 81, 229, 1);
+						}
+
+						&.btl-btn-disable {
+							background: rgba(176, 178, 186, 1);
+							cursor: not-allowed;
+						}
+					}
+
+					> a {
+						font-size: 12px;
+						color: rgba(35, 91, 251, 1);
+						padding-bottom: 2px;
+					}
+				}
+				.btl-fbs-message {
+					font-size: 12px;
+					display: block;
+					text-align: right;
+
+					&.error {
+						color: rgba(251, 42, 4, 1);
+					}
+					&.success {
+						color: rgba(33, 199, 59, 1);
+					}
+				}
+			}
+			.btl-fbs-qr-section {
+				margin-top: 8px;
+				font-weight: 500;
+				font-size: 14px;
+				line-height: 17px;
+				padding: 3px;
+
+				> a.btl-fbs-show-hide-qr {
+					color: rgb(159, 160, 173);
+					padding-bottom: 2px;
+					font-size: 13px;
+
+					> span.dashicons {
+						font-size: 17px;
+						margin-left: 3px;
+						line-height: 1.2rem;
+					}
+				}
+				.betterlinksqrcode {
+					display: flex;
+					column-gap: 10px;
+					margin-top: 20px;
+					margin-bottom: 10px;
+
+					> canvas {
+						height: 100px;
+						width: 100px;
+						border: 1px solid rgb(217, 225, 244);
+						padding: 8px;
+						border-radius: 8px;
+					}
+
+					.btl-fbs-qr-sidebar {
+						> p {
+							font-weight: 400;
+							font-size: 13px;
+							line-height: 19px;
+							color: rgb(112, 112, 112);
+						}
+
+						> a.btl-fbs-qr-download {
+							width: max-content;
+							color: rgba(35, 91, 251, 1);
+							border-bottom: 1px solid rgba(35, 91, 251, 1);
+							cursor: pointer;
+							font-size: 13px;
+						}
+					}
+				}
+			}
+		}
+	}
+}

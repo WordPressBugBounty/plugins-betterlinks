@@ -1,0 +1,336 @@
+// ==========================================================================
+// "Upgrade for Exclusive Benefits" Pro modal (`components/Teasers/UpgradeToPro`).
+//
+// Self-contained under `.bl-pro`. The component neutralises the react-modal
+// content box (no padding / border / background), so every visual is declared
+// here — that also lets the same markup render inside the Gutenberg sidebar,
+// where the admin app's modal chrome does not exist.
+//
+// The previous `.betterlinks-upgradetopro` rules are gone: its light-mode
+// block had been commented out in `_modal.scss`, leaving only dark-mode
+// overrides, so the modal rendered unstyled for most users.
+// ==========================================================================
+$pro-border: #e6e8ee;
+$pro-text: #131b2e;
+$pro-muted: #55607a;
+$pro-surface: #f7f8fa;
+$pro-blue: #2f6bff;
+$pro-blue-dark: #1f57e6;
+$pro-amber: #f59e0b;
+
+.bl-pro {
+	position: relative;
+	width: 560px;
+	max-width: 100%;
+	border-radius: 16px;
+	background: #fff;
+	color: $pro-text;
+	font-size: 14px;
+	line-height: 1.5;
+	overflow: hidden;
+	box-shadow: 0 24px 60px rgba(15, 20, 30, 0.28);
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+
+	// ---- Header ------------------------------------------------------------
+	// Gradient band; the two radial blooms give it depth without an image.
+	&__header {
+		position: relative;
+		padding: 30px 32px 26px;
+		background: linear-gradient(135deg, #1b2a5e 0%, #2f6bff 100%);
+		color: #fff;
+		text-align: center;
+		overflow: hidden;
+
+		&::before,
+		&::after {
+			content: '';
+			position: absolute;
+			border-radius: 50%;
+			pointer-events: none;
+		}
+		&::before {
+			top: -70px;
+			right: -50px;
+			width: 190px;
+			height: 190px;
+			background: rgba(255, 255, 255, 0.12);
+		}
+		&::after {
+			bottom: -90px;
+			left: -40px;
+			width: 170px;
+			height: 170px;
+			background: rgba(255, 255, 255, 0.08);
+		}
+	}
+	&__header-inner {
+		position: relative;
+		z-index: 1;
+	}
+	&__crown {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 56px;
+		height: 56px;
+		margin: 0 0 14px;
+		border: 1px solid rgba(255, 255, 255, 0.28);
+		border-radius: 16px;
+		background: rgba(255, 255, 255, 0.16);
+		color: #ffd479;
+	}
+	&__title {
+		margin: 0 0 8px;
+		padding: 0;
+		color: #fff;
+		font-size: 22px;
+		font-weight: 700;
+		line-height: 1.3;
+	}
+	&__subtitle {
+		max-width: 420px;
+		margin: 0 auto;
+		padding: 0;
+		color: rgba(255, 255, 255, 0.82);
+		font-size: 14px;
+		line-height: 1.6;
+	}
+
+	// ---- Close -------------------------------------------------------------
+	&__close {
+		position: absolute;
+		top: 14px;
+		right: 14px;
+		z-index: 2;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		padding: 0;
+		border: 0;
+		border-radius: 50%;
+		background: rgba(255, 255, 255, 0.16);
+		color: #fff;
+		cursor: pointer;
+		transition: background-color 0.15s ease;
+
+		&:hover,
+		&:focus {
+			background: rgba(255, 255, 255, 0.3);
+			color: #fff;
+			outline: none;
+			box-shadow: none;
+		}
+	}
+
+	// ---- Body --------------------------------------------------------------
+	&__body {
+		padding: 24px 32px 8px;
+	}
+	&__body-title {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0 0 16px;
+		padding: 0;
+		color: $pro-text;
+		font-size: 15px;
+		font-weight: 700;
+
+		svg {
+			flex: none;
+			color: $pro-amber;
+		}
+	}
+
+	// ---- Feature grid ------------------------------------------------------
+	&__features {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 10px 18px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+	&__feature {
+		display: flex;
+		align-items: flex-start;
+		gap: 9px;
+		margin: 0;
+		color: $pro-text;
+		font-size: 13.5px;
+		line-height: 1.45;
+	}
+	&__check {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 18px;
+		height: 18px;
+		margin-top: 1px;
+		border-radius: 50%;
+		background: rgba($pro-blue, 0.12);
+		color: $pro-blue;
+	}
+
+	&__more {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		margin-top: 18px;
+		color: $pro-blue;
+		font-size: 13px;
+		font-weight: 600;
+		text-decoration: none;
+
+		&:hover,
+		&:focus {
+			color: $pro-blue-dark;
+			text-decoration: underline;
+			box-shadow: none;
+			outline: none;
+		}
+		svg {
+			flex: none;
+		}
+	}
+
+	// ---- Footer ------------------------------------------------------------
+	&__footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		margin-top: 24px;
+		padding: 18px 32px;
+		border-top: 1px solid $pro-border;
+		background: $pro-surface;
+	}
+	&__guarantee {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0;
+		color: $pro-muted;
+		font-size: 12.5px;
+
+		svg {
+			flex: none;
+			color: #16a34a;
+		}
+	}
+	&__cta {
+		flex: none;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		height: 42px;
+		padding: 0 22px;
+		border: 0;
+		border-radius: 10px;
+		background: $pro-blue;
+		color: #fff;
+		font-size: 14px;
+		font-weight: 600;
+		line-height: 1;
+		text-decoration: none;
+		box-shadow: 0 6px 16px rgba($pro-blue, 0.32);
+		transition: background-color 0.15s ease, box-shadow 0.15s ease;
+
+		&:hover,
+		&:focus {
+			background: $pro-blue-dark;
+			color: #fff;
+			box-shadow: 0 8px 20px rgba($pro-blue, 0.4);
+			outline: none;
+		}
+		svg {
+			flex: none;
+		}
+	}
+}
+
+// ==========================================================================
+// Responsive
+// ==========================================================================
+@media screen and (max-width: 600px) {
+	.bl-pro {
+		width: 100%;
+
+		&__header {
+			padding: 26px 20px 22px;
+		}
+		&__title {
+			font-size: 19px;
+		}
+		&__body {
+			padding: 20px 20px 4px;
+		}
+		&__features {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		&__footer {
+			flex-direction: column;
+			align-items: stretch;
+			padding: 16px 20px;
+		}
+		&__cta {
+			width: 100%;
+		}
+	}
+}
+
+// ==========================================================================
+// Dark mode
+// ==========================================================================
+body.betterlinks-dark-mode {
+	.bl-pro {
+		background: #252f47;
+		color: #e5e9f2;
+		box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+
+		.bl-pro__body-title,
+		.bl-pro__feature {
+			color: #e5e9f2;
+		}
+
+		.bl-pro__check {
+			background: rgba(111, 151, 255, 0.18);
+			color: #6f97ff;
+		}
+
+		.bl-pro__more {
+			color: #6f97ff;
+
+			&:hover,
+			&:focus {
+				color: #8fadff;
+			}
+		}
+
+		.bl-pro__footer {
+			border-color: #36405a;
+			background: #1f283d;
+		}
+		.bl-pro__guarantee {
+			color: #9aa5bd;
+		}
+		.bl-pro__cta {
+			background: #2f6bff;
+			box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+
+			&:hover,
+			&:focus {
+				background: #4f83ff;
+			}
+		}
+	}
+}

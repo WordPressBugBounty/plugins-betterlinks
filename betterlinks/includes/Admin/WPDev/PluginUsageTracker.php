@@ -478,8 +478,11 @@ class PluginUsageTracker {
          * Send Initial Data to API
          */
         if ( $site_id == false && $this->item_id !== false && $original_site_url === false ) {
-            if ( isset( $_SERVER['REMOTE_ADDR'] ) && ! empty( $_SERVER['REMOTE_ADDR'] && $_SERVER['REMOTE_ADDR'] != '127.0.0.1' ) ) {
-                $country_request = wp_remote_get( 'http://ip-api.com/json/' . $_SERVER['REMOTE_ADDR'] . '?fields=country' );
+            // Only public addresses: a loopback (127.0.0.1, ::1), LAN or reserved
+            // address has no country, so it is not sent to ip-api.com at all.
+            $remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
+            if ( $remote_addr && filter_var( $remote_addr, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
+                $country_request = wp_remote_get( 'http://ip-api.com/json/' . rawurlencode( $remote_addr ) . '?fields=country' );
                 if ( ! is_wp_error( $country_request ) && $country_request['response']['code'] == 200 ) {
                     $ip_data         = json_decode( $country_request['body'] );
                     $body['country'] = isset( $ip_data->country ) ? $ip_data->country : 'NOT SET';

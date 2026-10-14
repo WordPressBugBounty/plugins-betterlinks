@@ -14,8 +14,9 @@
  *
  * Auth: either the static pairing token (Mcp_Pairing) or an OAuth 2.1 access
  * token (Mcp_OAuth), both presented as a Bearer token. On success the request
- * runs AS the admin who granted the credential (wp_set_current_user), so
- * every ability's own capability check still applies. A single
+ * runs AS the user who granted the credential (wp_set_current_user), so every
+ * ability's own permission check still applies. That user is an administrator,
+ * or a role BetterLinks Pro has granted MCP (see Mcp_Access). A single
  * unauthenticated call gets a JSON-RPC 401 + RFC 9728 WWW-Authenticate
  * challenge that points OAuth-capable clients at the discovery metadata.
  *
@@ -311,6 +312,13 @@ final class Mcp_Server {
 		$stored = Mcp_Pairing::site_token();
 		if ( '' !== $stored && hash_equals( $stored, $presented ) ) {
 			Mcp_Tools::set_read_only_override( null );
+			// The shared token acts as its owner and is handed to whoever holds
+			// it, so it only works while an administrator owns it. A token a
+			// non-administrator created is refused until an administrator resets
+			// it (#127).
+			if ( ! Mcp_Pairing::owner_is_admin() ) {
+				return false;
+			}
 			if ( self::impersonate( Mcp_Pairing::user_id() ) ) {
 				// Record activity for the "Static token connections" row.
 				Mcp_Pairing::touch_last_used();
@@ -324,16 +332,23 @@ final class Mcp_Server {
 		$grant = Mcp_OAuth::validate_token( $presented );
 		if ( null !== $grant ) {
 			Mcp_Tools::set_read_only_override( Mcp_OAuth::scope_is_read_only( $grant['scope'] ) );
-			return self::impersonate( $grant['user_id'] );
+			if ( self::impersonate( $grant['user_id'] ) ) {
+				return true;
+			}
+			// The user lost MCP (or no longer exists). End their grants for good,
+			// so giving MCP back later does not quietly revive this connection.
+			Mcp_OAuth::revoke_user( (int) $grant['user_id'] );
+			return false;
 		}
 
 		return false;
 	}
 
 	/**
-	 * Run the request as the admin who granted the credential. Refuses when
-	 * the stored user no longer exists or lost manage_options — a demoted or
-	 * deleted admin's grants die with them.
+	 * Run the request as the user who granted the credential. Refuses when
+	 * the stored user no longer exists or may no longer use MCP, so a deleted
+	 * user's grants, a demoted admin's grants, and the grants of a role that
+	 * has had MCP taken away in Role Management all stop on their next request.
 	 *
 	 * @param int $user_id Granting user id.
 	 * @return bool
@@ -343,7 +358,7 @@ final class Mcp_Server {
 			return false;
 		}
 		$user = get_user_by( 'id', $user_id );
-		if ( ! $user || ! user_can( $user, 'manage_options' ) ) {
+		if ( ! $user || ! Mcp_Access::user_can( $user ) ) {
 			return false;
 		}
 		wp_set_current_user( $user_id );

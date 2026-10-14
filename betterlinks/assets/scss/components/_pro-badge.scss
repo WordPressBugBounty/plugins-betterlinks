@@ -1,0 +1,27 @@
+.btl-entry-content span.text,
+.link-options__head--title,
+.btl-form-label,
+.react-tabs__tab,
+.btl-modal-customize-link-preview__title,
+.btl-modal-select-need-pro-teaser .btl-react-select__menu-list .btl-react-select__option {
+	&:has(.pro-badge-new) {
+		position: relative;
+		display: flex !important;
+		align-items: center;
+		column-gap: 5px;
+
+		> span.pro-badge-new {
+			display: inherit;
+			cursor: pointer;
+		}
+	}
+}
+
+// The redesigned Pro modal (`.bl-pro`) paints its own surface — strip the
+// shared react-modal chrome that would otherwise frame it a second time.
+.ReactModal__Content:has(.bl-pro) {
+	padding: 0 !important;
+	border: 0 !important;
+	background: transparent !important;
+	box-shadow: none !important;
+}

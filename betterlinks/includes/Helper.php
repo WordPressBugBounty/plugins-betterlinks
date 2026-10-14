@@ -241,6 +241,19 @@ class Helper {
 			unset( $menu_items[ BETTERLINKS_PLUGIN_SLUG . '-bio-links' ] );
 		}
 
+		// MCP is decided by Mcp_Access alone, applied last so no filter above can
+		// widen it. Without MCP the submenu is never registered, so WordPress
+		// refuses a direct visit to the page. A non-administrator with MCP needs
+		// a capability they actually hold, or WordPress would refuse them too.
+		$mcp_key = BETTERLINKS_PLUGIN_SLUG . '-mcp';
+		if ( isset( $menu_items[ $mcp_key ] ) ) {
+			if ( ! \BetterLinks\Mcp\Mcp_Access::user_can() ) {
+				unset( $menu_items[ $mcp_key ] );
+			} elseif ( ! current_user_can( 'manage_options' ) ) {
+				$menu_items[ $mcp_key ]['capability'] = 'read';
+			}
+		}
+
 		return $menu_items;
 	}
 

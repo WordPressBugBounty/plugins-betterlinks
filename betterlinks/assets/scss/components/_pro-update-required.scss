@@ -1,0 +1,75 @@
+// One-line "update BetterLinks Pro" notice, shown in place of a Pro feature when
+// the active BetterLinks Pro is older than this version of BetterLinks supports.
+// Imported at the top level because it also renders inside portaled modals.
+.btl-pro-update-required {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px 12px;
+	box-sizing: border-box;
+	width: 100%;
+	padding: 10px 14px;
+	background: #fffaeb;
+	border: 1px solid #ffe9a6;
+	border-radius: 8px;
+	text-align: left;
+
+	& &__icon {
+		display: inline-flex;
+		flex: 0 0 auto;
+		color: #f88420;
+	}
+
+	& &__text {
+		flex: 1 1 260px;
+		min-width: 0;
+		margin: 0;
+		font-size: 13px;
+		line-height: 1.5;
+		color: #4b5563;
+
+		strong {
+			font-weight: 600;
+			color: #1d2939;
+		}
+	}
+
+	& &__link {
+		flex: 0 0 auto;
+		font-size: 13px;
+		font-weight: 600;
+		line-height: 1.5;
+		color: #003be2;
+		text-decoration: none;
+		white-space: nowrap;
+
+		&:hover,
+		&:focus {
+			color: #2961ff;
+			text-decoration: underline;
+		}
+
+		&:focus-visible {
+			outline: 2px solid #72aee6;
+			outline-offset: 2px;
+			border-radius: 2px;
+		}
+	}
+}
+
+body.betterlinks-dark-mode .btl-pro-update-required {
+	background: #2c3650;
+	border-color: #485474;
+
+	.btl-pro-update-required__text {
+		color: #d0d5dd;
+
+		strong {
+			color: #ffffff;
+		}
+	}
+
+	.btl-pro-update-required__link {
+		color: #4f7af4;
+	}
+}

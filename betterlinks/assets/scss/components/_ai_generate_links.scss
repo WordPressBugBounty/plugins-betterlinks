@@ -1,0 +1,1590 @@
+// AI Generate Links Component Styles
+// ==========================================================================
+// Design tokens — mirror the `bl-*` Manage Links design system.
+// ==========================================================================
+$ai-border: #e6e8ee;
+$ai-muted: #6b7280;
+$ai-title: #1a2233;
+$ai-surface: #f7f8fa;
+$ai-blue: #2f6bff;
+$ai-blue-dark: #1f57e6;
+$ai-danger: #e5484d;
+$ai-radius: 12px;
+
+//New style
+ .btl-ai-button-wrapper {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+    position: relative;
+    padding: 2px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+	margin-left: 10px;
+	&:hover{
+		transform: translateY(-2px);
+		box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+	}
+	&:active{
+		transform: translateY(0);
+	}
+	.btl-ai-button{
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 8px 26px;
+		background: white;
+		border: none;
+		border-radius: 10px;
+		font-size: 16px;
+		font-weight: 600;
+		color: #1a1a1a;
+		cursor: pointer;
+		&:hover{
+			background: #fafafa;
+		}
+	}
+}
+
+// Header Component SCSS
+.btl-ai-header-container {
+  background: #fff;
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  position: relative;
+  border-bottom: 1px solid $ai-border;
+
+  @media (max-width: 768px) {
+    padding: 18px 20px;
+  }
+}
+
+.btl-ai-left-section {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+// Soft indigo tile that holds the AI sparkle icon.
+.btl-ai-header-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba($ai-blue, 0.1);
+
+  img {
+    width: 24px;
+    height: 24px;
+    display: block;
+  }
+}
+
+.btl-ai-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.btl-ai-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+  font-weight: 700;
+  color: $ai-title;
+  margin: 0;
+  line-height: 1.25;
+
+  @media (max-width: 768px) {
+    font-size: 19px;
+  }
+}
+
+.btl-ai-description {
+  font-size: 14px;
+  color: $ai-muted;
+  margin: 0;
+  line-height: 1.45;
+  max-width: 620px;
+
+  a {
+    color: $ai-blue;
+    text-decoration: none;
+    font-weight: 600;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+  }
+}
+
+.btl-ai-close-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid $ai-border;
+  background: #fff;
+  color: $ai-muted;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  padding: 0;
+
+  .btl-ai-close-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover {
+    background: $ai-surface;
+    color: $ai-title;
+    border-color: darken($ai-border, 6%);
+  }
+}
+
+.btl-ai-close-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
+//Old style
+.btl-ai-bulk-link-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 16px;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: white;
+	border: none;
+	border-radius: 4px;
+	font-size: 14px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	margin-left: 10px;
+
+	i {
+		font-size: 16px;
+	}
+
+	&:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+	}
+
+	&:active {
+		transform: translateY(0);
+	}
+}
+
+.btl-ai-bulk-link-modal {
+	// Clip children to the modal's rounded corners so the header sits flush.
+	padding: 0 !important;
+	overflow: hidden;
+	border-radius: 14px !important;
+
+	// Pinned header + footer with a scrollable middle.
+	.btl-ai-modal {
+		display: flex;
+		flex-direction: column;
+		max-height: 88vh;
+	}
+
+	.btl-ai-modal-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 20px;
+		padding-bottom: 15px;
+		border-bottom: 1px solid #e0e0e0;
+
+		h2 {
+			margin: 0;
+			font-size: 20px;
+			font-weight: 600;
+			color: #333;
+		}
+
+		.btl-ai-close-btn {
+			background: none;
+			border: none;
+			font-size: 24px;
+			cursor: pointer;
+			color: #666;
+			padding: 0;
+
+			&:hover {
+				color: #333;
+			}
+		}
+	}
+
+	.btl-ai-header {
+		background: #fff7ed;
+		border: 1px solid #fed7aa;
+		border-radius: 10px;
+		padding: 10px 14px;
+		margin-bottom: 20px;
+
+		p {
+			margin: 0;
+			font-size: 13px;
+			color: #9a3412;
+		}
+		a {
+			color: #9a3412;
+			font-weight: 600;
+		}
+	}
+
+	// Settings Grid Layout - 2 Columns
+	.btl-ai-settings-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 18px 20px;
+		margin-bottom: 20px;
+
+		@media (max-width: 768px) {
+			grid-template-columns: 1fr;
+			gap: 16px;
+		}
+
+		.btl-ai-setting-group {
+			min-width: 0;
+
+			&:last-child {
+				grid-column: 1 / -1; // Make the last item (Category) span full width
+			}
+
+			.btl-ai-label {
+				display: flex;
+				align-items: center;
+				gap: 6px;
+				margin-bottom: 8px;
+				font-weight: 600;
+				color: $ai-title;
+				font-size: 13px;
+			}
+
+			// Selects fill their grid column.
+			.btl-modal-select--full,
+			.btl-modal-select {
+				width: 100% !important;
+				max-width: 100% !important;
+			}
+
+			// Also target the react-select container
+			> span,
+			> div[class*="react-select"] {
+				display: block;
+				width: 100% !important;
+			}
+		}
+	}
+
+	.btl-ai-content {
+		flex: 1 1 auto;
+		min-height: 0;
+		overflow-y: auto;
+		padding: 24px;
+		background-color: #fff;
+
+		scrollbar-width: thin;
+		scrollbar-color: rgba($ai-muted, 0.3) transparent;
+		&::-webkit-scrollbar {
+			width: 8px;
+		}
+		&::-webkit-scrollbar-thumb {
+			background: rgba($ai-muted, 0.3);
+			border-radius: 10px;
+		}
+	}
+
+	.btl-ai-form-group {
+		margin-bottom: 18px;
+
+		&:last-child {
+			margin-bottom: 0;
+		}
+
+		.btl-ai-label-with-reset {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			gap: 12px;
+			margin-bottom: 10px;
+		}
+
+		label {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+			margin-bottom: 8px;
+			font-weight: 600;
+			color: $ai-title;
+			font-size: 13px;
+
+			.btl-ai-required {
+				color: $ai-danger;
+				margin-right: 2px;
+				font-weight: 700;
+			}
+		}
+
+		.btl-ai-reset-prompt-btn {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			padding: 6px 12px;
+			background: #fff;
+			border: 1px solid $ai-border;
+			border-radius: 8px;
+			font-size: 12px;
+			font-weight: 600;
+			color: $ai-blue;
+			cursor: pointer;
+			transition: all 0.15s ease;
+
+			svg {
+				flex-shrink: 0;
+			}
+
+			&:hover:not(:disabled) {
+				background: rgba($ai-blue, 0.06);
+				border-color: rgba($ai-blue, 0.5);
+			}
+
+			&:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+				color: $ai-muted;
+			}
+		}
+
+		textarea,
+		input[type='text'],
+		input[type='password'],
+		select {
+			width: 100%;
+			padding: 12px 14px;
+			border: 1px solid $ai-border;
+			background-color: #FFFFFF;
+			border-radius: 10px;
+			font-size: 14px;
+			font-family: inherit;
+			color: $ai-title;
+			transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+			&::placeholder {
+				color: #9aa1ad;
+			}
+
+			&:focus {
+				outline: none;
+				border-color: $ai-blue;
+				box-shadow: 0 0 0 3px rgba($ai-blue, 0.12);
+			}
+
+			&:disabled {
+				background: #f5f5f5;
+				color: #999;
+				cursor: not-allowed;
+			}
+		}
+
+		textarea {
+			resize: vertical;
+			min-height: 120px;
+			line-height: 1.6;
+
+			&.btl-ai-prompt {
+				border: 2px solid #f0e68c;
+				background: #fffef0;
+			}
+
+			// Validation states
+			&.btl-ai-textarea-error {
+				border-color: $ai-danger !important;
+				box-shadow: 0 0 0 3px rgba($ai-danger, 0.12) !important;
+			}
+
+			&.btl-ai-textarea-success {
+				border-color: #16a34a !important;
+				box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12) !important;
+			}
+		}
+
+		.btl-ai-help-text {
+			font-size: 12px;
+			color: $ai-muted;
+			margin-top: 6px;
+		}
+
+		.btl-ai-note {
+			font-size: 12px;
+			color: $ai-muted;
+			margin-top: 8px;
+			line-height: 1.5;
+		}
+	}
+
+	// ---- Collapsible AI instructions ------------------------------------
+	.btl-ai-accordion {
+		border: 1px solid $ai-border;
+		border-radius: 10px;
+		background: $ai-surface;
+		overflow: hidden;
+
+		&__head {
+			width: 100%;
+			margin: 0;
+			min-height: 0;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 10px;
+			padding: 13px 16px;
+			background: transparent;
+			border: none;
+			border-radius: 0;
+			box-shadow: none;
+			outline: none;
+			text-align: left;
+			line-height: 1.2;
+			appearance: none;
+			-webkit-appearance: none;
+			cursor: pointer;
+			font-family: inherit;
+			transition: background 0.15s ease;
+
+			&:hover {
+				background: rgba($ai-blue, 0.04);
+			}
+			&:focus,
+			&:active {
+				box-shadow: none;
+				outline: none;
+			}
+		}
+
+		&__title {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			font-size: 13px;
+			font-weight: 600;
+			color: $ai-title;
+
+			img {
+				width: 18px;
+				height: 18px;
+				display: block;
+			}
+		}
+
+		&__chevron {
+			color: $ai-muted;
+			transition: transform 0.2s ease;
+			flex-shrink: 0;
+		}
+
+		&.is-open &__chevron {
+			transform: rotate(180deg);
+		}
+
+		&__body {
+			padding: 4px 16px 16px;
+
+			// The inner form-group provides the textarea/reset-button styling;
+			// strip its default outer margin so it sits flush in the panel.
+			.btl-ai-form-group {
+				margin: 0;
+			}
+		}
+
+		&__hint {
+			font-size: 12px;
+			color: $ai-muted;
+			line-height: 1.5;
+			font-weight: 500;
+		}
+
+		.btl-ai-label-with-reset {
+			margin-bottom: 10px;
+		}
+
+		textarea {
+			background: #fff;
+		}
+	}
+
+	// ---- Loading skeleton (mirrors the initial form layout) --------------
+	.btl-ai-skeleton {
+		@keyframes btl-ai-skel-shimmer {
+			0% { background-position: 200% 0; }
+			100% { background-position: -200% 0; }
+		}
+
+		&__grid {
+			display: grid;
+			grid-template-columns: repeat(2, 1fr);
+			gap: 18px 20px;
+			margin-bottom: 18px;
+		}
+
+		&__field {
+			display: flex;
+			flex-direction: column;
+			gap: 8px;
+
+			&--full {
+				grid-column: 1 / -1;
+			}
+		}
+
+		// The single (URL) field that sits below the grid.
+		&__grid + &__field {
+			margin-bottom: 18px;
+		}
+
+		&__label,
+		&__control,
+		&__accordion {
+			border-radius: 8px;
+			background: #eef0f4;
+			background-image: linear-gradient(90deg, #eef0f4 0%, #f6f7f9 50%, #eef0f4 100%);
+			background-size: 200% 100%;
+			animation: btl-ai-skel-shimmer 1.4s linear infinite;
+		}
+
+		&__label {
+			height: 12px;
+			width: 90px;
+			border-radius: 6px;
+		}
+
+		&__control {
+			height: 44px;
+
+			&--textarea {
+				height: 124px;
+			}
+		}
+
+		&__accordion {
+			display: block;
+			height: 46px;
+			margin-top: 4px;
+		}
+	}
+
+	.btl-ai-btn-generate {
+		width: fit-content;
+		padding: 11px 20px;
+		background: $ai-blue;
+		color: white;
+		border: none;
+		border-radius: 10px;
+		font-size: 14px;
+		font-weight: 600;
+		cursor: pointer;
+		transition: background 0.15s ease, box-shadow 0.15s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+
+		img {
+			width: 18px;
+			height: 18px;
+		}
+
+		&:hover:not(:disabled) {
+			background: $ai-blue-dark;
+			box-shadow: 0 4px 12px rgba($ai-blue, 0.3);
+		}
+
+		&:disabled {
+			opacity: 0.7;
+			cursor: not-allowed;
+		}
+
+		.btl-ai-spinner {
+			display: inline-block;
+			width: 16px;
+			height: 16px;
+			border: 2px solid rgba(255, 255, 255, 0.3);
+			border-top-color: white;
+			border-radius: 50%;
+			animation: spin 0.8s linear infinite;
+		}
+	}
+
+	.btl-ai-processing {
+		text-align: center;
+		padding: 60px 40px;
+		margin: 0 auto;
+		border: 1px solid #D9E1F4;
+		border-radius: 8px;
+
+		// Header Icon with Circular Progress
+		.btl-ai-processing-icon {
+			position: relative;
+			margin: 0 auto 24px;
+			width: 100px;
+			height: 100px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+
+			.btl-ai-circular-progress {
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				animation: spin-progress 2s linear infinite;
+			}
+
+			.btl-ai-icon-center {
+				position: relative;
+				z-index: 1;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+
+				img {
+					display: block;
+				}
+			}
+		}
+
+		// Title
+		.btl-ai-processing-title {
+			font-size: 24px;
+			font-weight: 600;
+			color: #19285D;
+			margin: 0 0 12px 0;
+			letter-spacing: -0.5px;
+		}
+
+		// Subtitle
+		.btl-ai-processing-subtitle {
+			font-size: 14px;
+			color: #4E5260;
+			line-height: 1.6;
+			margin: 0 0 40px 0;
+			max-width: 340px;
+			margin-left: auto;
+			margin-right: auto;
+		}
+
+		// Processing Count
+		.btl-ai-processing-count {
+			font-size: 15px;
+			font-weight: 600;
+			color: #667eea;
+			margin: 0 0 16px 0;
+			letter-spacing: 0.3px;
+		}
+
+		// Progress Bar Container
+		.btl-ai-progress-bar-container {
+			margin: 0 0 48px 0;
+
+			.btl-ai-progress-bar-track {
+				width: 200px;
+				margin: 0 auto;
+				height: 8px;
+				background: #E9EBF0;
+				border-radius: 12px;
+				overflow: hidden;
+				position: relative;
+
+				.btl-ai-progress-bar-fill {
+					height: 100%;
+					background-color: #3669F6;
+					border-radius: 12px;
+					transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+					position: relative;
+					box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+
+					&::after {
+						content: '';
+						position: absolute;
+						top: 0;
+						left: 0;
+						right: 0;
+						bottom: 0;
+						background: linear-gradient(90deg,
+							transparent,
+							#E9EBF0,
+							transparent
+						);
+						animation: shimmer 1.5s infinite;
+					}
+				}
+			}
+		}
+
+		// Step Indicators - Horizontal Layout
+		.btl-ai-processing-steps {
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			gap: 24px;
+			padding: 0;
+			background: transparent;
+			margin: 0;
+
+			.btl-ai-step-item {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				position: relative;
+
+				.btl-ai-step-icon-wrapper {
+					width: 24px;
+					height: 24px;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+					position: relative;
+					flex-shrink: 0;
+
+					svg {
+						width: 100%;
+						height: 100%;
+					}
+
+					&.btl-ai-step-spinner {
+						.btl-ai-spinner-dots {
+							animation: spin 1.5s linear infinite;
+							transform-origin: 12px 12px;
+						}
+					}
+				}
+
+				.btl-ai-step-label {
+					font-size: 14px;
+					font-weight: 500;
+					color: #19285D;
+					white-space: nowrap;
+				}
+
+				// Pending step styling
+				&.btl-ai-step-pending {
+					.btl-ai-step-label {
+						color: #9CA3AF;
+					}
+				}
+			}
+		}
+	}
+
+	.btl-ai-preview {
+		// Token Limit Warning Banner
+		.btl-ai-warning-banner {
+			display: flex;
+			gap: 12px;
+			padding: 16px;
+			margin-bottom: 20px;
+			background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+			border: 1px solid #F59E0B;
+			border-radius: 8px;
+
+			svg {
+				flex-shrink: 0;
+				margin-top: 2px;
+			}
+
+			.btl-ai-warning-content {
+				flex: 1;
+
+				.btl-ai-warning-title {
+					font-size: 14px;
+					font-weight: 600;
+					color: #92400E;
+					margin-bottom: 6px;
+				}
+
+				.btl-ai-warning-message {
+					font-size: 13px;
+					color: #78350F;
+					line-height: 1.5;
+					margin-bottom: 6px;
+				}
+
+				.btl-ai-warning-action {
+					font-size: 13px;
+					color: #92400E;
+					font-weight: 500;
+				}
+			}
+		}
+
+		.btl-ai-preview-header {
+			font-size: 20px;
+			font-weight: 600;
+			margin: 0 0 20px 0;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+		.btl-ai-category-badge {
+			display: inline-flex;
+			align-items: center;
+			padding: 4px 12px;
+			border: 1px solid #E4E9F7;
+			border-radius: 4px;
+			font-size: 13px;
+			font-weight: 500;
+			color: #19285D;
+			white-space: nowrap;
+		}
+
+		.btl-ai-exists-badge {
+			display: inline-flex;
+			align-items: center;
+			padding: 4px 8px;
+			border: 1px solid #FEE2E2;
+			border-radius: 4px;
+			font-size: 12px;
+			font-weight: 500;
+			color: #DC2626;
+			background-color: #FEF2F2;
+			white-space: nowrap;
+			flex-shrink: 0;
+		}
+		.btl-ai-links-list {
+			display: flex;
+			flex-direction: column;
+			gap: 16px;
+		}
+
+		.btl-ai-link-card {
+
+			.btl-ai-card-title {
+				margin: 0 0 12px 0;
+				font-size: 18px;
+				font-weight: 500;
+				color: #01040D;
+				line-height: 1.4;
+			}
+
+			.btl-ai-link-details {
+				background: #FFFFFF;
+				border: 1px solid #EEF1F8;
+				display: flex;
+				flex-direction: column;
+				gap: 0;
+				border-radius: 8px;
+			}
+
+			.btl-ai-detail-row {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				padding: 4px 12px;
+				border-bottom: 1px solid #EEF1F8;
+				position: relative;
+
+				&:last-child {
+					border-bottom: none;
+				}
+
+				.btl-ai-detail-icon {
+					flex-shrink: 0;
+					width: 20px;
+					height: 20px;
+					display: flex;
+					align-items: center;
+					justify-content: center;
+
+					svg {
+						width: 100%;
+						height: 100%;
+					}
+				}
+
+				.btl-ai-detail-content {
+					flex: 1;
+					min-width: 0;
+					display: flex;
+					align-items: center;
+					gap: 8px;
+
+					.btl-ai-detail-label {
+						font-size: 14px;
+						font-weight: 500;
+						color: #19285D;
+						flex-shrink: 0;
+					}
+
+					.btl-ai-detail-value {
+						font-size: 14px;
+						color: #1F2937;
+						word-break: break-all;
+						line-height: 1.5;
+						max-width: 100%;
+						overflow-x: auto;
+						white-space: nowrap;
+
+						&.btl-ai-short-url {
+							color: #3B82F6;
+							font-weight: 500;
+						}
+						&::-webkit-scrollbar {
+							height: 4px;
+							}
+					}
+				}
+
+				.btl-ai-detail-actions {
+					display: flex;
+					align-items: center;
+					gap: 4px;
+					flex-shrink: 0;
+					margin-left: auto;
+
+					.btl-ai-icon-btn {
+						width: 32px;
+						height: 32px;
+						display: flex;
+						align-items: center;
+						justify-content: center;
+						background: transparent;
+						border: none;
+						border-radius: 6px;
+						cursor: pointer;
+						transition: all 0.2s ease;
+						padding: 0;
+
+						&:hover {
+
+							svg path,
+							svg rect {
+								stroke: #2673FF;
+							}
+						}
+
+						&:active {
+							background: #E5E7EB;
+						}
+
+						svg {
+							width: 16px;
+							height: 16px;
+						}
+					}
+				}
+
+//test
+			}
+		}
+	}
+
+	.btl-ai-modal-footer {
+		position: sticky;
+		bottom: -24px; // cancel the .btl-ai-content bottom padding so it sits flush
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 12px;
+		margin: 24px -24px -24px; // bleed to the content edges
+		padding: 16px 24px;
+		background: $ai-surface;
+		border-top: 1px solid $ai-border;
+
+		button {
+			padding: 11px 20px;
+			border: none;
+			border-radius: 10px;
+			font-size: 14px;
+			font-weight: 600;
+			cursor: pointer;
+			transition: all 0.15s ease;
+
+			&.btl-ai-btn-primary {
+				background: $ai-blue;
+				color: white;
+
+				&:hover:not(:disabled) {
+					background: $ai-blue-dark;
+				}
+
+				&:disabled {
+					opacity: 0.6;
+					cursor: not-allowed;
+				}
+			}
+
+			&.btl-ai-btn-secondary {
+				background: #FFFFFF;
+				color: $ai-title;
+				border: 1px solid $ai-border;
+
+				&:hover:not(:disabled) {
+					background: $ai-surface;
+					border-color: darken($ai-border, 6%);
+				}
+
+				&:disabled {
+					opacity: 0.6;
+					cursor: not-allowed;
+				}
+			}
+
+			&.btl-ai-btn-danger {
+				background: $ai-danger;
+				color: white;
+
+				&:hover {
+					background: darken($ai-danger, 6%);
+				}
+			}
+		}
+	}
+
+	.btl-ai-error-message,
+	.btl-ai-success-message,
+	.btl-ai-info-message {
+		padding: 11px 14px;
+		border-radius: 10px;
+		margin: 16px 24px 0;
+		font-size: 13px;
+		border: 1px solid transparent;
+	}
+
+	.btl-ai-error-message {
+		background: #fef2f2;
+		border-color: #fecaca;
+		color: #b91c1c;
+	}
+
+	.btl-ai-success-message {
+		background: #f0fdf4;
+		border-color: #bbf7d0;
+		color: #15803d;
+	}
+
+	.btl-ai-info-message {
+		background: rgba($ai-blue, 0.06);
+		border-color: rgba($ai-blue, 0.25);
+		color: $ai-blue-dark;
+	}
+}
+
+.btl-ai-bulk-link-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 16px;
+	background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+	color: white;
+	border: none;
+	border-radius: 4px;
+	font-size: 14px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.3s ease;
+
+	&:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+	}
+
+	&:active {
+		transform: translateY(0);
+	}
+
+	i {
+		font-size: 16px;
+	}
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes spin-progress {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes pulse {
+	0%, 100% {
+		transform: scale(1);
+		filter: drop-shadow(0 2px 8px rgba(102, 126, 234, 0.3));
+	}
+	50% {
+		transform: scale(1.1);
+		filter: drop-shadow(0 4px 16px rgba(102, 126, 234, 0.5));
+	}
+}
+
+@keyframes shimmer {
+	0% {
+		transform: translateX(-100%);
+	}
+	100% {
+		transform: translateX(100%);
+	}
+}
+
+.btl-ai-fade-in {
+	animation: fadeIn 0.3s ease;
+}
+
+// Dark Mode Support
+body.betterlinks-dark-mode {
+	.btl-ai-bulk-link-modal {
+		// Header dark mode
+		.btl-ai-header-container {
+			background: #111827;
+			border-bottom-color: rgba(75, 85, 99, 0.5);
+
+			.btl-ai-header-icon {
+				background: rgba(102, 126, 234, 0.2);
+			}
+
+			.btl-ai-title {
+				color: #f9fafb;
+			}
+
+			.btl-ai-description {
+				color: #d1d5db;
+
+				a {
+					color: #a5b4fc;
+				}
+			}
+
+			.btl-ai-close-button {
+				background: #1f2937;
+				border-color: #374151;
+				color: #9ca3af;
+
+				&:hover {
+					background: #374151;
+					color: #f3f4f6;
+				}
+			}
+		}
+
+		// Accordion dark mode
+		.btl-ai-accordion {
+			background: #111827;
+			border-color: #374151;
+
+			.btl-ai-accordion__title {
+				color: #f3f4f6;
+			}
+			.btl-ai-accordion__hint {
+				color: #9ca3af;
+			}
+			.btl-ai-accordion__head:hover {
+				background: rgba(255, 255, 255, 0.04);
+			}
+			textarea {
+				background: #374151;
+			}
+		}
+
+		// Content area dark mode
+		.btl-ai-content {
+			background-color: #1f2937;
+			color: #f9fafb;
+		}
+
+		// Skeleton dark mode
+		.btl-ai-skeleton {
+			&__label,
+			&__control,
+			&__accordion {
+				background: #374151;
+				background-image: linear-gradient(90deg, #374151 0%, #4b5563 50%, #374151 100%);
+				background-size: 200% 100%;
+			}
+		}
+
+		// React-select dark mode — default single-value/menu text is near-black,
+		// which is invisible on the dark control. Force readable colors.
+		.btl-react-select__control {
+			background-color: #374151;
+			border-color: #4b5563;
+
+			&--is-focused {
+				border-color: #667eea;
+				box-shadow: 0 0 0 1px #667eea;
+			}
+		}
+		.btl-react-select__single-value,
+		.btl-react-select__input-container,
+		.btl-react-select__input {
+			color: #f9fafb !important;
+		}
+		.btl-react-select__placeholder {
+			color: #9ca3af;
+		}
+		.btl-react-select__indicator-separator {
+			background-color: #4b5563;
+		}
+		.btl-react-select__menu {
+			background-color: #1f2937;
+			border: 1px solid #4b5563;
+			box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+		}
+		.btl-react-select__option {
+			background-color: transparent;
+			color: #f9fafb;
+
+			&--is-focused {
+				background-color: #374151;
+			}
+			&--is-selected {
+				background-color: $ai-blue;
+				color: #fff;
+			}
+		}
+
+		// Form elements dark mode
+		.btl-ai-form-group {
+			label {
+				color: #f3f4f6;
+			}
+
+			textarea,
+			input[type='text'],
+			input[type='password'],
+			select {
+				background-color: #374151;
+				border-color: #4b5563;
+				color: #f9fafb;
+
+				&:focus {
+					border-color: #667eea;
+					box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+				}
+
+				&:disabled {
+					background: #2d3748;
+					color: #9ca3af;
+				}
+
+				&::placeholder {
+					color: #9ca3af;
+				}
+			}
+
+			textarea.btl-ai-prompt {
+				border-color: #6b5b2f;
+				background: #2d2416;
+				color: #f9fafb;
+			}
+
+			// Validation states dark mode
+			textarea.btl-ai-textarea-error {
+				border-color: #f87171 !important;
+				box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2) !important;
+			}
+
+			textarea.btl-ai-textarea-success {
+				border-color: #10b981 !important;
+				box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2) !important;
+			}
+
+			.btl-ai-help-text {
+				color: #9ca3af;
+			}
+
+			.btl-ai-note {
+				color: #9ca3af;
+			}
+
+			.btl-ai-reset-prompt-btn {
+				background: transparent;
+				border-color: #4b5563;
+				color: #a5b4fc;
+
+				&:hover:not(:disabled) {
+					background: #374151;
+					border-color: #667eea;
+				}
+
+				&:disabled {
+					opacity: 0.5;
+					color: #6b7280;
+				}
+			}
+		}
+
+		// Settings grid dark mode
+		.btl-ai-settings-grid {
+			.btl-ai-setting-group {
+				.btl-ai-label {
+					color: #f3f4f6;
+				}
+			}
+		}
+
+		// Header info box dark mode
+		.btl-ai-header {
+			background: #2d2416;
+			border-left-color: #ff6b6b;
+
+			p {
+				color: #d1d5db;
+			}
+		}
+
+		// Processing state dark mode
+		.btl-ai-processing {
+			border-color: #4b5563;
+
+			.btl-ai-processing-title {
+				color: #f9fafb;
+			}
+
+			.btl-ai-processing-subtitle {
+				color: #d1d5db;
+			}
+
+			.btl-ai-processing-count {
+				color: #a5b4fc;
+			}
+
+			.btl-ai-progress-bar-track {
+				background: #374151;
+
+				.btl-ai-progress-bar-fill {
+					background-color: #667eea;
+					box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+				}
+			}
+
+			.btl-ai-processing-steps {
+				.btl-ai-step-item {
+					.btl-ai-step-label {
+						color: #f3f4f6 !important;
+						font-weight: 500;
+					}
+
+					&.btl-ai-step-completed {
+						.btl-ai-step-label {
+							color: #a7f3d0 !important;
+						}
+					}
+
+					&.btl-ai-step-active {
+						.btl-ai-step-label {
+							color: #a5b4fc !important;
+						}
+					}
+
+					&.btl-ai-step-pending {
+						.btl-ai-step-label {
+							color: #9ca3af !important;
+						}
+					}
+				}
+			}
+		}
+
+		// Preview state dark mode
+		.btl-ai-preview {
+			h3 {
+				color: #f3f4f6;
+			}
+
+			.btl-ai-link-card {
+				.btl-ai-card-title {
+					color: #f9fafb;
+				}
+
+				.btl-ai-link-details {
+					background: #374151;
+					border-color: #4b5563;
+				}
+
+				.btl-ai-detail-row {
+					border-bottom-color: #4b5563;
+
+					.btl-ai-detail-label {
+						color: #d1d5db;
+					}
+
+					.btl-ai-detail-value {
+						color: #f3f4f6;
+
+						&.btl-ai-short-url {
+							color: #60a5fa;
+						}
+					}
+
+					.btl-ai-icon-btn {
+						&:hover {
+							background: #4b5563;
+
+							svg path,
+							svg rect {
+								stroke: #d1d5db;
+							}
+						}
+
+						&:active {
+							background: #5a6b7a;
+						}
+					}
+
+					.btl-ai-category-badge {
+						background: #2d3748;
+						border-color: #4b5563;
+						color: #d1d5db;
+					}
+
+					.btl-ai-exists-badge {
+						background: #7f1d1d;
+						border-color: #f87171;
+						color: #fecaca;
+					}
+				}
+			}
+		}
+
+		// Buttons dark mode
+		.btl-ai-btn-generate {
+			background: #667eea;
+			color: #ffffff;
+
+			&:hover:not(:disabled) {
+				background: #5568d3;
+				box-shadow: 0 8px 16px rgba(102, 126, 234, 0.5);
+			}
+
+			&:disabled {
+				background: #4b5563;
+				opacity: 0.6;
+			}
+		}
+
+		.btl-ai-modal-footer {
+			background: #111827;
+			border-top-color: #4b5563;
+
+			button {
+				&.btl-ai-btn-secondary {
+					background: #374151;
+					color: #f3f4f6;
+					border-color: #4b5563;
+
+					&:hover {
+						background: #4b5563;
+					}
+				}
+
+				&.btl-ai-btn-primary {
+					background: #10b981;
+					color: white;
+
+					&:hover:not(:disabled) {
+						background: #059669;
+					}
+
+					&:disabled {
+						background: #4b5563;
+					}
+				}
+
+				&.btl-ai-btn-danger {
+					background: #ef4444;
+					color: white;
+
+					&:hover {
+						background: #dc2626;
+					}
+				}
+			}
+		}
+
+		// Error and success messages dark mode
+		.btl-ai-error-message {
+			background: #7f1d1d;
+			border-color: #f87171;
+			color: #fecaca;
+		}
+
+		.btl-ai-success-message {
+			background: #064e3b;
+			border-color: #6ee7b7;
+			color: #a7f3d0;
+		}
+
+		.btl-ai-info-message {
+			background: #1e3a8a;
+			border-color: #60a5fa;
+			color: #bfdbfe;
+		}
+	}
+
+	// Dark mode for AI button wrapper
+	.btl-ai-button-wrapper {
+		.btl-ai-button {
+			background: #374151;
+			color: #f9fafb;
+
+			&:hover {
+				background: #4b5563;
+			}
+		}
+	}
+
+	// Dark mode for old style button
+	.btl-ai-bulk-link-button {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		color: white;
+
+		&:hover {
+			box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+		}
+	}
+}
+

@@ -1,0 +1,651 @@
+// ==========================================================================
+// Quick Link Creation — standalone success page (`Views/create-link-externally`)
+//
+// This renders as its own HTML document (not inside wp-admin), so it ships a
+// small reset of its own. Tokens mirror the redesigned admin surfaces
+// (border #e6e8ee, blue #2f6bff, surface #f7f8fa, text #1a2233).
+// ==========================================================================
+$cle-blue: #2f6bff;
+$cle-blue-dark: #1f57e6;
+$cle-border: #e6e8ee;
+$cle-text: #1a2233;
+$cle-muted: #6b7280;
+$cle-surface: #f7f8fa;
+$cle-white: #fff;
+$cle-green: #16a34a;
+
+// ---- Reset ---------------------------------------------------------------
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+body,
+h1,
+h2,
+p,
+dl,
+dd,
+figure {
+	margin: 0;
+}
+
+ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+img,
+svg {
+	display: block;
+	max-width: 100%;
+}
+
+button {
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	line-height: normal;
+	-webkit-appearance: none;
+	-webkit-font-smoothing: inherit;
+	-moz-osx-font-smoothing: inherit;
+}
+
+body {
+	min-height: 100vh;
+	padding: 40px 20px;
+	background: $cle-white;
+	color: $cle-text;
+	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+	font-size: 15px;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+}
+
+// ---- Shell ---------------------------------------------------------------
+.bl-cle {
+	display: flex;
+	flex-direction: column;
+	gap: 32px;
+	width: 100%;
+	max-width: 680px;
+	margin: 0 auto;
+	// Keeps the "Powered By" credit pinned near the bottom on tall viewports
+	// without stranding it off-screen on short ones.
+	min-height: calc(100vh - 80px);
+
+	&__main {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+	}
+	&__main--blocked {
+		align-items: center;
+		text-align: center;
+		margin: auto 0;
+	}
+
+	// ---- Header ----------------------------------------------------------
+	&__head {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 14px;
+		text-align: center;
+	}
+
+	&__brand {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 64px;
+		height: 64px;
+		border-radius: 50%;
+		background: #fdf6ff;
+
+		img {
+			width: 36px;
+			height: 36px;
+		}
+	}
+
+	&__title {
+		font-size: 32px;
+		font-weight: 700;
+		line-height: 1.25;
+		letter-spacing: -0.02em;
+	}
+
+	&__subtitle {
+		max-width: 44ch;
+		color: $cle-muted;
+		font-size: 15px;
+	}
+
+	// ---- Short URL bar ---------------------------------------------------
+	&__urlbar {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 14px 14px 14px 20px;
+		border: 1px solid rgba($cle-blue, 0.35);
+		border-radius: 12px;
+		background: rgba($cle-blue, 0.05);
+	}
+
+	&__url {
+		flex: 1 1 auto;
+		min-width: 0;
+		overflow: hidden;
+		color: $cle-blue;
+		font-size: 18px;
+		font-weight: 600;
+		text-decoration: none;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+
+		&:hover,
+		&:focus-visible {
+			color: $cle-blue-dark;
+			text-decoration: underline;
+		}
+	}
+
+	&__urlactions {
+		display: flex;
+		flex: none;
+		gap: 8px;
+	}
+
+	&__iconbtn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 38px;
+		height: 38px;
+		border-radius: 10px;
+		background: rgba($cle-blue, 0.12);
+		color: $cle-blue;
+		cursor: pointer;
+		text-decoration: none;
+		transition: background-color 0.15s ease, color 0.15s ease;
+
+		&:hover,
+		&:focus-visible {
+			background: $cle-blue;
+			color: $cle-white;
+			outline: none;
+
+			// The copy glyph is a flat SVG asset, so invert it rather than
+			// relying on currentColor.
+			img {
+				filter: brightness(0) invert(1);
+			}
+		}
+
+		.icon {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+	}
+
+	// jQuery toggles this between the copy glyph and the tick.
+	&__copied {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: $cle-green;
+	}
+
+	// ---- Social share ----------------------------------------------------
+	&__share {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 14px;
+		flex-wrap: wrap;
+	}
+
+	&__share-label {
+		color: $cle-muted;
+		font-size: 13px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+	}
+
+	&__share-list {
+		display: flex;
+		gap: 10px;
+	}
+
+	&__share-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 38px;
+		height: 38px;
+		border-radius: 10px;
+		overflow: hidden;
+		transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+		svg,
+		img {
+			width: 30px;
+			height: 30px;
+			border-radius: 6px;
+		}
+
+		&:hover,
+		&:focus-visible {
+			transform: translateY(-2px);
+			box-shadow: 0 6px 14px rgba(16, 24, 40, 0.16);
+			outline: none;
+		}
+	}
+
+	// ---- Cards -----------------------------------------------------------
+	&__card {
+		padding: 22px 24px;
+		border: 1px solid $cle-border;
+		border-radius: 14px;
+		background: $cle-white;
+	}
+
+	&__card-title {
+		margin-bottom: 14px;
+		font-size: 15px;
+		font-weight: 700;
+	}
+
+	// ---- Title / Main URL ------------------------------------------------
+	&__meta {
+		display: grid;
+		grid-template-columns: 96px minmax(0, 1fr);
+		gap: 10px 20px;
+		align-items: baseline;
+
+		dt {
+			color: $cle-muted;
+			font-size: 13px;
+			font-weight: 600;
+		}
+		dd {
+			min-width: 0;
+			font-size: 14px;
+		}
+	}
+
+	&__meta-title {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		font-weight: 600;
+	}
+
+	&__meta-url {
+		display: block;
+		overflow: hidden;
+		color: $cle-muted;
+		text-decoration: none;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+
+		&:hover,
+		&:focus-visible {
+			color: $cle-blue;
+			text-decoration: underline;
+		}
+	}
+
+	// ---- Link options ----------------------------------------------------
+	&__options {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 10px 28px;
+	}
+
+	&__option {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 8px 0;
+		border-bottom: 1px solid rgba($cle-border, 0.7);
+
+		// Last row of each column keeps the card bottom clean.
+		&:last-child,
+		&:nth-last-child(2):nth-child(odd) {
+			border-bottom: 0;
+		}
+	}
+
+	&__option-label {
+		color: $cle-muted;
+		font-size: 14px;
+	}
+
+	&__pill {
+		flex: none;
+		padding: 3px 11px;
+		border-radius: 999px;
+		font-size: 12.5px;
+		font-weight: 600;
+		white-space: nowrap;
+
+		&--on {
+			background: rgba($cle-green, 0.12);
+			color: #12803c;
+		}
+		&--off {
+			background: $cle-surface;
+			color: #98a1b0;
+		}
+		&--info {
+			background: rgba($cle-blue, 0.12);
+			color: $cle-blue-dark;
+		}
+	}
+
+	// ---- Footer actions --------------------------------------------------
+	&__actions {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		flex-wrap: wrap;
+		margin-top: 8px;
+
+		&--center {
+			justify-content: center;
+		}
+	}
+
+	&__back {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		height: 42px;
+		padding: 0 18px;
+		border: 1px solid $cle-border;
+		border-radius: 10px;
+		background: $cle-white;
+		color: $cle-text;
+		font-size: 14px;
+		font-weight: 600;
+		text-decoration: none;
+		transition: border-color 0.15s ease, background-color 0.15s ease;
+
+		&:hover,
+		&:focus-visible {
+			border-color: rgba($cle-blue, 0.5);
+			background: rgba($cle-blue, 0.05);
+			color: $cle-blue-dark;
+			outline: none;
+		}
+	}
+
+	&__date {
+		color: $cle-muted;
+		font-size: 13px;
+	}
+
+	// ---- Credit ----------------------------------------------------------
+	&__credit {
+		margin-top: auto;
+		padding-top: 20px;
+		border-top: 1px solid $cle-border;
+		text-align: center;
+
+		span {
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			color: $cle-muted;
+			font-size: 13px;
+		}
+		img {
+			width: 86px;
+		}
+	}
+
+	// ---- Responsive ------------------------------------------------------
+	@media screen and (max-width: 640px) {
+		gap: 24px;
+
+		&__title {
+			font-size: 25px;
+		}
+		&__urlbar {
+			padding: 12px;
+			align-items: flex-start;
+			flex-direction: column;
+			gap: 12px;
+		}
+		&__url {
+			font-size: 16px;
+			width: 100%;
+		}
+		&__urlactions {
+			align-self: flex-end;
+		}
+		&__card {
+			padding: 18px;
+		}
+		&__meta {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 2px;
+
+			dt {
+				margin-top: 8px;
+			}
+		}
+		&__options {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 0;
+		}
+		&__option {
+			&:nth-last-child(2):nth-child(odd) {
+				border-bottom: 1px solid rgba($cle-border, 0.7);
+			}
+			&:last-child {
+				border-bottom: 0;
+			}
+		}
+		&__actions {
+			justify-content: center;
+		}
+	}
+}
+
+// ==========================================================================
+// Confetti burst
+// ==========================================================================
+#confetti {
+	left: 0;
+	position: fixed;
+	right: 0;
+	top: -160px;
+	z-index: 10000;
+	pointer-events: none;
+}
+#confetti .ball {
+	animation-iteration-count: 1 !important;
+	-webkit-animation-iteration-count: 1 !important;
+	border-radius: 50%;
+	cursor: default;
+	display: inline-block;
+	height: 10px;
+	user-select: none;
+	-webkit-user-select: none;
+	width: 10px;
+}
+@-webkit-keyframes falling-left {
+	0% {
+		-webkit-transform: translate3d(0, 0, 0);
+		opacity: 1;
+	}
+	10% {
+		opacity: 0;
+	}
+	20% {
+		opacity: 1;
+	}
+	30% {
+		opacity: 0;
+	}
+	40% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0;
+	}
+	60% {
+		opacity: 1;
+	}
+	70% {
+		opacity: 0;
+	}
+	80% {
+		opacity: 1;
+	}
+	90% {
+		opacity: 0;
+	}
+	100% {
+		-webkit-transform: translate3d(0, 120vh, 0);
+		opacity: 1;
+	}
+}
+@keyframes falling-left {
+	0% {
+		-webkit-transform: translate3d(0, 0, 0);
+		opacity: 1;
+	}
+	10% {
+		opacity: 0;
+	}
+	20% {
+		opacity: 1;
+	}
+	30% {
+		opacity: 0;
+	}
+	40% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0;
+	}
+	60% {
+		opacity: 1;
+	}
+	70% {
+		opacity: 0;
+	}
+	80% {
+		opacity: 1;
+	}
+	90% {
+		opacity: 0;
+	}
+	100% {
+		-webkit-transform: translate3d(0, 120vh, 0);
+		opacity: 1;
+	}
+}
+#confetti .ball:nth-child(2n) {
+	-webkit-animation: falling-left linear;
+	animation: falling-left linear;
+}
+@-webkit-keyframes falling-right {
+	0% {
+		-webkit-transform: translate3d(0, 0, 0);
+		opacity: 0;
+	}
+	10% {
+		opacity: 1;
+	}
+	20% {
+		opacity: 0;
+	}
+	30% {
+		opacity: 1;
+	}
+	40% {
+		opacity: 0;
+	}
+	50% {
+		opacity: 1;
+	}
+	60% {
+		opacity: 0;
+	}
+	70% {
+		opacity: 1;
+	}
+	80% {
+		opacity: 0;
+	}
+	90% {
+		opacity: 1;
+	}
+	100% {
+		-webkit-transform: translate3d(0, 120vh, 0);
+		opacity: 0;
+	}
+}
+@keyframes falling-right {
+	0% {
+		-webkit-transform: translate3d(0, 0, 0);
+		opacity: 1;
+	}
+	10% {
+		opacity: 0;
+	}
+	20% {
+		opacity: 1;
+	}
+	30% {
+		opacity: 0;
+	}
+	40% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0;
+	}
+	60% {
+		opacity: 1;
+	}
+	70% {
+		opacity: 0;
+	}
+	80% {
+		opacity: 1;
+	}
+	90% {
+		opacity: 0;
+	}
+	100% {
+		-webkit-transform: translate3d(0, 120vh, 0);
+		opacity: 0;
+	}
+}
+#confetti .ball:nth-of-type(2n + 1) {
+	-webkit-animation: falling-right linear;
+	animation: falling-right linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	#confetti {
+		display: none;
+	}
+}

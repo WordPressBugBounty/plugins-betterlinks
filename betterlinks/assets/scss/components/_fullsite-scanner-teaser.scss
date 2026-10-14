@@ -1,0 +1,1678 @@
+// ==========================================================================
+// Full Site Link Scanner — teaser (mirrors the Pro `btl-scanhealth` /
+// `btl-flc-card` design so the free preview matches the upgraded experience).
+// Kept as its own top-level partial; selectors are global, exactly like Pro.
+// ==========================================================================
+$flc-blue: #2f6bff;
+$flc-blue-dark: #1f57e6;
+$flc-border: #e6e8ee;
+$flc-title: #1a2233;
+$flc-muted: #6b7280;
+$flc-surface: #f9fafb;
+
+$health-active: #3fb27f;
+$health-broken: #ef4444;
+$health-forbidden: #f59e0b;
+$health-unauthorized: #9ca3af;
+
+@keyframes btl-flc-spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+// --------------------------------------------------------------------------
+// Health card: setup + health breakdown in one card
+// --------------------------------------------------------------------------
+.btl-scanhealth {
+	display: grid;
+	grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+	background: #fff;
+	border: 1px solid $flc-border;
+	border-radius: 16px;
+	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+	overflow: hidden;
+
+	* {
+		box-sizing: border-box;
+	}
+
+	// ---- Left rail: health summary --------------------------------------
+	&__rail {
+		padding: 26px 28px;
+		border-right: 1px solid $flc-border;
+	}
+
+	&__brand {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	&__brand-icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex: none;
+		width: 40px;
+		height: 40px;
+		border-radius: 12px;
+		background: rgba($flc-blue, 0.1);
+		color: $flc-blue;
+
+		svg {
+			width: 20px;
+			height: 20px;
+		}
+	}
+
+	&__brand-text {
+		margin: 0;
+		color: $flc-title;
+		font-size: 13px;
+		font-weight: 700;
+		letter-spacing: 0.07em;
+		text-transform: uppercase;
+	}
+
+	&__score {
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
+		margin-top: 22px;
+	}
+
+	&__score-value {
+		color: $flc-title;
+		font-size: 54px;
+		font-weight: 800;
+		line-height: 1;
+		letter-spacing: -0.02em;
+	}
+
+	&__score-unit {
+		color: #475467;
+		font-size: 20px;
+		font-weight: 700;
+	}
+
+	&__attention {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 12px 0 0;
+		color: $flc-muted;
+		font-size: 14px;
+
+		.btl-scanhealth__attention-dot {
+			width: 8px;
+			height: 8px;
+			flex: none;
+			border-radius: 50%;
+			background: currentColor;
+		}
+
+		&.is-warning .btl-scanhealth__attention-dot {
+			background: $health-forbidden;
+		}
+		&.is-clear .btl-scanhealth__attention-dot {
+			background: $health-active;
+		}
+	}
+
+	&__facts {
+		margin: 24px 0 0;
+		padding: 0;
+		list-style: none;
+
+		li {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 16px;
+			margin: 0;
+			padding: 9px 0;
+		}
+	}
+
+	&__fact-label {
+		display: inline-flex;
+		align-items: center;
+		gap: 10px;
+		color: $flc-muted;
+		font-size: 14px;
+
+		svg {
+			width: 17px;
+			height: 17px;
+			flex: none;
+		}
+	}
+
+	&__fact-value {
+		color: $flc-title;
+		font-size: 14px;
+		font-weight: 700;
+		white-space: nowrap;
+	}
+
+	// ---- Right pane: controls + breakdown -------------------------------
+	&__main {
+		padding: 24px 28px 26px;
+		min-width: 0;
+	}
+
+	&__settings {
+		.btl-form-group {
+			display: block;
+		}
+
+		.btl-form-label {
+			margin-bottom: 10px;
+			color: $flc-title;
+			font-size: 14px;
+			font-weight: 600;
+			gap: 6px;
+		}
+
+		.btl-tooltip .btl-tooltiptext {
+			top: calc(100% + 10px);
+			bottom: auto;
+			z-index: 5;
+
+			&::after {
+				top: auto;
+				bottom: 100%;
+				border-color: transparent transparent #2961ff transparent;
+			}
+		}
+	}
+
+	// Select and scan button share a row.
+	&__field {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		width: 100%;
+
+		> .btl-checkbox-field {
+			flex: 1 1 auto;
+			min-width: 0;
+			margin: 0;
+		}
+
+		.btl-modal-select--full {
+			width: 100%;
+		}
+
+		.btl-react-select__control {
+			min-height: 52px;
+			border: 1px solid $flc-border;
+			border-radius: 10px;
+			box-shadow: none;
+
+			&--is-focused {
+				border-color: $flc-blue;
+				box-shadow: 0 0 0 3px rgba($flc-blue, 0.12);
+			}
+		}
+
+		.btl-react-select__multi-value {
+			background: rgba($flc-blue, 0.08);
+			border-radius: 7px;
+
+			&__label {
+				color: $flc-blue;
+				font-size: 13px;
+				font-weight: 600;
+				text-transform: capitalize;
+			}
+			&__remove:hover {
+				background: rgba($flc-blue, 0.16);
+				color: $flc-blue;
+			}
+		}
+	}
+
+	&__actions {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex: none;
+	}
+
+	&__btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 9px;
+		height: 52px;
+		padding: 0 22px;
+		border: 1px solid transparent;
+		border-radius: 10px;
+		font-size: 15px;
+		font-weight: 600;
+		line-height: 1;
+		white-space: nowrap;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		&--primary {
+			background: $flc-blue;
+			border-color: $flc-blue;
+			color: #fff;
+
+			&:hover:not(:disabled) {
+				background: $flc-blue-dark;
+				border-color: $flc-blue-dark;
+			}
+		}
+
+		&--ghost {
+			background: #fff;
+			border-color: $flc-border;
+			color: $flc-title;
+
+			&:hover:not(:disabled) {
+				border-color: rgba($flc-blue, 0.5);
+				color: $flc-blue;
+				background: rgba($flc-blue, 0.04);
+			}
+		}
+
+		&:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+	}
+
+	&__btn-icon {
+		display: inline-flex;
+
+		svg {
+			width: 19px;
+			height: 19px;
+		}
+
+		&.is-spinning svg {
+			animation: btl-flc-spin 0.9s linear infinite;
+		}
+	}
+
+	// ---- Health meter ----------------------------------------------------
+	&__meter {
+		margin-top: 26px;
+	}
+
+	&__meter-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		margin-bottom: 12px;
+	}
+
+	&__meter-title {
+		color: #475467;
+		font-size: 14px;
+		font-weight: 600;
+	}
+
+	&__meter-meta {
+		color: $flc-title;
+		font-size: 14px;
+		font-weight: 700;
+	}
+
+	&__bar {
+		display: flex;
+		align-items: stretch;
+		gap: 3px;
+		width: 100%;
+		height: 14px;
+		border-radius: 999px;
+		background: #eef0f4;
+		overflow: hidden;
+	}
+
+	&__bar-seg {
+		display: block;
+		height: 100%;
+		border-radius: 999px;
+		transition: width 0.3s ease;
+
+		&--active {
+			background: $health-active;
+		}
+		&--broken {
+			background: $health-broken;
+		}
+		&--forbidden {
+			background: $health-forbidden;
+		}
+		&--unauthorized {
+			background: $health-unauthorized;
+		}
+		&--progress {
+			background: $flc-blue;
+		}
+	}
+
+	// ---- Legend chips ----------------------------------------------------
+	&__chips {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+		margin-top: 16px;
+	}
+
+	&__chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 9px 16px;
+		border: 1px solid $flc-border;
+		border-radius: 999px;
+		background: #fff;
+		color: #475467;
+		font-size: 14px;
+
+		strong {
+			color: $flc-title;
+			font-weight: 700;
+		}
+
+		.btl-scanhealth__chip-dot {
+			width: 9px;
+			height: 9px;
+			flex: none;
+			border-radius: 50%;
+		}
+
+		&--active .btl-scanhealth__chip-dot {
+			background: $health-active;
+		}
+		&--broken .btl-scanhealth__chip-dot {
+			background: $health-broken;
+		}
+		&--forbidden .btl-scanhealth__chip-dot {
+			background: $health-forbidden;
+		}
+		&--unauthorized .btl-scanhealth__chip-dot {
+			background: $health-unauthorized;
+		}
+	}
+
+	// ---- Responsive ------------------------------------------------------
+	@media screen and (max-width: 1180px) {
+		grid-template-columns: 1fr;
+
+		&__rail {
+			border-right: none;
+			border-bottom: 1px solid $flc-border;
+		}
+	}
+
+	@media screen and (max-width: 782px) {
+		&__field {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		&__actions {
+			flex-wrap: wrap;
+		}
+
+		&__btn {
+			flex: 1 1 auto;
+		}
+
+		&__meter-head {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 4px;
+		}
+	}
+}
+
+// --------------------------------------------------------------------------
+// Results table (custom toolbar + table)
+// --------------------------------------------------------------------------
+.btl-flc-card {
+	margin-top: 16px;
+	background: #fff;
+	border: 1px solid $flc-border;
+	border-radius: 14px;
+	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+
+	* {
+		box-sizing: border-box;
+	}
+
+	// ---- Toolbar ---------------------------------------------------------
+	.btl-flc-toolbar {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		flex-wrap: wrap;
+		padding: 16px 18px;
+
+		&__actions {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin-left: auto;
+		}
+	}
+
+	.btl-flc-search {
+		position: relative;
+		max-width: 380px;
+		min-width: 200px;
+
+		&__icon {
+			position: absolute;
+			top: 50%;
+			left: 13px;
+			transform: translateY(-50%);
+			display: inline-flex;
+			color: #9aa1ad;
+			pointer-events: none;
+
+			svg {
+				width: 17px;
+				height: 17px;
+			}
+		}
+
+		input[type='text'] {
+			width: 100%;
+			height: 44px;
+			padding: 0 14px 0 40px;
+			background: #fff;
+			border: 1px solid $flc-border;
+			border-radius: 10px;
+			font-size: 14px;
+			color: $flc-title;
+			box-shadow: none;
+
+			&::placeholder {
+				color: #9aa1ad;
+			}
+			&:focus {
+				outline: none;
+				border-color: $flc-blue;
+				box-shadow: 0 0 0 3px rgba($flc-blue, 0.12);
+			}
+		}
+	}
+
+	// ---- Dropdown triggers (static in the teaser) ------------------------
+	.btl-flc-dropdown {
+		position: relative;
+
+		&__trigger {
+			position: relative;
+			display: inline-flex;
+			align-items: center;
+			gap: 8px;
+			height: 44px;
+			padding: 0 14px;
+			background: #fff;
+			border: 1px solid $flc-border;
+			border-radius: 10px;
+			font-size: 14px;
+			font-weight: 600;
+			color: $flc-title;
+			cursor: pointer;
+			white-space: nowrap;
+			transition: all 0.15s ease;
+
+			&:hover {
+				border-color: rgba($flc-blue, 0.5);
+			}
+		}
+
+		&__icon {
+			display: inline-flex;
+			color: $flc-muted;
+
+			svg {
+				width: 17px;
+				height: 17px;
+			}
+		}
+
+		&__label {
+			color: $flc-muted;
+			font-weight: 500;
+		}
+
+		&__chevron {
+			display: inline-flex;
+			color: $flc-muted;
+
+			svg {
+				width: 16px;
+				height: 16px;
+			}
+		}
+	}
+
+	// ---- Buttons ---------------------------------------------------------
+	.btl-flc-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		height: 44px;
+		padding: 0 16px;
+		border: 1px solid $flc-border;
+		border-radius: 10px;
+		background: #fff;
+		font-size: 14px;
+		font-weight: 600;
+		line-height: 1;
+		color: $flc-title;
+		white-space: nowrap;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		&__icon {
+			display: inline-flex;
+
+			svg {
+				width: 17px;
+				height: 17px;
+			}
+		}
+
+		&--outline:hover:not(:disabled) {
+			border-color: rgba($flc-blue, 0.5);
+			color: $flc-blue;
+			background: rgba($flc-blue, 0.04);
+		}
+
+		&--danger {
+			border-color: rgba(#dc2626, 0.4);
+			color: #dc2626;
+
+			&:hover:not(:disabled) {
+				border-color: #dc2626;
+				background: rgba(#dc2626, 0.06);
+			}
+		}
+
+		&:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+	}
+
+	// ---- Checkbox --------------------------------------------------------
+	.btl-flc-check {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+
+		input {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			margin: 0;
+			opacity: 0;
+		}
+
+		&__box {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			width: 18px;
+			height: 18px;
+			flex: none;
+			border: 1.5px solid #cfd4dc;
+			border-radius: 5px;
+			background: #fff;
+			color: transparent;
+			transition: all 0.15s ease;
+
+			svg {
+				width: 11px;
+				height: 11px;
+			}
+		}
+
+		&.is-checked .btl-flc-check__box {
+			background: $flc-blue;
+			border-color: $flc-blue;
+			color: #fff;
+		}
+	}
+
+	// ---- Table -----------------------------------------------------------
+	.btl-flc-table-scroll {
+		width: 100%;
+		overflow-x: auto;
+	}
+
+	.btl-flc-table {
+		width: 100%;
+		border-collapse: collapse;
+		background: transparent;
+
+		th,
+		td {
+			background: transparent;
+			border: none;
+			vertical-align: middle;
+			text-align: left;
+		}
+
+		thead th {
+			padding: 13px 16px;
+			background: $flc-surface;
+			border-top: 1px solid $flc-border;
+			border-bottom: 1px solid $flc-border;
+			color: $flc-muted;
+			font-size: 12px;
+			font-weight: 600;
+			text-transform: uppercase;
+			letter-spacing: 0.05em;
+			white-space: nowrap;
+		}
+
+		tbody tr {
+			border-bottom: 1px solid $flc-border;
+			transition: background 0.12s ease;
+
+			&:last-child {
+				border-bottom: none;
+			}
+			&:hover {
+				background: #fafbfc;
+			}
+		}
+
+		td {
+			padding: 12px 16px;
+			font-size: 14px;
+			color: $flc-title;
+		}
+
+		&__pick {
+			width: 52px;
+			padding-right: 0 !important;
+		}
+		&__status {
+			width: 170px;
+		}
+		&__checked {
+			width: 130px;
+		}
+		&__actions {
+			width: 130px;
+			text-align: right;
+		}
+	}
+
+	// ---- Link cell -------------------------------------------------------
+	.btl-flc-link-cell {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		min-width: 0;
+
+		.btl-flc-link-icon {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			flex: none;
+			width: 38px;
+			height: 38px;
+			border-radius: 10px;
+			background: rgba($flc-blue, 0.1);
+			color: $flc-blue;
+			text-decoration: none;
+
+			svg {
+				width: 18px;
+				height: 18px;
+			}
+
+			&--broken {
+				background: #fdecec;
+				color: #d92d20;
+			}
+			&--forbidden {
+				background: #fdf2e3;
+				color: #b7791f;
+			}
+			&--unauthorized {
+				background: #eef0f3;
+				color: #5b6472;
+			}
+		}
+
+		&__body {
+			display: flex;
+			flex-direction: column;
+			gap: 3px;
+			min-width: 0;
+		}
+
+		&__title {
+			color: $flc-title;
+			font-size: 15px;
+			font-weight: 700;
+			line-height: 1.3;
+			word-break: break-word;
+		}
+
+		&__url {
+			display: block;
+			max-width: 380px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+			font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+			font-size: 13px;
+			color: #667085;
+		}
+	}
+
+	// ---- Post cell -------------------------------------------------------
+	.btl-flc-post-cell {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 6px;
+		min-width: 0;
+
+		.btl-flc-posttitle {
+			color: $flc-title;
+			font-size: 14px;
+			word-break: break-word;
+		}
+
+		.btl-flc-posttype {
+			display: inline-flex;
+			align-items: center;
+			padding: 3px 10px;
+			border-radius: 6px;
+			background: #f1f3f7;
+			color: #4b5563;
+			font-size: 12px;
+			font-weight: 500;
+			text-transform: capitalize;
+		}
+	}
+
+	.btl-flc-checked {
+		color: $flc-muted;
+		font-size: 14px;
+		white-space: nowrap;
+	}
+
+	// ---- Status pill -----------------------------------------------------
+	.btl-flc-status {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		padding: 5px 12px;
+		border-radius: 999px;
+		font-size: 13px;
+		font-weight: 600;
+		white-space: nowrap;
+
+		&__dot {
+			width: 7px;
+			height: 7px;
+			border-radius: 50%;
+			background: currentColor;
+		}
+
+		&--active {
+			background: #e7f7ee;
+			color: #12854a;
+		}
+		&--broken {
+			background: #fdecec;
+			color: #d92d20;
+		}
+		&--forbidden {
+			background: #fdf2e3;
+			color: #b7791f;
+		}
+		&--unauthorized {
+			background: #eef0f3;
+			color: #5b6472;
+		}
+	}
+
+	// ---- Row actions -----------------------------------------------------
+	.btl-flc-actions {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 2px;
+	}
+
+	.btl-flc-icon-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		padding: 0;
+		border: none;
+		border-radius: 8px;
+		background: transparent;
+		color: #98a2b3;
+		text-decoration: none;
+		cursor: pointer;
+		transition: all 0.15s ease;
+
+		svg {
+			width: 17px;
+			height: 17px;
+		}
+
+		&:hover {
+			background: rgba($flc-blue, 0.08);
+			color: $flc-blue;
+		}
+
+		&--danger:hover {
+			background: rgba(#dc2626, 0.08);
+			color: #dc2626;
+		}
+	}
+
+	// ---- Pagination ------------------------------------------------------
+	.btl-flc-pagination {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 20px;
+		flex-wrap: wrap;
+		padding: 12px 18px;
+		border-top: 1px solid $flc-border;
+		color: $flc-muted;
+		font-size: 13px;
+
+		&__rows {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+
+			select {
+				height: 32px;
+				min-height: 32px;
+				padding: 0 26px 0 10px;
+				border: 1px solid $flc-border;
+				border-radius: 8px;
+				background-color: #fff;
+				font-size: 13px;
+				color: $flc-title;
+				box-shadow: none;
+			}
+		}
+
+		.btl-flc-pagination-left {
+			display: flex;
+			align-items: center;
+			gap: 16px;
+		}
+
+		&__nav {
+			display: flex;
+			align-items: center;
+			gap: 6px;
+
+			button {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 32px;
+				height: 32px;
+				padding: 0;
+				border: 1px solid $flc-border;
+				border-radius: 8px;
+				background: #fff;
+				color: $flc-title;
+				cursor: pointer;
+				transition: all 0.15s ease;
+
+				svg {
+					width: 16px;
+					height: 16px;
+				}
+
+				&:hover:not(:disabled) {
+					border-color: rgba($flc-blue, 0.5);
+					color: $flc-blue;
+					background: rgba($flc-blue, 0.05);
+				}
+				&:disabled {
+					opacity: 0.45;
+					cursor: not-allowed;
+				}
+			}
+		}
+	}
+
+	// ---- Responsive: rows collapse into stacked cards --------------------
+	@media screen and (max-width: 1100px) {
+		.btl-flc-toolbar__actions {
+			margin-left: 0;
+		}
+	}
+
+	@media screen and (max-width: 960px) {
+		.btl-flc-table-scroll {
+			overflow-x: visible;
+		}
+
+		.btl-flc-table {
+			display: block;
+
+			thead {
+				display: none;
+			}
+
+			tbody,
+			tr,
+			td {
+				display: block;
+				width: 100%;
+			}
+
+			tbody tr {
+				position: relative;
+				padding: 14px 16px 14px 46px;
+
+				&:hover {
+					background: transparent;
+				}
+			}
+
+			td.btl-flc-table__pick {
+				position: absolute;
+				top: 18px;
+				left: 14px;
+				width: auto;
+				padding: 0 !important;
+			}
+
+			td {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 16px;
+				padding: 7px 0;
+
+				&::before {
+					content: attr(data-label);
+					flex: none;
+					color: $flc-muted;
+					font-size: 11px;
+					font-weight: 600;
+					text-transform: uppercase;
+					letter-spacing: 0.05em;
+				}
+			}
+
+			td.btl-flc-table__link {
+				padding-bottom: 10px;
+
+				&::before {
+					display: none;
+				}
+			}
+
+			td.btl-flc-table__actions {
+				padding-top: 10px;
+			}
+
+			.btl-flc-link-cell__url {
+				max-width: none;
+				overflow-wrap: anywhere;
+				white-space: normal;
+			}
+
+			.btl-flc-post-cell {
+				align-items: flex-end;
+			}
+		}
+	}
+}
+
+// ==========================================================================
+// Scan-results health card variant (Broken Link Scanner + Scheduled Reports)
+// — adds the "resolving" pill + Re-check/Scan-now topbar on the health card.
+// ==========================================================================
+.btl-scanhealth {
+	&--results {
+		margin-top: 20px;
+	}
+
+	&__topbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+		flex-wrap: wrap;
+	}
+
+	&__pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 9px 16px;
+		border: 1px solid $flc-border;
+		border-radius: 999px;
+		background: #fff;
+		color: #12854a;
+		font-size: 14px;
+		font-weight: 600;
+
+		svg {
+			width: 17px;
+			height: 17px;
+		}
+
+		strong {
+			font-weight: 700;
+		}
+	}
+}
+
+// ==========================================================================
+// Broken Link Scanner — settings cards (schedule + email report)
+// ==========================================================================
+.btl-bls-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 20px;
+	align-items: start;
+
+	@media screen and (max-width: 1180px) {
+		grid-template-columns: 1fr;
+	}
+}
+
+.btl-bls-card {
+	display: flex;
+	flex-direction: column;
+	padding: 24px 26px;
+	background: #fff;
+	border: 1px solid $flc-border;
+	border-radius: 16px;
+	box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+
+	* {
+		box-sizing: border-box;
+	}
+
+	&__head {
+		display: flex;
+		align-items: flex-start;
+		gap: 14px;
+		padding-bottom: 18px;
+		border-bottom: 1px solid $flc-border;
+
+		&--toggle {
+			align-items: center;
+
+			.btl-fls-toggle {
+				margin-left: auto;
+				flex: none;
+			}
+		}
+	}
+
+	&__icon {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		flex: none;
+		width: 44px;
+		height: 44px;
+		border-radius: 12px;
+		background: rgba($flc-blue, 0.1);
+		color: $flc-blue;
+
+		svg {
+			width: 21px;
+			height: 21px;
+		}
+	}
+
+	&__heading {
+		min-width: 0;
+	}
+
+	&__title {
+		margin: 0;
+		color: $flc-title;
+		font-size: 17px;
+		font-weight: 700;
+		line-height: 1.35;
+	}
+
+	&__desc {
+		margin: 4px 0 0;
+		color: $flc-muted;
+		font-size: 14px;
+		line-height: 1.5;
+
+		strong {
+			color: $flc-title;
+			font-weight: 700;
+		}
+	}
+
+	&__actions {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		flex-wrap: wrap;
+		margin-top: auto;
+		padding-top: 20px;
+		border-top: 1px solid $flc-border;
+	}
+
+	.btl-bls-form {
+		display: flex;
+		flex-direction: column;
+		flex: 1 1 auto;
+	}
+
+	// The email card's header lives inside the form, so it owns the divider.
+	.btl-bls-form .btl-bls-card__head {
+		padding-top: 0;
+	}
+}
+
+// Label + helper text on the left, control on the right.
+.btl-bls-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20px;
+	padding: 18px 0;
+	border-bottom: 1px solid $flc-border;
+
+	&__text {
+		min-width: 0;
+	}
+
+	&__label {
+		display: block;
+		margin: 0;
+		color: $flc-title;
+		font-size: 15px;
+		font-weight: 700;
+	}
+
+	&__help {
+		margin: 4px 0 0;
+		color: $flc-muted;
+		font-size: 14px;
+	}
+
+	&__control {
+		flex: none;
+	}
+
+	@media screen and (max-width: 600px) {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 12px;
+	}
+}
+
+.btl-bls-field {
+	margin-top: 18px;
+
+	&__label {
+		display: block;
+		margin-bottom: 8px;
+		color: $flc-title;
+		font-size: 15px;
+		font-weight: 600;
+	}
+
+	&__help {
+		margin: 8px 0 0;
+		color: $flc-muted;
+		font-size: 13px;
+		line-height: 1.5;
+	}
+}
+
+// Post-types multi-select, matched to the plain inputs beside it.
+.btl-bls-select {
+	.btl-react-select__control {
+		min-height: 48px;
+		background: #fff;
+		border: 1px solid $flc-border;
+		border-radius: 10px;
+		box-shadow: none;
+
+		&--is-focused {
+			border-color: $flc-blue;
+			box-shadow: 0 0 0 3px rgba($flc-blue, 0.12);
+		}
+	}
+
+	.btl-react-select__multi-value {
+		background: rgba($flc-blue, 0.08);
+		border-radius: 7px;
+
+		&__label {
+			color: $flc-blue;
+			font-size: 13px;
+			font-weight: 600;
+			text-transform: capitalize;
+		}
+		&__remove:hover {
+			background: rgba($flc-blue, 0.16);
+			color: $flc-blue;
+		}
+	}
+
+	.btl-react-select__placeholder {
+		color: #9aa1ad;
+	}
+}
+
+.btl-bls-input,
+input.btl-bls-input {
+	width: 100%;
+	height: 48px;
+	padding: 0 16px;
+	background: #fff;
+	border: 1px solid $flc-border;
+	border-radius: 10px;
+	font-size: 15px;
+	color: $flc-title;
+	box-shadow: none;
+
+	&::placeholder {
+		color: #9aa1ad;
+	}
+	&:focus {
+		outline: none;
+		border-color: $flc-blue;
+		box-shadow: 0 0 0 3px rgba($flc-blue, 0.12);
+	}
+}
+
+.btl-bls-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 9px;
+	height: 48px;
+	padding: 0 22px;
+	border: 1px solid transparent;
+	border-radius: 10px;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+	transition: all 0.15s ease;
+
+	&__icon {
+		display: inline-flex;
+
+		svg {
+			width: 18px;
+			height: 18px;
+		}
+
+		&.is-spinning svg {
+			animation: btl-flc-spin 0.9s linear infinite;
+		}
+	}
+
+	&--primary {
+		background: $flc-blue;
+		border-color: $flc-blue;
+		color: #fff;
+
+		&:hover:not(:disabled) {
+			background: $flc-blue-dark;
+			border-color: $flc-blue-dark;
+		}
+	}
+
+	&--outline {
+		background: #fff;
+		border-color: $flc-border;
+		color: $flc-title;
+
+		&:hover:not(:disabled) {
+			border-color: rgba($flc-blue, 0.5);
+			color: $flc-blue;
+			background: rgba($flc-blue, 0.04);
+		}
+
+		.btl-bls-btn__icon {
+			color: $flc-blue;
+		}
+	}
+
+	&:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+}
+
+// A weekday quick-picker styled like the Pro schedule card.
+.btl-bls-weekdays {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+
+	span {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 42px;
+		height: 34px;
+		padding: 0 10px;
+		font-size: 13px;
+		font-weight: 500;
+		color: #475467;
+		background: #f5f7fa;
+		border: 1px solid $flc-border;
+		border-radius: 8px;
+
+		&.is-active {
+			background: $flc-blue;
+			border-color: $flc-blue;
+			color: #fff;
+		}
+	}
+}
+
+// ==========================================================================
+// Dark mode — mirrors the Pro palette (#1f2937 card / #111827 sunken /
+// #374151 border). Selectors are written in full since this partial is
+// imported at the stylesheet root.
+// ==========================================================================
+$btl-fte-dark-card: #1f2937;
+$btl-fte-dark-sunken: #111827;
+$btl-fte-dark-border: #374151;
+$btl-fte-dark-hover: #232f3e;
+$btl-fte-dark-text: #f3f4f6;
+$btl-fte-dark-muted: #9ca3af;
+$btl-fte-dark-mono: #cbd2dc;
+$btl-fte-dark-accent: #7ea2ff;
+$btl-fte-dark-link: #4b6ef5;
+
+body.betterlinks-dark-mode .betterlinks-body {
+	// ---- Health card -----------------------------------------------------
+	.btl-scanhealth {
+		background: $btl-fte-dark-card;
+		border-color: $btl-fte-dark-border;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+		&__rail {
+			border-right-color: $btl-fte-dark-border;
+		}
+
+		&__brand-icon {
+			background: rgba($btl-fte-dark-link, 0.2);
+			color: $btl-fte-dark-accent;
+		}
+
+		&__brand-text,
+		&__score-value,
+		&__fact-value,
+		&__meter-meta {
+			color: $btl-fte-dark-text;
+		}
+
+		&__score-unit,
+		&__meter-title {
+			color: $btl-fte-dark-mono;
+		}
+
+		&__attention,
+		&__fact-label {
+			color: $btl-fte-dark-muted;
+		}
+
+		&__settings .btl-form-label {
+			color: $btl-fte-dark-text;
+		}
+
+		&__field .btl-react-select__control {
+			background: $btl-fte-dark-sunken;
+			border-color: $btl-fte-dark-border;
+		}
+
+		&__btn--primary {
+			background: $btl-fte-dark-link;
+			border-color: $btl-fte-dark-link;
+		}
+
+		&__btn--ghost {
+			background: $btl-fte-dark-sunken;
+			border-color: $btl-fte-dark-border;
+			color: $btl-fte-dark-text;
+		}
+
+		&__bar {
+			background: $btl-fte-dark-sunken;
+		}
+
+		&__pill {
+			background: $btl-fte-dark-sunken;
+			border-color: $btl-fte-dark-border;
+			color: #6ee7b7;
+		}
+
+		&__chip {
+			background: $btl-fte-dark-sunken;
+			border-color: $btl-fte-dark-border;
+			color: $btl-fte-dark-mono;
+
+			strong {
+				color: $btl-fte-dark-text;
+			}
+		}
+
+		@media screen and (max-width: 1180px) {
+			&__rail {
+				border-bottom-color: $btl-fte-dark-border;
+			}
+		}
+	}
+
+	// ---- Settings cards --------------------------------------------------
+	.btl-bls-card {
+		background: $btl-fte-dark-card;
+		border-color: $btl-fte-dark-border;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+		&__head,
+		&__actions {
+			border-color: $btl-fte-dark-border;
+		}
+
+		&__icon {
+			background: rgba($btl-fte-dark-link, 0.2);
+			color: $btl-fte-dark-accent;
+		}
+
+		&__title {
+			color: $btl-fte-dark-text;
+		}
+
+		&__desc {
+			color: $btl-fte-dark-muted;
+
+			strong {
+				color: $btl-fte-dark-text;
+			}
+		}
+	}
+
+	.btl-bls-row {
+		border-bottom-color: $btl-fte-dark-border;
+
+		&__label {
+			color: $btl-fte-dark-text;
+		}
+		&__help {
+			color: $btl-fte-dark-muted;
+		}
+	}
+
+	.btl-bls-field__label {
+		color: $btl-fte-dark-text;
+	}
+	.btl-bls-field__help {
+		color: $btl-fte-dark-muted;
+	}
+
+	.btl-bls-select .btl-react-select__control,
+	.btl-bls-input,
+	input.btl-bls-input {
+		background: $btl-fte-dark-sunken;
+		border-color: $btl-fte-dark-border;
+		color: $btl-fte-dark-text;
+
+		&::placeholder {
+			color: $btl-fte-dark-muted;
+		}
+	}
+
+	.btl-bls-btn--primary {
+		background: $btl-fte-dark-link;
+		border-color: $btl-fte-dark-link;
+	}
+
+	.btl-bls-btn--outline {
+		background: $btl-fte-dark-sunken;
+		border-color: $btl-fte-dark-border;
+		color: $btl-fte-dark-text;
+	}
+
+	.btl-bls-weekdays span {
+		background: $btl-fte-dark-sunken;
+		border-color: $btl-fte-dark-border;
+		color: $btl-fte-dark-mono;
+
+		&.is-active {
+			background: $btl-fte-dark-link;
+			border-color: $btl-fte-dark-link;
+			color: #fff;
+		}
+	}
+
+	// ---- Results table ---------------------------------------------------
+	.btl-flc-card {
+		background: $btl-fte-dark-card;
+		border-color: $btl-fte-dark-border;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+		.btl-flc-search input[type='text'] {
+			background: $btl-fte-dark-sunken;
+			border-color: $btl-fte-dark-border;
+			color: $btl-fte-dark-text;
+
+			&::placeholder {
+				color: $btl-fte-dark-muted;
+			}
+		}
+
+		.btl-flc-dropdown__trigger {
+			background: $btl-fte-dark-sunken;
+			border-color: $btl-fte-dark-border;
+			color: $btl-fte-dark-text;
+		}
+		.btl-flc-dropdown__icon,
+		.btl-flc-dropdown__label,
+		.btl-flc-dropdown__chevron {
+			color: $btl-fte-dark-muted;
+		}
+
+		.btl-flc-btn {
+			background: $btl-fte-dark-sunken;
+			border-color: $btl-fte-dark-border;
+			color: $btl-fte-dark-text;
+		}
+
+		.btl-flc-check__box {
+			background: $btl-fte-dark-sunken;
+			border-color: #4b5563;
+		}
+
+		.btl-flc-table {
+			thead th {
+				background: $btl-fte-dark-sunken;
+				border-top-color: $btl-fte-dark-border;
+				border-bottom-color: $btl-fte-dark-border;
+				color: $btl-fte-dark-muted;
+			}
+
+			tbody tr {
+				border-bottom-color: $btl-fte-dark-border;
+
+				&:hover {
+					background: $btl-fte-dark-hover;
+				}
+			}
+
+			td {
+				color: $btl-fte-dark-text;
+			}
+		}
+
+		.btl-flc-link-cell__title {
+			color: $btl-fte-dark-text;
+		}
+		.btl-flc-link-cell__url {
+			color: $btl-fte-dark-mono;
+		}
+
+		.btl-flc-post-cell .btl-flc-posttitle {
+			color: $btl-fte-dark-text;
+		}
+		.btl-flc-post-cell .btl-flc-posttype {
+			background: $btl-fte-dark-sunken;
+			color: $btl-fte-dark-mono;
+		}
+
+		.btl-flc-checked {
+			color: $btl-fte-dark-muted;
+		}
+
+		.btl-flc-icon-btn {
+			color: $btl-fte-dark-muted;
+		}
+
+		.btl-flc-pagination {
+			border-top-color: $btl-fte-dark-border;
+			color: $btl-fte-dark-muted;
+
+			select,
+			.btl-flc-pagination__nav button {
+				background: $btl-fte-dark-sunken;
+				border-color: $btl-fte-dark-border;
+				color: $btl-fte-dark-text;
+			}
+		}
+	}
+}
