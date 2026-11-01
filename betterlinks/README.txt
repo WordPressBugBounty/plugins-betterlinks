@@ -5,7 +5,7 @@ Tags: link shortener, affiliate links, redirects, link cloaking, url shortener
 Requires at least: 6.2
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 3.1.5
+Stable tag: 3.1.6
 License: GPL-3.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -101,6 +101,7 @@ BetterLinks is a full affiliate link manager, not just a shortener.
 * **UTM Builder** — attach campaign parameters to any link
 * **Global UTM templates (PRO)** — save presets and apply them in bulk
 * **Dynamic redirects (PRO)** — A/B split testing, geo-targeting, device targeting and time-based rules on a single short URL
+* **Open in App (PRO)** — take visitors from in-app browsers straight to the native app, with Amazon, YouTube, TikTok, Spotify, Instagram and more supported
 * **Link scheduling & expiration (PRO)** — publish later, expire by date or click count, with a fallback URL
 * **Password-protected links (PRO)** — gate a short link behind a password
 * **Custom link previews (PRO)** — control the title, description and image when your link is shared on social
@@ -293,6 +294,11 @@ Any MCP-capable client. The setup screen has ready-made instructions for Claude 
 6. AI Bulk Link Generator — create short links for many posts at once
 
 == Changelog ==
+
+= 3.1.6 - 01/11/2026 =
+
+- Improvement: Optimized device detection to reduce load on regular page requests
+- Few minor bug fixes & improvements
 
 = 3.1.5 - 14/10/2026 =
 

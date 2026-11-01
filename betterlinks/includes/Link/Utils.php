@@ -6,7 +6,6 @@ use BetterLinks\Helper;
 use DeviceDetector\Parser\Device\AbstractDeviceParser;
 use BetterLinks\Traits\Links;
 use BetterLinks\Traits\ArgumentSchema;
-use DeviceDetector\DeviceDetector;
 use DeviceDetector\Parser\OperatingSystem;
 use DeviceDetector\Parser\Client\Browser;
 
@@ -258,9 +257,7 @@ class Utils {
 		// click for it, otherwise those automated hits would inflate analytics.
 		$is_head = isset( $_SERVER['REQUEST_METHOD'] ) && 'HEAD' === strtoupper( $_SERVER['REQUEST_METHOD'] ); // phpcs:ignore
 		if ( ! $is_head && filter_var( $data['track_me'], FILTER_VALIDATE_BOOLEAN ) ) {
-			$user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ''; // phpcs:ignore
-			$dd         = new DeviceDetector( $user_agent );
-			$dd->parse();
+			$dd = Helper::get_device_detector();
 	
 			$data      = apply_filters( 'betterlinks/extra_tracking_data', $data, $dd );
 	
@@ -314,6 +311,25 @@ class Utils {
 		if ( apply_filters( 'betterlinks/link/send_powered_by_header', true, $data ) ) {
 			header( 'X-Redirect-Powered-By: https://www.betterlinks.io/' );
 		}
+
+		/**
+		 * Fires once the click is recorded and the response headers are set, just
+		 * before the redirect itself is sent.
+		 *
+		 * This is the one point where everything about the visit is already
+		 * settled (tracking, robots and cache headers, the forwarded parameters
+		 * in `$target_url`) and nothing has been sent yet. A handler that wants to
+		 * answer with its own page instead of a redirect — BetterLinks Pro's
+		 * "Open in App" interstitial does — renders it here and exits, the same
+		 * contract as `betterlinks/make_cloaked_redirect`. A handler that returns
+		 * leaves the normal redirect to run.
+		 *
+		 * @since 3.1.6
+		 *
+		 * @param string $target_url The final destination, with forwarded parameters applied.
+		 * @param array  $data       The link row being redirected.
+		 */
+		do_action( 'betterlinks/link/dispatch_redirect', $target_url, $data );
 
 		// phpcs:disable WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- BetterLinks redirects to the user-configured external target URL by design; wp_safe_redirect would block off-site URLs and break the plugin's core feature.
 		switch ( $data['redirect_type'] ) {

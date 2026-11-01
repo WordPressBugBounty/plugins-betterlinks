@@ -3,7 +3,6 @@ namespace BetterLinks;
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 use BetterLinks\Link\Utils;
-use DeviceDetector\DeviceDetector;
 
 class Link extends Utils {
 	public function __construct() {
@@ -49,11 +48,12 @@ class Link extends Utils {
 			return false;
 		}
 
-		$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : ''; // phpcs:ignore
-		$dd         = new DeviceDetector( $user_agent );
-		$dd->parse();
-
-		$data['is_bot'] = $dd->isBot();
+		// Parsing the user agent loads several MB of detector tables, and this runs
+		// on every front-end request. Only do it when a link matched; unmatched
+		// requests pass is_bot = false to the hooks below.
+		$is_link        = ! empty( $data );
+		$data           = $is_link ? $data : array();
+		$data['is_bot'] = $is_link && Helper::get_device_detector()->isBot();
 		if ( empty( $data['target_url'] ) || ! apply_filters( 'betterlinks/pre_before_redirect', $data ) ) {
 			// password protection logics
 			do_action( 'betterlinkspro/admin/check_password_protection', $request_uri, $data );

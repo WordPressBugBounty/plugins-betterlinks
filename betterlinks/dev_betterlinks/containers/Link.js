@@ -426,6 +426,10 @@ export const Link = (props) => {
 						);
 					case 'technology':
 						return value.filter(item => item.link && item.link.trim() !== '');
+					case 'app':
+						// Open in App (Pro): one row. An empty link means "open the
+						// link's own target URL", so it stays right when the target changes.
+						return [{ link: value[0] && value[0].link ? value[0].link.trim() : '' }];
 					case 'time':
 						return value.filter(item =>
 							item.link && item.link.trim() !== '' &&

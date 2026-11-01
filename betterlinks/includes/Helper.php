@@ -792,6 +792,28 @@ class Helper {
 	}
 
 	/**
+	 * The current request's user agent, parsed by DeviceDetector.
+	 *
+	 * Parsing is expensive (several MB of regex tables), so the result is reused
+	 * for the rest of the request: a tracked redirect needs it for both the bot
+	 * check and the click row.
+	 *
+	 * @return DeviceDetector
+	 */
+	public static function get_device_detector() {
+		static $user_agent = null, $detector = null;
+
+		$current = isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : ''; // phpcs:ignore
+		if ( null === $detector || $current !== $user_agent ) {
+			$user_agent = $current;
+			$detector   = new DeviceDetector( $user_agent );
+			$detector->parse();
+		}
+
+		return $detector;
+	}
+
+	/**
 	 * Whether a path belongs to WordPress itself: admin, login, REST API, cron,
 	 * XML-RPC or the core file directories. A short link at such a path would take
 	 * over a core entry point for every visitor.
@@ -1509,9 +1531,7 @@ class Helper {
 	
 	public static function init_tracking( $data, $utils ) {
 		global $betterlinks;
-		$user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : ''; // phpcs:ignore
-		$dd         = new DeviceDetector( $user_agent );
-		$dd->parse();
+		$dd = self::get_device_detector();
 
 		$data['is_bot'] = $dd->isBot();
 		if ( empty( $data['target_url'] ) || ! apply_filters( 'betterlinks/pre_before_redirect', $data ) ) {

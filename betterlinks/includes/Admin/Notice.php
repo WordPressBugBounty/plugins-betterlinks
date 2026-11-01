@@ -416,18 +416,15 @@ class Notice {
 			'<div class="notice notice-success is-dismissible btl-dashboard-notice btl-notice btl-notice--new" id="btl-dashboard-notice">
 				<p class="btl-notice__body">
 					<span class="btl-notice__pill">%1$s</span>
-					<span class="btl-notice__text"><strong>%2$s</strong>%3$s<a class="btl-notice__link" target="_blank" rel="noopener noreferrer" href="%4$s">%5$s</a>%6$s<a class="btl-notice__link" target="_blank" rel="noopener noreferrer" href="%7$s">%8$s</a>%9$s<a class="btl-notice__link" target="_blank" rel="noopener noreferrer" href="%10$s">%11$s</a>%12$s</span>
+					<span class="btl-notice__text"><strong>%2$s</strong>%3$s<a class="btl-notice__link" target="_blank" rel="noopener noreferrer" href="%4$s">%5$s</a>%6$s<a class="btl-notice__link" target="_blank" rel="noopener noreferrer" href="%7$s">%8$s</a>%9$s</span>
 				</p>
 			</div>',
 			esc_html__( 'NEW', 'betterlinks' ),
-			esc_html__( 'BetterLinks Pro 3.0 New UI is here!', 'betterlinks' ),
-			esc_html__( ' Explore ', 'betterlinks' ),
-			esc_url( 'https://betterlinks.io/docs/create-promo-cards-with-betterlinks' ),
-			esc_html__( 'Promo Cards', 'betterlinks' ),
-			esc_html__( ', ', 'betterlinks' ),
-			esc_url( 'https://betterlinks.io/docs/create-link-in-bio-betterlinks' ),
-			esc_html__( 'Bio Links', 'betterlinks' ),
-			esc_html__( ', and a refreshed experience. See the ', 'betterlinks' ),
+			esc_html__( 'BetterLinks Pro 3.1 is here!', 'betterlinks' ),
+			esc_html__( ' Try ', 'betterlinks' ),
+			esc_url( 'https://betterlinks.io/docs/how-to-configure-open-in-app-with-betterlinks/' ),
+			esc_html__( 'Open in App', 'betterlinks' ),
+			esc_html__( ', so links opened in in-app browsers can go straight to the native app. See the ', 'betterlinks' ),
 			esc_url( 'https://betterlinks.io/changelog/' ),
 			esc_html__( 'changelog', 'betterlinks' ),
 			esc_html__( '.', 'betterlinks' )

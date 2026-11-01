@@ -31,17 +31,26 @@ const TimeIcon = () => (
 	</svg>
 );
 
+const AppIcon = () => (
+	<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+		<rect x="6.5" y="2.5" width="11" height="19" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
+		<path d="M10.5 5.5h3M12 17.5v.01" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+		<path d="M12 8.5v5.5m0 0l-2-2m2 2l2-2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+	</svg>
+);
+
 // Mirrors REDIRECT_TYPES in the Pro DynamicRedirect component.
 const TYPES = [
 	{ label: __('Rotation', 'betterlinks'), icon: <RotationIcon /> },
 	{ label: __('Geography', 'betterlinks'), icon: <GeographyIcon /> },
 	{ label: __('Device', 'betterlinks'), icon: <DeviceIcon /> },
 	{ label: __('Time', 'betterlinks'), icon: <TimeIcon /> },
+	{ label: __('Open in App', 'betterlinks'), icon: <AppIcon /> },
 ];
 
 /**
  * Locked preview of the Pro "Dynamic Redirects" panel: the enable switch plus
- * the four redirect types the real editor offers.
+ * the five redirect types the real editor offers.
  */
 const DynamicRedirectsTeaser = ({ openUpgradeToProModal = () => {} }) => {
 	if (is_pro_enabled) return;
